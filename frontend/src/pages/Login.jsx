@@ -34,9 +34,9 @@ function Login() {
 
       // 3. Direct automated routing matching system layouts
       if (role === "admin") {
-        navigate("/admin-dashboard");
+        navigate("/admin");
       } else {
-        navigate(`/${role}-dashboard`);
+        navigate(`/${role}`);
       }
 
     } catch (err) {

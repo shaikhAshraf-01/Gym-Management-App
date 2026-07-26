@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import AdminLayout from "./layouts/adminLayout/AdminLayout";
 import AdminDashboard from "./components/adminComponents/AdminDashboard";
+import AdminProfile from "./components/adminComponents/AdminProfile";
+import AllGyms from "./components/adminComponents/AllGyms";
 
 function App() {
   return (
@@ -13,12 +15,15 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* 🔒 Nested Admin Routing Layer */}
-        <Route path="/admin-dashboard" element={<AdminLayout />}>
-          {/* index means this sub-route loads automatically at "/admin-dashboard" */}
+      < Route path="/admin" element={<AdminLayout />}>
+          {/* Automatically loads at "/admin" */}
           <Route index element={<AdminDashboard />} />
           
-          {/* Example of adding more sub-pages under the layout later:
-          <Route path="users" element={<AdminUsers />} /> */}
+          {/* Resolves cleanly to "/admin/all-gyms" */}
+          <Route path="/admin/all-gyms" element={<AllGyms />} />
+          
+          {/* Resolves cleanly to "/admin/profile" */}
+          <Route path="/admin/profile" element={<AdminProfile />} />
         </Route>
 
         {/* Fallback Redirection */}
