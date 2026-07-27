@@ -1,11 +1,16 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
+//admin routes
 import AdminLayout from "./layouts/adminLayout/AdminLayout";
 import AdminDashboard from "./components/adminComponents/AdminDashboard";
 import AdminProfile from "./components/adminComponents/AdminProfile";
 import AllGyms from "./components/adminComponents/AllGyms";
-
+import AddGyms from "./components/adminComponents/AddGyms";
+//owner routes
+import OwnerLayout from "./layouts/ownerLayout/OwnerLayout";
+import  OwnerDashboard  from "./components/ownerComponents/OwnerDashboard";
+import AllMembers from "./components/ownerComponents/AllMembers";
 function App() {
   return (
     <BrowserRouter>
@@ -18,12 +23,14 @@ function App() {
       < Route path="/admin" element={<AdminLayout />}>
           {/* Automatically loads at "/admin" */}
           <Route index element={<AdminDashboard />} />
-          
-          {/* Resolves cleanly to "/admin/all-gyms" */}
           <Route path="/admin/all-gyms" element={<AllGyms />} />
-          
-          {/* Resolves cleanly to "/admin/profile" */}
+          <Route path="/admin/add-gyms" element={<AddGyms />} />
           <Route path="/admin/profile" element={<AdminProfile />} />
+        </Route>
+        {/* Owner */}
+         < Route path="/owner" element={<OwnerLayout />}>
+          <Route index element={<OwnerDashboard />} />
+          <Route path="/owner/all-members" element={<AllMembers/>}/>
         </Route>
 
         {/* Fallback Redirection */}

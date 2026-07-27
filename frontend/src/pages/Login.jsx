@@ -6,7 +6,7 @@ import { loginStart, loginSuccess, loginFailure } from "../redux/slices/authSlic
 import LoginImg from "../assets/loginPage.png";
 
 function Login() {
-  const [role, setRole] = useState("admin"); // 'admin' | 'owner' | 'trainer'
+  const [role, setRole] = useState("owner"); // 'admin' | 'owner' | 'trainer'
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);

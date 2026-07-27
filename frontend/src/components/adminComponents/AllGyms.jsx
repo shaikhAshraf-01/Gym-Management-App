@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Phone,
@@ -6,21 +8,27 @@ import {
   Calendar,
   Users,
   Edit3,
-  ShieldCheck,
   ShieldAlert,
   X,
   Trash2,
-  RefreshCw,
   Plus,
   Eye,
   EyeOff,
+  RefreshCw,
   History,
   IndianRupee,
   CheckCircle2,
   Clock,
+  ShieldCheck,
 } from "lucide-react";
+import { updateGym, deleteGym } from "../../redux/slices/gymSlice";
+// ^ Adjust this import path to wherever gymsSlice.js actually lives
+//   in your folder structure (e.g. "../../../features/superAdmin/gymsSlice").
 
 export default function AllGyms() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
   // ------------------------------------------------------------------
   // 1. TOP LEVEL STATE
   // ------------------------------------------------------------------
@@ -43,55 +51,16 @@ export default function AllGyms() {
   const [visiblePasswords, setVisiblePasswords] = useState({});
 
   // ------------------------------------------------------------------
-  // 2. MOCK DATA
-  // Each gym has:
+  // 2. GYM DATA — now read from Redux (gymsSlice) instead of local
+  // mock state, so AddGym.jsx and AllGyms.jsx share the same source
+  // of truth. Each gym still has:
   //  - `trainers`: array of individual trainer logins (own mobile+password each)
   //  - `subscriptionHistory`: every plan period ever purchased, oldest
   //    first. status/startDate/endDate always mirror the LAST entry in
   //    this array — there's no separate "current plan" field to drift
   //    out of sync.
   // ------------------------------------------------------------------
-  const [gymsData, setGymsData] = useState([
-    {
-      id: "GYM-101",
-      name: "Iron Paradise Fitness",
-      ownerName: "Rahul Sharma",
-      ownerMobile: "9876543210",
-      ownerPassword: "owner_password_123",
-      email: "rahul@ironparadise.com",
-      status: "active",
-      totalMembers: 342,
-      enquiries: 45,
-      address: "Plot 42, Sector 18, Commercial Hub, Pune, MH",
-      trainers: [
-        { id: "TRN-1", name: "Sanjay Patil", mobile: "9822055667", password: "sanjay@123" },
-        { id: "TRN-2", name: "Anita Rao", mobile: "9765433221", password: "anita@456" },
-      ],
-      subscriptionHistory: [
-        { id: "SUB-1", plan: "Basic", startDate: "2024-07-10", endDate: "2025-01-10", amount: 15000, paymentMode: "UPI" },
-        { id: "SUB-2", plan: "Plus", startDate: "2025-01-10", endDate: "2025-07-10", amount: 22000, paymentMode: "Card" },
-        { id: "SUB-3", plan: "Pro", startDate: "2025-07-10", endDate: "2026-07-10", amount: 45000, paymentMode: "Cash" },
-      ],
-    },
-    {
-      id: "GYM-102",
-      name: "Gold's Gym Center",
-      ownerName: "Amit Verma",
-      ownerMobile: "9123456789",
-      ownerPassword: "golds_owner_secure",
-      email: "amit@goldsgym.in",
-      status: "inactive",
-      totalMembers: 198,
-      enquiries: 12,
-      address: "Galaxy Tower, 3rd Floor, MG Road, Mumbai, MH",
-      trainers: [
-        { id: "TRN-3", name: "Vikas Deshpande", mobile: "9090912345", password: "vikas@789" },
-      ],
-      subscriptionHistory: [
-        { id: "SUB-4", plan: "Basic", startDate: "2025-06-10", endDate: "2026-06-10", amount: 18000, paymentMode: "Cash" },
-      ],
-    },
-  ]);
+  const gymsData = useSelector((state) => state.gyms.gyms);
 
   // ------------------------------------------------------------------
   // Helpers to read "current" values off the last history entry —
@@ -130,7 +99,7 @@ export default function AllGyms() {
 
   const handleDrawerSave = (e) => {
     e.preventDefault();
-    setGymsData((prev) => prev.map((g) => (g.id === selectedGym.id ? selectedGym : g)));
+    dispatch(updateGym(selectedGym));
     setIsDrawerOpen(false);
   };
 
@@ -216,7 +185,7 @@ export default function AllGyms() {
     if (!confirmDelete) return;
 
     if (confirmDelete.type === "gym") {
-      setGymsData((prev) => prev.filter((g) => g.id !== confirmDelete.gymId));
+      dispatch(deleteGym(confirmDelete.gymId));
       if (selectedGym?.id === confirmDelete.gymId) setIsDrawerOpen(false);
     }
 
@@ -255,6 +224,14 @@ export default function AllGyms() {
             Monitor subscriptions, manage trainer accounts, and renew plans.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => navigate("/admin/add-gyms")}
+          className="inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 rounded-xl transition-colors cursor-pointer shrink-0"
+        >
+          <Plus className="h-4 w-4" />
+          Add Gym
+        </button>
       </header>
 
       {/* SEARCH + FILTER BAR */}
@@ -361,32 +338,35 @@ export default function AllGyms() {
                 </div>
               </div>
 
-              {/* Card footer actions: Edit, Timeline, Delete */}
-              <div className="bg-slate-50/50 p-4 border-t border-slate-100 flex items-center justify-between gap-2">
+              {/* Card footer actions: Edit, Timeline, Delete.
+                  `flex-1` makes all 3 buttons share width equally so
+                  they never overflow on narrow phone screens — no
+                  fixed px-3 squeeze fighting for space. */}
+              <div className="bg-slate-50/50 p-3 sm:p-4 border-t border-slate-100 flex items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => openEditDrawer(gym)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100/80 px-3 py-2 rounded-xl transition-all cursor-pointer focus:outline-none"
+                  className="flex-1 inline-flex items-center justify-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100/80 px-2 sm:px-3 py-2 rounded-xl transition-all cursor-pointer focus:outline-none"
                 >
-                  <Edit3 className="h-3.5 w-3.5" />
+                  <Edit3 className="h-3.5 w-3.5 shrink-0" />
                   <span>Edit</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => openTimeline(gym)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/80 px-3 py-2 rounded-xl transition-all cursor-pointer focus:outline-none"
+                  className="flex-1 inline-flex items-center justify-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/80 px-2 sm:px-3 py-2 rounded-xl transition-all cursor-pointer focus:outline-none"
                 >
-                  <History className="h-3.5 w-3.5" />
+                  <History className="h-3.5 w-3.5 shrink-0" />
                   <span>Timeline</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => requestDeleteGym(gym)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100/80 px-3 py-2 rounded-xl transition-all cursor-pointer focus:outline-none"
+                  className="flex-1 inline-flex items-center justify-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100/80 px-2 sm:px-3 py-2 rounded-xl transition-all cursor-pointer focus:outline-none"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3.5 w-3.5 shrink-0" />
                   <span>Delete</span>
                 </button>
               </div>
@@ -402,12 +382,12 @@ export default function AllGyms() {
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs">
           <div className="flex-1 cursor-pointer" onClick={() => setIsDrawerOpen(false)} />
 
-          <div className="w-full max-w-lg bg-white h-screen shadow-2xl p-6 overflow-y-auto border-l border-slate-100">
-            <form onSubmit={handleDrawerSave} className="space-y-6">
+          <div className="w-full max-w-lg bg-white h-screen shadow-2xl p-4 sm:p-6 overflow-y-auto border-l border-slate-100">
+            <form onSubmit={handleDrawerSave} className="space-y-5 sm:space-y-6">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">
                     {selectedGym.name}
                   </h2>
                   <p className="text-xs text-slate-400 mt-0.5">
@@ -626,18 +606,22 @@ export default function AllGyms() {
                 </div>
               </div>
 
-              {/* ---------------- FOOTER ACTIONS ---------------- */}
-              <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-100">
-                {/* <button
+              {/* ---------------- FOOTER ACTIONS ----------------
+                  Stacked on mobile (column-reverse so Save ends up on
+                  top, closest to the thumb) since 3 buttons in one row
+                  would overflow a narrow phone. Row layout returns at
+                  sm: and up where there's room. */}
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-slate-100">
+                <button
                   type="button"
                   onClick={() => requestDeleteGym(selectedGym)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
                 >
                   <Trash2 className="h-4 w-4" />
                   Delete Gym
-                </button> */}
+                </button>
 
-                <div className="flex items-center gap-3">
+                <div className="grid grid-cols-2 sm:flex sm:items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setIsDrawerOpen(false)}
@@ -649,7 +633,7 @@ export default function AllGyms() {
                     type="submit"
                     className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors cursor-pointer"
                   >
-                    Save Configuration Changes
+                    Save Changes
                   </button>
                 </div>
               </div>
@@ -664,11 +648,11 @@ export default function AllGyms() {
           subscription period for that gym, newest first, read-only.
       ================================================================ */}
       {isTimelineOpen && timelineGym && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-3 sm:px-4 py-6 sm:py-8">
           {/* Backdrop closer */}
           <div className="absolute inset-0" onClick={() => setIsTimelineOpen(false)} />
 
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6 space-y-6">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-4 sm:p-6 space-y-5 sm:space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
@@ -760,7 +744,7 @@ export default function AllGyms() {
       ================================================================ */}
       {confirmDelete && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5 sm:p-6 space-y-4">
             <div className="flex items-center gap-2 text-rose-600">
               <ShieldAlert className="h-5 w-5" />
               <h3 className="font-bold text-slate-800">
@@ -783,7 +767,7 @@ export default function AllGyms() {
               <button
                 type="button"
                 onClick={confirmDeleteAction}
-                className=" px-4 py-2 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors"
+                className="px-4 py-2 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors"
               >
                 {confirmDelete.type === "gym" ? "Delete Gym" : "Remove Trainer"}
               </button>

@@ -16,6 +16,7 @@ export default function AdminSidebar() {
   const navItems = [
     { label: "Dashboard", path: "/admin", icon: LayoutDashboard, end: true },
     { label: "All Gyms", path: "/admin/all-gyms", icon: Dumbbell, end: false },
+    { label: "Add Gyms", path: "/admin/add-gyms", icon: Dumbbell, end: false },
     { label: "Profile", path: "/admin/profile", icon: User, end: false },
   ];
 
