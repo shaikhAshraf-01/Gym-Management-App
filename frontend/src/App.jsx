@@ -11,6 +11,7 @@ import AddGyms from "./components/adminComponents/AddGyms";
 import OwnerLayout from "./layouts/ownerLayout/OwnerLayout";
 import  OwnerDashboard  from "./components/ownerComponents/OwnerDashboard";
 import AllMembers from "./components/ownerComponents/AllMembers";
+import AddSelectionContainer from "./layouts/ownerLayout/AddSelectionContainer";
 function App() {
   return (
     <BrowserRouter>
@@ -31,6 +32,8 @@ function App() {
          < Route path="/owner" element={<OwnerLayout />}>
           <Route index element={<OwnerDashboard />} />
           <Route path="/owner/all-members" element={<AllMembers/>}/>
+          <Route path="/owner/add" element={<AddSelectionContainer />} />
+
         </Route>
 
         {/* Fallback Redirection */}
