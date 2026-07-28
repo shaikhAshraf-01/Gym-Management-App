@@ -1,0 +1,113 @@
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+
+// 📦 TEMPORARY HARDCODED DATABASE
+const MOCK_DB = {
+  admin: {
+    mobile: "9172001155",
+    password: "ashrafhere",
+    profile: { id: "ADM-001", name: "Ashraf Admin", email: "ashraf@fitzone.com" }
+  },
+  owner: {
+    mobile: "7798334404",
+    password: "sajid334404",
+    profile: { id: "GYM-101", name: "Sajid Shaikh", gymName: "S11 Fitness", email: "sajid@s11.com" }
+  }
+};
+
+const initialState = {
+  user: null,               // Holds user profile object (mobile, name, gymId, etc.)
+  role: null,                // 'admin' | 'owner' | 'trainer'
+  isAuthenticated: false,    // Boolean lock to protect routes
+  loading: false,            // Track authentication states
+  error: null,               // Catch-all string for validation errors
+};
+
+// ⚙️ ASYNC THUNK: Process static credential evaluations without an API backend
+export const mockLogin = createAsyncThunk(
+  "auth/mockLogin",
+  async ({ mobile, password }, { rejectWithValue }) => {
+    try {
+      // 1. Evaluate Admin Match
+      if (mobile === MOCK_DB.admin.mobile && password === MOCK_DB.admin.password) {
+        return { user: MOCK_DB.admin.profile, role: "admin" };
+      }
+
+      // 2. Evaluate Owner Match
+      if (mobile === MOCK_DB.owner.mobile && password === MOCK_DB.owner.password) {
+        return { user: MOCK_DB.owner.profile, role: "owner" };
+      }
+
+      // 3. Fallback evaluation for Trainer role (Allows any password for testing)
+      if (mobile.startsWith("98") || mobile.length === 10) { 
+        return { 
+          user: { id: `TRN-${Date.now()}`, name: "Guest Trainer", mobile }, 
+          role: "trainer" 
+        };
+      }
+
+      // 4. Trigger rejection string if credentials do not match criteria
+      return rejectWithValue("Invalid mobile number or password configuration.");
+    } catch (err) {
+      return rejectWithValue("Authentication execution subsystem failure.");
+    }
+  }
+);
+
+const authSlice = createSlice({
+  name: "auth",
+  initialState,
+  reducers: {
+    logout: (state) => {
+      state.user = null;
+      state.role = null;
+      state.isAuthenticated = false;
+      state.error = null;
+      localStorage.removeItem("fitzone_auth");
+    },
+    restoreSession: (state) => {
+      const stored = localStorage.getItem("fitzone_auth");
+      if (!stored) return;
+
+      try {
+        const { user, role } = JSON.parse(stored);
+        if (user && role) {
+          state.user = user;
+          state.role = role;
+          state.isAuthenticated = true;
+        }
+      } catch {
+        localStorage.removeItem("fitzone_auth");
+      }
+    },
+  },
+  // ⚡ EXTRA REDUCERS: Intercept Async Thunk states and write data cleanly
+  extraReducers: (builder) => {
+    builder
+      .addCase(mockLogin.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(mockLogin.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = true;
+        state.user = action.payload.user;
+        state.role = action.payload.role;
+        state.error = null;
+
+        localStorage.setItem(
+          "fitzone_auth",
+          JSON.stringify({
+            user: action.payload.user,
+            role: action.payload.role,
+          })
+        );
+      })
+      .addCase(mockLogin.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { logout, restoreSession } = authSlice.actions;
+export default authSlice.reducer;

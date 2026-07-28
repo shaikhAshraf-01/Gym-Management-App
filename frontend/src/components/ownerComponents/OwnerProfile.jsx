@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { 
   Building2, 
   User, 
@@ -14,10 +15,13 @@ import {
   Trash2
 } from "lucide-react";
 import { removeTrainer } from "../../redux/slices/gymSlice";
+import { logout } from "../../redux/slices/authSlice";
+
 import AddTrainerModal from "./AddTrainerModal";
 
 export default function OwnerProfile() {
   const dispatch = useDispatch();
+  const navigate=useNavigate();
   const activeGymId = "GYM-101"; 
   
   // Connect cleanly to the Redux store gyms list slice
@@ -37,10 +41,9 @@ export default function OwnerProfile() {
   }
 
   const handleLogout = () => {
-    if (window.confirm("Are you sure you want to log out?")) {
-      console.log("Session cleared");
-    }
-  };
+     dispatch(logout());
+     navigate("/login");
+   };
 
   const handleDeleteTrainer = (trainerId, trainerName) => {
     if (window.confirm(`Are you sure you want to remove trainer "${trainerName}"?`)) {
@@ -83,7 +86,7 @@ export default function OwnerProfile() {
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 transition px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200 cursor-pointer"
+            className="flex md:hidden items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 transition px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200 cursor-pointer"
           >
             <LogOut className="h-3.5 w-3.5" />
             Logout
