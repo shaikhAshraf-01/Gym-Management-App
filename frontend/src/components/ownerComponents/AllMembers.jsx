@@ -3,7 +3,7 @@ import EnquiryView from './EnquiryView';
 import MembersView from './MembersView';
 
 export default function AllMembers() {
-  const [activeTab, setActiveTab] = useState('enquiry');
+  const [activeTab, setActiveTab] = useState('members');
 
   return (
     // Reduced padding on mobile (p-4 instead of p-6) to save precious horizontal space

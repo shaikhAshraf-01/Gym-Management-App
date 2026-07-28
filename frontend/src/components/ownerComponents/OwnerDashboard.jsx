@@ -1,50 +1,51 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Phone, CalendarClock, User, Smartphone, MoreVertical, RefreshCw, Trash2 } from "lucide-react";
+import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { Phone, CalendarClock, User, Smartphone, RefreshCw, Trash2 } from "lucide-react";
+import { updateMember, deleteMember } from "../../redux/slices/membersSlice";
+import ExtendMembershipModal from "./ExtendMembershipModal";
+
+// How many days out counts as "expiring soon" for this widget.
+const EXPIRING_WINDOW_DAYS = 7;
+
+function daysUntil(expiryDate) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expiry = new Date(expiryDate);
+  expiry.setHours(0, 0, 0, 0);
+  return Math.round((expiry - today) / (1000 * 60 * 60 * 24));
+}
 
 export default function OwnerDashboard() {
-  const [activeDropdown, setActiveDropdown] = useState(null);
-  const dropdownRef = useRef(null);
+  const dispatch = useDispatch();
+  const members = useSelector((state) => state.members.members);
+  const [extendingMember, setExtendingMember] = useState(null); // member being extended, or null
 
-  const [expiringMembers, setExpiringMembers] = useState([
-    { id: 1, name: "Rahul Sharma", mobile: "+919876543210", daysLeft: 2 },
-    { id: 2, name: "Sneha Patel", mobile: "+919876543211", daysLeft: 4 },
-    { id: 3, name: "Amit Verma", mobile: "+919876543212", daysLeft: 0 },
-    { id: 4, name: "Priya Nair", mobile: "+919876543213", daysLeft: 7 },
-  ]);
+  // Derive the "expiring soon" list straight from the members store —
+  // no separate local copy to fall out of sync.
+  const expiringMembers = members
+    .map((member) => ({ ...member, daysLeft: daysUntil(member.expiryDate) }))
+    .filter((member) => member.daysLeft <= EXPIRING_WINDOW_DAYS)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setActiveDropdown(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const toggleDropdown = (id, e) => {
-    e.stopPropagation();
-    setActiveDropdown(activeDropdown === id ? null : id);
+  const handleExtend = (member) => {
+    setExtendingMember(member);
   };
 
-  const handleRenew = (id, name) => {
-    setActiveDropdown(null);
-    alert(`Renew action triggered for ${name} (ID: ${id})`);
+  const handleSaveExtend = (id, changes) => {
+    dispatch(updateMember({ id, changes }));
+    setExtendingMember(null);
   };
 
   const handleDelete = (id, name) => {
-    setActiveDropdown(null);
     const confirmDelete = window.confirm(`Are you sure you want to delete ${name}?`);
     if (confirmDelete) {
-      setExpiringMembers(expiringMembers.filter(member => member.id !== id));
+      dispatch(deleteMember(id));
     }
   };
 
   return (
     /* Clean bg-gray-50 color applied to match AllMembers workspace */
     <div className=" md:p-6 max-w-7xl mx-auto bg-gray-50 min-h-screen pb-24 md:pb-6 text-gray-600">
-      
-     
 
       {/* Main Container Card - Uses crisp border layout matching AllMembers view container */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
@@ -55,98 +56,103 @@ export default function OwnerDashboard() {
           </h3>
         </div>
 
-        {/* Grid Header Layout for Desktop */}
-        <div className="hidden md:grid grid-cols-5 gap-4 px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 border border-gray-200 rounded-t-xl">
-          <div>Name</div>
-          <div>Mobile</div>
-          <div>Expires In</div>
-          <div className="text-center">Action</div>
-          <div className="text-right">Manage</div>
-        </div>
+        {expiringMembers.length === 0 && (
+          <div className="text-center py-10 text-gray-400 border border-dashed border-gray-200 rounded-xl">
+            <p className="text-sm font-medium">No memberships expiring in the next {EXPIRING_WINDOW_DAYS} days.</p>
+          </div>
+        )}
 
-        {/* Dynamic List Render Matrix with standard border styles */}
-        <div className="divide-y divide-gray-200 border-x border-b border-gray-200 rounded-b-xl overflow-hidden bg-white" ref={dropdownRef}>
-          {expiringMembers.map((member) => (
-            <div
-              key={member.id}
-              className="flex flex-col md:grid md:grid-cols-5 gap-2 md:gap-4 p-4 px-4 items-start md:items-center hover:bg-gray-50 transition-colors relative"
-            >
-              {/* Column 1: Member Name */}
-              <div className="flex items-center gap-2 font-medium text-gray-900">
-                <User className="h-4 w-4 text-gray-400 md:hidden" />
-                <span>{member.name}</span>
-              </div>
-
-              {/* Column 2: Mobile Number */}
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Smartphone className="h-4 w-4 text-gray-400 md:hidden" />
-                <span>{member.mobile}</span>
-              </div>
-
-              {/* Column 3: Membership Expiration Status Chip using light design styles */}
-              <div>
-                {member.daysLeft === 0 ? (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
-                    Expired Today
-                  </span>
-                ) : member.daysLeft <= 2 ? (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
-                    {member.daysLeft} Days left
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
-                    {member.daysLeft} Days left
-                  </span>
-                )}
-              </div>
-
-              {/* Column 4: Native Device Phone Call Action Trigger - Styled in Blue matching AllMembers themes */}
-              <div className="w-full md:w-auto flex md:justify-center mt-2 md:mt-0">
-                <a
-                  href={`tel:${member.mobile}`}
-                  className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 md:py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors shadow-sm select-none cursor-pointer"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                  <span>Call Now</span>
-                </a>
-              </div>
-
-              {/* Column 5: Options Dropdown Trigger */}
-              <div className="absolute top-4 right-4 md:static md:w-full md:flex md:justify-end">
-                <div className="relative inline-block text-left">
-                  <button
-                    onClick={(e) => toggleDropdown(member.id, e)}
-                    className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors focus:outline-none cursor-pointer"
-                  >
-                    <MoreVertical className="h-5 w-5" />
-                  </button>
-
-                  {/* Dropdown Card - Styled with light borders and high-utility white background shadow structures */}
-                  {activeDropdown === member.id && (
-                    <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-xl z-40 p-1 divide-y divide-gray-100">
-                      <button
-                        onClick={() => handleRenew(member.id, member.name)}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors text-left"
-                      >
-                        <RefreshCw className="h-4 w-4 text-blue-600" />
-                        <span>Renew Fees</span>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(member.id, member.name)}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors text-left"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span>Delete Member</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
+        {expiringMembers.length > 0 && (
+          <>
+            {/* Grid Header Layout for Desktop */}
+            <div className="hidden md:grid grid-cols-6 gap-4 px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 border border-gray-200 rounded-t-xl">
+              <div>Name</div>
+              <div>Mobile</div>
+              <div>Expires In</div>
+              <div className="text-center">Call</div>
+              <div className="text-center">Extend</div>
+              <div className="text-center">Delete</div>
             </div>
-          ))}
-        </div>
+
+            {/* Dynamic List Render Matrix with standard border styles */}
+            <div className="divide-y divide-gray-200 border-x border-b border-gray-200 rounded-b-xl overflow-hidden bg-white">
+              {expiringMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex flex-col md:grid md:grid-cols-6 gap-2 md:gap-4 p-4 px-4 items-start md:items-center hover:bg-gray-50 transition-colors"
+                >
+                  {/* Column 1: Member Name */}
+                  <div className="flex items-center gap-2 font-medium text-gray-900">
+                    <User className="h-4 w-4 text-gray-400 md:hidden" />
+                    <span>{member.name}</span>
+                  </div>
+
+                  {/* Column 2: Mobile Number */}
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Smartphone className="h-4 w-4 text-gray-400 md:hidden" />
+                    <span>{member.mobile}</span>
+                  </div>
+
+                  {/* Column 3: Membership Expiration Status Chip using light design styles */}
+                  <div>
+                    {member.daysLeft <= 0 ? (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
+                        {member.daysLeft === 0 ? "Expired Today" : "Expired"}
+                      </span>
+                    ) : member.daysLeft <= 2 ? (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                        {member.daysLeft} Days left
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                        {member.daysLeft} Days left
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Columns 4-6: Call, Extend, Delete — one row on mobile, three separate columns on desktop */}
+                  <div className="w-full grid grid-cols-3 gap-2 md:contents mt-2 md:mt-0">
+                    {/* Column 4: Native Device Phone Call Action Trigger */}
+                    <a
+                      href={`tel:${member.mobile}`}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors shadow-sm select-none cursor-pointer"
+                    >
+                      <Phone className="h-3.5 w-3.5" />
+                      <span>Call</span>
+                    </a>
+
+                    {/* Column 5: Extend Plan Action — opens ExtendMembershipModal */}
+                    <button
+                      onClick={() => handleExtend(member)}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium hover:bg-emerald-100 transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span>Extend</span>
+                    </button>
+
+                    {/* Column 6: Delete Member Action */}
+                    <button
+                      onClick={() => handleDelete(member.id, member.name)}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 text-xs font-medium hover:bg-red-100 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
+
+      {/* 🔄 EXTEND MODAL — shown when extendingMember is set */}
+      <ExtendMembershipModal
+        member={extendingMember}
+        onSave={handleSaveExtend}
+        onClose={() => setExtendingMember(null)}
+      />
     </div>
   );
 }

@@ -19,8 +19,8 @@ export default function OwnerSidebar() {
     { label: "Expiring", path: "/owner", icon: LayoutDashboard, end: true },
     { label: "Members", path: "/owner/all-members", icon: Dumbbell, end: false },
     { label: "Add", path: "/owner/add", icon: Plus, end: false, isAction: true },
-    { label: "Sales", path: "/admin/sales", icon: Dumbbell, end: false },
-    { label: "Profile", path: "/admin/profile", icon: User, end: false },
+    { label: "Sales", path: "/owner/sales", icon: Dumbbell, end: false },
+    { label: "Profile", path: "/owner/profile", icon: User, end: false },
   ];
 
   return (

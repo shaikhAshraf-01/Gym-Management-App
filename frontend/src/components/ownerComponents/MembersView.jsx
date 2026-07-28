@@ -1,36 +1,39 @@
 import React, { useState } from "react";
-import { Edit2, RefreshCw, Phone, User, Search, X } from "lucide-react";
+import { useSelector, useDispatch } from "react-redux";
+import { Edit2, CalendarPlus, Phone, User, Search, X, Calendar, CalendarX, Trash2 } from "lucide-react";
+import { updateMember, deleteMember, PLAN_LABELS } from "../../redux/slices/membersSlice";
+import EditMemberModal from "./EditMemberModal";
+import ExtendMembershipModal from "./ExtendMembershipModal";
 
 export default function MembersView() {
+  const dispatch = useDispatch();
+  const members = useSelector((state) => state.members.members);
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingMember, setEditingMember] = useState(null); // member being edited, or null
+  const [extendingMember, setExtendingMember] = useState(null); // member being extended, or null
 
-  const [members, setMembers] = useState([
-    {
-      id: 1,
-      name: "John Doe",
-      mobile: "9876543210",
-      age: 24,
-      plan: "3 Months",
-      planAmount: "4500",
-      balanceAmount: "1500",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      mobile: "9123456789",
-      age: 29,
-      plan: "1 Year",
-      planAmount: "12000",
-      balanceAmount: "0",
-    }
-  ]);
-
-  const handleEdit = (id) => {
-    console.log("Edit member:", id);
+  const handleEdit = (member) => {
+    setEditingMember(member);
   };
 
-  const handleRenew = (id) => {
-    console.log("Renew member plan:", id);
+  const handleSaveEdit = (id, changes) => {
+    dispatch(updateMember({ id, changes }));
+    setEditingMember(null);
+  };
+
+  const handleExtend = (member) => {
+    setExtendingMember(member);
+  };
+
+  const handleSaveExtend = (id, changes) => {
+    dispatch(updateMember({ id, changes }));
+    setExtendingMember(null);
+  };
+
+  const handleDelete = (id, name) => {
+    if (window.confirm(`Are you sure you want to permanently delete ${name}?`)) {
+      dispatch(deleteMember(id));
+    }
   };
 
   const filteredMembers = members.filter((member) => {
@@ -86,6 +89,8 @@ export default function MembersView() {
                 <th className="py-3 px-4">Mobile No.</th>
                 <th className="py-3 px-4">Age</th>
                 <th className="py-3 px-4">Plan</th>
+                <th className="py-3 px-4">Start Date</th>
+                <th className="py-3 px-4">End Date</th>
                 <th className="py-3 px-4">Amount</th>
                 <th className="py-3 px-4">Bal. Amt</th>
                 <th className="py-3 px-4 text-right">Actions</th>
@@ -99,9 +104,11 @@ export default function MembersView() {
                   <td className="py-3.5 px-4 text-gray-600">{member.age}</td>
                   <td className="py-3.5 px-4">
                     <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-xs font-medium">
-                      {member.plan}
+                      {PLAN_LABELS[member.plan] || member.plan}
                     </span>
                   </td>
+                  <td className="py-3.5 px-4 text-gray-600">{member.joiningDate}</td>
+                  <td className="py-3.5 px-4 text-gray-600">{member.expiryDate}</td>
                   <td className="py-3.5 px-4 font-medium text-gray-900">₹{member.planAmount}</td>
                   <td className="py-3.5 px-4">
                     <span className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-500" : "text-emerald-600"}`}>
@@ -111,18 +118,24 @@ export default function MembersView() {
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex justify-end gap-2">
                       <button
-                        onClick={() => handleRenew(member.id)}
+                        onClick={() => handleExtend(member)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200 transition-colors cursor-pointer"
                       >
-                        <RefreshCw className="h-3.5 w-3.5" />
-                        <span>Renew</span>
+                        <CalendarPlus className="h-3.5 w-3.5" />
+                        <span>Extend</span>
                       </button>
                       <button
-                        onClick={() => handleEdit(member.id)}
+                        onClick={() => handleEdit(member)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-md border border-gray-200 transition-colors cursor-pointer"
                       >
                         <Edit2 className="h-3.5 w-3.5" />
                         <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(member.id, member.name)}
+                        className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-md border border-red-200 cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </td>
@@ -151,19 +164,40 @@ export default function MembersView() {
                     {member.mobile}
                   </p>
                 </div>
-                <span className="bg-gray-100 text-gray-700 text-xs font-bold px-2 py-0.5 rounded-md">
-                  Age: {member.age}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="bg-gray-100 text-gray-700 text-xs font-bold px-2 py-0.5 rounded-md">
+                    Age: {member.age}
+                  </span>
+                  <button
+                    onClick={() => handleDelete(member.id, member.name)}
+                    aria-label="Delete member"
+                    className="p-2 bg-red-50 active:bg-red-100 text-red-600 border border-red-100 rounded-lg cursor-pointer shrink-0"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 border-t border-b border-gray-100 py-3 my-3 text-xs">
                 <div>
                   <p className="text-gray-400 uppercase font-bold tracking-wider text-[10px]">Active Plan</p>
-                  <p className="font-semibold text-blue-600 mt-0.5">{member.plan}</p>
+                  <p className="font-semibold text-blue-600 mt-0.5">{PLAN_LABELS[member.plan] || member.plan}</p>
                 </div>
                 <div>
                   <p className="text-gray-400 uppercase font-bold tracking-wider text-[10px]">Total Fees</p>
                   <p className="font-semibold text-gray-900 mt-0.5">₹{member.planAmount}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 uppercase font-bold tracking-wider text-[10px] flex items-center gap-1">
+                    <Calendar className="h-3 w-3" /> Start Date
+                  </p>
+                  <p className="font-semibold text-gray-700 mt-0.5">{member.joiningDate}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 uppercase font-bold tracking-wider text-[10px] flex items-center gap-1">
+                    <CalendarX className="h-3 w-3" /> End Date
+                  </p>
+                  <p className="font-semibold text-gray-700 mt-0.5">{member.expiryDate}</p>
                 </div>
                 <div className="col-span-2 pt-1.5">
                   <p className="text-gray-400 uppercase font-bold tracking-wider text-[10px]">Balance Outstanding</p>
@@ -175,14 +209,14 @@ export default function MembersView() {
 
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
-                  onClick={() => handleRenew(member.id)}
+                  onClick={() => handleExtend(member)}
                   className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm cursor-pointer"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  <span>Renew Plan</span>
+                  <CalendarPlus className="h-3.5 w-3.5" />
+                  <span>Extend Plan</span>
                 </button>
                 <button
-                  onClick={() => handleEdit(member.id)}
+                  onClick={() => handleEdit(member)}
                   className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-gray-200 cursor-pointer"
                 >
                   <Edit2 className="h-3.5 w-3.5" />
@@ -193,6 +227,20 @@ export default function MembersView() {
           ))}
         </div>
       )}
+
+      {/* ✏️ EDIT MODAL — shown when editingMember is set */}
+      <EditMemberModal
+        member={editingMember}
+        onSave={handleSaveEdit}
+        onClose={() => setEditingMember(null)}
+      />
+
+      {/* 🔄 EXTEND MODAL — shown when extendingMember is set */}
+      <ExtendMembershipModal
+        member={extendingMember}
+        onSave={handleSaveExtend}
+        onClose={() => setExtendingMember(null)}
+      />
 
     </div>
   );

@@ -8,7 +8,7 @@ export default function MembershipForm({ onSave, prefill }) {
     plan: "1_month",
     planAmount: "", 
     amountPayingToday: "", 
-    balanceAmount: "", 
+    balanceAmount: 0, // Changed to default number 0
     paymentMode: "upi",
     joiningDate: new Date().toISOString().split("T")[0], 
     remainingPayingDate: "", 
@@ -26,13 +26,15 @@ export default function MembershipForm({ onSave, prefill }) {
     }
   }, [prefill]);
 
-  // 📅 Automatic plan expiry calculator
+  // 📅 Automatic plan expiry AND balance amount calculator
   useEffect(() => {
+    // 1. Calculate Expiry Date
     let monthsToAdd = 1;
     if (formData.plan === "3_month") monthsToAdd = 3;
     if (formData.plan === "6_month") monthsToAdd = 6;
     if (formData.plan === "1_year") monthsToAdd = 12;
 
+    let calculatedExpiry = "";
     if (formData.joiningDate) {
       const date = new Date(formData.joiningDate);
       date.setMonth(date.getMonth() + monthsToAdd);
@@ -40,13 +42,22 @@ export default function MembershipForm({ onSave, prefill }) {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
-      
-      setFormData((prev) => ({
-        ...prev,
-        expiryDate: `${year}-${month}-${day}`,
-      }));
+      calculatedExpiry = `${year}-${month}-${day}`;
     }
-  }, [formData.plan, formData.joiningDate]);
+
+    // 2. Calculate Balance Amount safely
+    const total = parseFloat(formData.planAmount) || 0;
+    const paid = parseFloat(formData.amountPayingToday) || 0;
+    const calculatedBalance = Math.max(0, total - paid); // Prevents negative numbers
+
+    // Update state once for both calculations to optimize performance
+    setFormData((prev) => ({
+      ...prev,
+      expiryDate: calculatedExpiry,
+      balanceAmount: calculatedBalance
+    }));
+
+  }, [formData.plan, formData.joiningDate, formData.planAmount, formData.amountPayingToday]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -65,7 +76,7 @@ export default function MembershipForm({ onSave, prefill }) {
       plan: "1_month",
       planAmount: "",
       amountPayingToday: "",
-      balanceAmount: "",
+      balanceAmount: 0,
       paymentMode: "upi",
       joiningDate: new Date().toISOString().split("T")[0],
       remainingPayingDate: "",
@@ -104,7 +115,7 @@ export default function MembershipForm({ onSave, prefill }) {
           <input 
             type="number" name="age" value={formData.age} onChange={handleChange} 
             className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500" 
-            placeholder="24" required 
+            placeholder="24"  
           />
         </div>
 
@@ -153,9 +164,9 @@ export default function MembershipForm({ onSave, prefill }) {
         <div>
           <label className="block text-xs uppercase font-bold text-gray-500 mb-1">Balance Amount</label>
           <input 
-            type="number" name="balanceAmount" value={formData.balanceAmount} onChange={handleChange} 
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold focus:outline-none focus:border-blue-500" 
-            placeholder="Enter remaining balance" required 
+            type="number" name="balanceAmount" value={formData.balanceAmount} readOnly
+            className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold cursor-not-allowed outline-none" 
+            placeholder="Calculated automatically" 
           />
         </div>
 

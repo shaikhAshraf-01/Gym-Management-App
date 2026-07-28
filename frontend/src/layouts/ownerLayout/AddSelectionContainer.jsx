@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { CreditCard, FileText, ArrowLeft } from "lucide-react";
-import MembershipForm from "../../components/ownerComponents/MembershipForm"; 
-import EnquiryForm from "../../components/ownerComponents/EnquiryForm";       
+import MembershipForm from "../../components/ownerComponents/MembershipForm";
+import EnquiryForm from "../../components/ownerComponents/EnquiryForm";
+import { addMember } from "../../redux/slices/membersSlice";
+import { addEnquiry, deleteEnquiry } from "../../redux/slices/enquiriesSlice";
 
 export default function AddSelectionContainer() {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [selectedType, setSelectedType] = useState(null); // 'membership' | 'enquiry' | null
-  
+
   // ✅ Explicitly defined local state container for conversion data
   const [prefillData, setPrefillData] = useState(null);
 
@@ -16,7 +20,7 @@ export default function AddSelectionContainer() {
   useEffect(() => {
     if (location.state && location.state.type) {
       setSelectedType(location.state.type);
-      
+
       // If conversion fields exist in route state, capture them cleanly
       if (location.state.prefill) {
         setPrefillData(location.state.prefill);
@@ -31,6 +35,25 @@ export default function AddSelectionContainer() {
     setPrefillData(null);
     // Clear location state history stack to prevent re-triggering on manual reloads
     navigate(location.pathname, { replace: true, state: {} });
+  };
+
+  // 💾 Save a new membership — either a fresh signup, or a converted
+  // enquiry (in which case prefillData.enquiryId tells us which
+  // enquiry to remove once the member has been created).
+  const handleSaveMembership = (formData) => {
+    dispatch(addMember(formData));
+
+    if (prefillData?.enquiryId) {
+      dispatch(deleteEnquiry(prefillData.enquiryId));
+    }
+
+    navigate("/owner/all-members");
+  };
+
+  // 💾 Save a new enquiry/lead
+  const handleSaveEnquiry = (formData) => {
+    dispatch(addEnquiry(formData));
+    navigate("/owner/all-members");
   };
 
   return (
@@ -121,13 +144,12 @@ export default function AddSelectionContainer() {
         {/* DYNAMIC FORM AREA CONTAINER */}
         <div className={`bg-white rounded-xl shadow-sm border border-gray-100 p-2 md:p-6 min-h-[250px] flex items-center justify-center ${selectedType ? "block" : "hidden md:flex"}`}>
           
-          {/* ✅ FIXED: Both variables are correctly referenced as prefillData */}
           {selectedType === "membership" && (
-            <MembershipForm prefill={prefillData || null} />
+            <MembershipForm prefill={prefillData || null} onSave={handleSaveMembership} />
           )}
-          
+
           {selectedType === "enquiry" && (
-            <EnquiryForm />
+            <EnquiryForm onSave={handleSaveEnquiry} />
           )}
           
           {!selectedType && (

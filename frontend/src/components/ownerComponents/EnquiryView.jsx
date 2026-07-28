@@ -1,56 +1,43 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
 import { Edit2, Phone, User, Search, X, Calendar, CalendarClock, UserCheck, Trash2, Check, AlertCircle } from "lucide-react";
+import { updateEnquiry, deleteEnquiry } from "../../redux/slices/enquiriesSlice";
 
 export default function EnquiryView() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const enquiries = useSelector((state) => state.enquiries.enquiries);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // States tracking dynamic row inline edits
   const [editingId, setEditingId] = useState(null);
   const [editWillingToJoin, setEditWillingToJoin] = useState("");
 
-  // Sample lead data matching your exact inquiry structure
-  const [enquiries, setEnquiries] = useState([
-    {
-      id: 1,
-      name: "Rahul Sharma",
-      mobile: "9876543211",
-      enquiryAddDate: "2026-07-25",
-      whenToJoin: "Tomorrow"
-    },
-    {
-      id: 2,
-      name: "Amit Patel",
-      mobile: "9123456780",
-      enquiryAddDate: "2026-07-27",
-      whenToJoin: "Next Week"
-    }
-  ]);
-
   // 🔄 ROUTE ACTION: CONVERT ENQUIRY TO MEMBER (Works on PC & Mobile)
+  // Passes the enquiry's own id along as `enquiryId` so that once the
+  // Membership form is actually saved, AddSelectionContainer knows
+  // which enquiry to delete (see AddSelectionContainer.jsx).
   const handleConvert = (enquiry) => {
-    navigate("/owner/add", { 
-      state: { 
+    navigate("/owner/add", {
+      state: {
         type: "membership",
-        prefill: { name: enquiry.name, mobile: enquiry.mobile }
-      } 
+        prefill: { name: enquiry.name, mobile: enquiry.mobile, enquiryId: enquiry.id },
+      },
     });
   };
 
   // 📝 SAVE ACTION: UPDATE JOINING TIME FRAME INLINE
   const handleSaveEdit = (id) => {
     if (!editWillingToJoin.trim()) return;
-    setEnquiries((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, whenToJoin: editWillingToJoin } : item))
-    );
+    dispatch(updateEnquiry({ id, changes: { whenToJoin: editWillingToJoin } }));
     setEditingId(null);
   };
 
   // ❌ REMOVE ACTION: PERMANENTLY DELETE RECORD
   const handleDelete = (id) => {
     if (window.confirm("Are you sure you want to permanently delete this enquiry?")) {
-      setEnquiries((prev) => prev.filter((item) => item.id !== id));
+      dispatch(deleteEnquiry(id));
     }
   };
 
@@ -64,7 +51,7 @@ export default function EnquiryView() {
 
   return (
     <div className="w-full text-gray-900 animate-in fade-in duration-200">
-      
+
       {/* 🔍 FULL-WIDTH SEARCH BAR */}
       <div className="relative mb-6 w-full">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -119,9 +106,9 @@ export default function EnquiryView() {
                   <td className="py-3.5 px-4 text-gray-600">{item.enquiryAddDate}</td>
                   <td className="py-3.5 px-4">
                     {editingId === item.id ? (
-                      <input 
-                        type="text" 
-                        value={editWillingToJoin} 
+                      <input
+                        type="text"
+                        value={editWillingToJoin}
                         onChange={(e) => setEditWillingToJoin(e.target.value)}
                         className="bg-white border border-blue-500 rounded p-1 text-xs text-gray-900 focus:outline-none w-32 shadow-sm"
                       />
@@ -177,10 +164,10 @@ export default function EnquiryView() {
       {/* 📱 MOBILE CARDS VIEW (Visible on Phone screens) */}
       {/* ========================================================================= */}
       {filteredEnquiries.length > 0 && (
-        <div  className="block md:hidden space-y-3">
+        <div className="block md:hidden space-y-3">
           {filteredEnquiries.map((item) => (
             <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-              
+
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h4 className="font-bold text-base text-gray-900 flex items-center gap-1.5">
@@ -194,7 +181,8 @@ export default function EnquiryView() {
                 </div>
                 <button
                   onClick={() => handleDelete(item.id)}
-                  className="p-2 bg-red-50 text-red-600 border border-red-100 rounded-lg cursor-pointer"
+                  aria-label="Delete enquiry"
+                  className="p-2 bg-red-50 active:bg-red-100 text-red-600 border border-red-100 rounded-lg cursor-pointer shrink-0"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -224,8 +212,7 @@ export default function EnquiryView() {
                 </div>
               </div>
 
-              {/* Mobile Actions Grid */}
-              <div className="grid grid-cols-3 gap-2 mt-3">
+              <div className="grid grid-cols-2 gap-2 mt-3">
                 <button
                   onClick={() => handleConvert(item)}
                   className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 active:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm cursor-pointer"
@@ -239,6 +226,7 @@ export default function EnquiryView() {
                     onClick={() => { setEditingId(item.id); setEditWillingToJoin(item.whenToJoin); }}
                     className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-gray-200 cursor-pointer"
                   >
+                    <Edit2 className="h-3.5 w-3.5" />
                     Change Date
                   </button>
                 ) : (
@@ -246,23 +234,17 @@ export default function EnquiryView() {
                     onClick={() => handleSaveEdit(item.id)}
                     className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm cursor-pointer"
                   >
+                    <Check className="h-3.5 w-3.5" />
                     Save Date
                   </button>
                 )}
-
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs uppercase tracking-wider rounded-lg border border-red-200 cursor-pointer"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </button>
               </div>
-             
-             </div>
-           ))}
-           </div>
-          )}
-          
-          </div>
-        )}
+
+            </div>
+          ))}
+        </div>
+      )}
+
+    </div>
+  );
+}
