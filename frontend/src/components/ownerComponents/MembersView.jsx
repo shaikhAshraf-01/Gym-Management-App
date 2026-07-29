@@ -1,16 +1,22 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Edit2, CalendarPlus, Phone, User, Search, X, Calendar, CalendarX, Trash2 } from "lucide-react";
-import { updateMember, deleteMember, PLAN_LABELS } from "../../redux/slices/membersSlice";
+import { Edit2, CalendarPlus, Phone, User, Search, X, Calendar, CalendarX, Trash2, Eye } from "lucide-react";
+import { updateMember, deleteMember, extendMembership, PLAN_LABELS } from "../../redux/slices/membersSlice";
 import EditMemberModal from "./EditMemberModal";
 import ExtendMembershipModal from "./ExtendMembershipModal";
+import MemberHistoryModal from "./MemberHistoryModal";
 
 export default function MembersView() {
   const dispatch = useDispatch();
   const members = useSelector((state) => state.members.members);
+  // Whoever is logged in (owner or trainer) gets stamped as `addedBy` /
+  // `by` on new members and extension history entries.
+  const addedBy = useSelector((state) => state.auth.user?.name) || "Unknown";
+
   const [searchQuery, setSearchQuery] = useState("");
   const [editingMember, setEditingMember] = useState(null); // member being edited, or null
   const [extendingMember, setExtendingMember] = useState(null); // member being extended, or null
+  const [viewingMember, setViewingMember] = useState(null); // member whose history is being viewed, or null
 
   const handleEdit = (member) => {
     setEditingMember(member);
@@ -25,9 +31,13 @@ export default function MembersView() {
     setExtendingMember(member);
   };
 
-  const handleSaveExtend = (id, changes) => {
-    dispatch(updateMember({ id, changes }));
+  const handleSaveExtend = (id, extensionPayload) => {
+    dispatch(extendMembership({ id, ...extensionPayload }));
     setExtendingMember(null);
+  };
+
+  const handleView = (member) => {
+    setViewingMember(member);
   };
 
   const handleDelete = (id, name) => {
@@ -118,6 +128,13 @@ export default function MembersView() {
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex justify-end gap-2">
                       <button
+                        onClick={() => handleView(member)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-md border border-blue-200 transition-colors cursor-pointer"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        <span>View</span>
+                      </button>
+                      <button
                         onClick={() => handleExtend(member)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200 transition-colors cursor-pointer"
                       >
@@ -207,20 +224,27 @@ export default function MembersView() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                <button
+                  onClick={() => handleView(member)}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 active:bg-blue-100 text-blue-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-blue-200 cursor-pointer"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  <span>View</span>
+                </button>
                 <button
                   onClick={() => handleExtend(member)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm cursor-pointer"
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm cursor-pointer"
                 >
                   <CalendarPlus className="h-3.5 w-3.5" />
-                  <span>Extend Plan</span>
+                  <span>Extend</span>
                 </button>
                 <button
                   onClick={() => handleEdit(member)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-gray-200 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-gray-200 cursor-pointer"
                 >
                   <Edit2 className="h-3.5 w-3.5" />
-                  <span>Edit Info</span>
+                  <span>Edit</span>
                 </button>
               </div>
             </div>
@@ -238,8 +262,15 @@ export default function MembersView() {
       {/* 🔄 EXTEND MODAL — shown when extendingMember is set */}
       <ExtendMembershipModal
         member={extendingMember}
+        addedBy={addedBy}
         onSave={handleSaveExtend}
         onClose={() => setExtendingMember(null)}
+      />
+
+      {/* 👁 HISTORY MODAL — shown when viewingMember is set */}
+      <MemberHistoryModal
+        member={viewingMember}
+        onClose={() => setViewingMember(null)}
       />
 
     </div>

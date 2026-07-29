@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -7,14 +7,13 @@ import {
   Phone, 
   Mail, 
   MapPin, 
-  CheckCircle2, 
-  XCircle, 
   Users, 
   LogOut, 
   Plus, 
-  Trash2
+  Trash2,
+  Camera
 } from "lucide-react";
-import { removeTrainer } from "../../redux/slices/gymSlice";
+import { removeTrainer, updateGymFields } from "../../redux/slices/gymSlice";
 import { logout } from "../../redux/slices/authSlice";
 
 import AddTrainerModal from "./AddTrainerModal";
@@ -31,6 +30,9 @@ export default function OwnerProfile() {
 
   // Manage modal open state
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Hidden file input ref — the visible camera button just triggers this
+  const photoInputRef = useRef(null);
 
   if (!gym) {
     return (
@@ -51,47 +53,85 @@ export default function OwnerProfile() {
     }
   };
 
+  // 📸 PROFILE PHOTO UPLOAD
+  // Reads the chosen file as a base64 data URL and saves it straight
+  // onto the gym record via the generic updateGymFields patch action —
+  // no new reducer needed, no backend upload endpoint required yet.
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please choose an image file.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      dispatch(updateGymFields({
+        gymId: gym.id,
+        changes: { ownerPhoto: reader.result },
+      }));
+    };
+    reader.readAsDataURL(file);
+
+    // Reset the input so choosing the same file again still fires onChange
+    e.target.value = "";
+  };
+
+  const handleRemovePhoto = () => {
+    dispatch(updateGymFields({
+      gymId: gym.id,
+      changes: { ownerPhoto: "" },
+    }));
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto bg-gray-50 min-h-screen pb-16 text-gray-900 relative">
       
-      {/* HEADER BAR PANEL */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 pb-4 mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">
-            {gym.name}
-          </h1>
-          <p className="text-gray-500 text-xs md:text-sm mt-1 flex items-center gap-1.5">
-            <Building2 className="h-4 w-4 text-gray-400" /> ID: {gym.id}
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-            gym.status === "active" 
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
-              : "bg-red-50 text-red-600 border border-red-200"
-          }`}>
-            {gym.status === "active" ? (
-              <>
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                Active Account
-              </>
+      {/* HEADER PANEL — photo + name centered */}
+      <div className="flex flex-col items-center text-center border-b border-gray-200 pb-6 mb-6">
+        {/* Profile Photo / Avatar */}
+        <div className="relative shrink-0 mb-3">
+          <div className="h-20 w-20 md:h-24 md:w-24 rounded-full overflow-hidden bg-gray-200 border-2 border-white shadow-sm flex items-center justify-center">
+            {gym.ownerPhoto ? (
+              <img src={gym.ownerPhoto} alt={gym.ownerName} className="h-full w-full object-cover" />
             ) : (
-              <>
-                <XCircle className="h-3.5 w-3.5 text-red-500" />
-                Suspended
-              </>
+              <User className="h-10 w-10 md:h-12 md:w-12 text-gray-400" />
             )}
-          </span>
-
+          </div>
           <button
-            onClick={handleLogout}
-            className="flex md:hidden items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 transition px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200 cursor-pointer"
+            type="button"
+            onClick={() => photoInputRef.current?.click()}
+            title="Change photo"
+            className="absolute -bottom-1 -right-1 p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-md border-2 border-white transition-colors cursor-pointer"
           >
-            <LogOut className="h-3.5 w-3.5" />
-            Logout
+            <Camera className="h-3.5 w-3.5" />
           </button>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoChange}
+            className="hidden"
+          />
         </div>
+
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">
+          {gym.name}
+        </h1>
+        <p className="text-gray-500 text-xs md:text-sm mt-1 flex items-center justify-center gap-1.5">
+          <Building2 className="h-4 w-4 text-gray-400" /> ID: {gym.id}
+        </p>
+        {gym.ownerPhoto && (
+          <button
+            type="button"
+            onClick={handleRemovePhoto}
+            className="text-[11px] text-red-500 hover:text-red-600 font-medium mt-1.5 cursor-pointer"
+          >
+            Remove photo
+          </button>
+        )}
       </div>
 
       {/* CORE WORKSPACE GRID */}
@@ -192,6 +232,17 @@ export default function OwnerProfile() {
           </div>
         </div>
 
+      </div>
+
+      {/* LOGOUT — full-width button at the bottom of the page */}
+      <div className="mt-8">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 transition px-4 py-3 rounded-xl text-sm font-bold border border-red-200 cursor-pointer"
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
+        </button>
       </div>
 
       {/* ISOLATED MODAL PORTAL LINKED VIA PROPS */}

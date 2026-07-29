@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { CreditCard, FileText, ArrowLeft } from "lucide-react";
 import MembershipForm from "../../components/ownerComponents/MembershipForm";
 import EnquiryForm from "../../components/ownerComponents/EnquiryForm";
@@ -11,6 +11,10 @@ export default function AddSelectionContainer() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  // Whoever is logged in (owner or trainer) gets stamped as `addedBy`
+  // on the member record — see membersSlice's addMember.prepare.
+  const addedBy = useSelector((state) => state.auth.user?.name) || "Unknown";
+
   const [selectedType, setSelectedType] = useState(null); // 'membership' | 'enquiry' | null
 
   // ✅ Explicitly defined local state container for conversion data
@@ -41,19 +45,19 @@ export default function AddSelectionContainer() {
   // enquiry (in which case prefillData.enquiryId tells us which
   // enquiry to remove once the member has been created).
   const handleSaveMembership = (formData) => {
-    dispatch(addMember(formData));
+    dispatch(addMember({ ...formData, addedBy }));
 
     if (prefillData?.enquiryId) {
       dispatch(deleteEnquiry(prefillData.enquiryId));
     }
 
-    navigate("/owner/all-members");
+    navigate(location.pathname.startsWith("/trainer") ? "/trainer/all-members" : "/owner/all-members");
   };
 
   // 💾 Save a new enquiry/lead
   const handleSaveEnquiry = (formData) => {
     dispatch(addEnquiry(formData));
-    navigate("/owner/all-members");
+    navigate(location.pathname.startsWith("/trainer") ? "/trainer/all-members" : "/owner/all-members");
   };
 
   return (

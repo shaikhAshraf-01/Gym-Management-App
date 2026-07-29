@@ -11,6 +11,7 @@ const initialState = {
       ownerPassword: "owner@123",
       mustChangePassword: false,
       email: "",
+      ownerPhoto: "", // base64 data URL, set via updateGymFields from OwnerProfile.jsx's photo upload
       status: "active",
       totalMembers: 0,
       enquiries: 0,
@@ -33,6 +34,7 @@ const initialState = {
       ownerPassword: "golds_owner_secure",
       mustChangePassword: false,
       email: "amit@goldsgym.in",
+      ownerPhoto: "", // base64 data URL, set via updateGymFields from OwnerProfile.jsx's photo upload
       status: "inactive",
       totalMembers: 198,
       enquiries: 12,
