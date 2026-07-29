@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Phone, CalendarClock, User, Smartphone, RefreshCw, Trash2 } from "lucide-react";
+import { Phone, CalendarClock, User, Smartphone, RefreshCw, Trash2, Check, X } from "lucide-react";
 import { deleteMember, extendMembership } from "../../redux/slices/membersSlice";
 import ExtendMembershipModal from "./ExtendMembershipModal";
 
@@ -19,10 +19,11 @@ export default function OwnerDashboard() {
   const dispatch = useDispatch();
   const members = useSelector((state) => state.members.members);
   const addedBy = useSelector((state) => state.auth.user?.name) || "Unknown";
-  const [extendingMember, setExtendingMember] = useState(null); // member being extended, or null
+  
+  const [extendingMember, setExtendingMember] = useState(null);
+  // Track specific member ID for local inline confirmation state
+  const [deletingMemberId, setDeletingMemberId] = useState(null);
 
-  // Derive the "expiring soon" list straight from the members store —
-  // no separate local copy to fall out of sync.
   const expiringMembers = members
     .map((member) => ({ ...member, daysLeft: daysUntil(member.expiryDate) }))
     .filter((member) => member.daysLeft <= EXPIRING_WINDOW_DAYS)
@@ -37,18 +38,15 @@ export default function OwnerDashboard() {
     setExtendingMember(null);
   };
 
-  const handleDelete = (id, name) => {
-    const confirmDelete = window.confirm(`Are you sure you want to delete ${name}?`);
-    if (confirmDelete) {
-      dispatch(deleteMember(id));
-    }
+  const handleConfirmDelete = (id) => {
+    dispatch(deleteMember(id));
+    setDeletingMemberId(null);
   };
 
   return (
-    /* Clean bg-gray-50 color applied to match AllMembers workspace */
-    <div className=" md:p-6 max-w-7xl mx-auto bg-gray-50 min-h-screen pb-24 md:pb-6 text-gray-600">
+    <div className="md:p-6 max-w-7xl mx-auto bg-gray-50 min-h-screen pb-24 md:pb-6 text-gray-600">
 
-      {/* Main Container Card - Uses crisp border layout matching AllMembers view container */}
+      {/* Main Container Card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
         <div className="flex items-center gap-3 mb-6">
           <CalendarClock className="h-6 w-6 text-blue-600" />
@@ -74,8 +72,7 @@ export default function OwnerDashboard() {
               <div className="text-center">Extend</div>
               <div className="text-center">Delete</div>
             </div>
-
-            {/* Dynamic List Render Matrix with standard border styles */}
+            {/* Dynamic List Render Matrix */}
             <div className="divide-y divide-gray-200 border-x border-b border-gray-200 rounded-b-xl overflow-hidden bg-white">
               {expiringMembers.map((member) => (
                 <div
@@ -94,7 +91,7 @@ export default function OwnerDashboard() {
                     <span>{member.mobile}</span>
                   </div>
 
-                  {/* Column 3: Membership Expiration Status Chip using light design styles */}
+                  {/* Column 3: Membership Expiration Status Chip */}
                   <div>
                     {member.daysLeft <= 0 ? (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
@@ -111,7 +108,7 @@ export default function OwnerDashboard() {
                     )}
                   </div>
 
-                  {/* Columns 4-6: Call, Extend, Delete — one row on mobile, three separate columns on desktop */}
+                  {/* Columns 4-6: Action Items */}
                   <div className="w-full grid grid-cols-3 gap-2 md:contents mt-2 md:mt-0">
                     {/* Column 4: Native Device Phone Call Action Trigger */}
                     <a
@@ -122,7 +119,7 @@ export default function OwnerDashboard() {
                       <span>Call</span>
                     </a>
 
-                    {/* Column 5: Extend Plan Action — opens ExtendMembershipModal */}
+                    {/* Column 5: Extend Plan Action */}
                     <button
                       onClick={() => handleExtend(member)}
                       className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium hover:bg-emerald-100 transition-colors cursor-pointer"
@@ -131,14 +128,33 @@ export default function OwnerDashboard() {
                       <span>Extend</span>
                     </button>
 
-                    {/* Column 6: Delete Member Action */}
-                    <button
-                      onClick={() => handleDelete(member.id, member.name)}
-                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 text-xs font-medium hover:bg-red-100 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span>Delete</span>
-                    </button>
+                    {/* Column 6: Delete Member Action with Inline Options */}
+                    {deletingMemberId === member.id ? (
+                      <div className="w-full grid grid-cols-2 gap-1 md:flex md:items-center md:justify-center animate-in scale-in duration-100 col-span-1">
+                        <button
+                          onClick={() => handleConfirmDelete(member.id)}
+                          className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-red-700"
+                        >
+                          <Check className="h-3 w-3" />
+                          <span className="md:hidden">Confirm</span>
+                        </button>
+                        <button
+                          onClick={() => setDeletingMemberId(null)}
+                          className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-gray-300"
+                        >
+                          <X className="h-3 w-3" />
+                          <span className="md:hidden">Cancel</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDeletingMemberId(member.id)}
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 text-xs font-medium hover:bg-red-100 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    )}
                   </div>
 
                 </div>
@@ -148,7 +164,7 @@ export default function OwnerDashboard() {
         )}
       </div>
 
-      {/* 🔄 EXTEND MODAL — shown when extendingMember is set */}
+      {/* 🔄 EXTEND MODAL */}
       <ExtendMembershipModal
         member={extendingMember}
         addedBy={addedBy}

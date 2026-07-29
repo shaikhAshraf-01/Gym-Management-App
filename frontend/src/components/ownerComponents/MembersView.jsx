@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Edit2, CalendarPlus, Phone, User, Search, X, Calendar, CalendarX, Trash2, Eye } from "lucide-react";
+import { Edit2, CalendarPlus, Phone, User, Search, X, Calendar, CalendarX, Trash2, Eye, Check } from "lucide-react";
 import { updateMember, deleteMember, extendMembership, PLAN_LABELS } from "../../redux/slices/membersSlice";
 import EditMemberModal from "./EditMemberModal";
 import ExtendMembershipModal from "./ExtendMembershipModal";
@@ -9,26 +9,21 @@ import MemberHistoryModal from "./MemberHistoryModal";
 export default function MembersView() {
   const dispatch = useDispatch();
   const members = useSelector((state) => state.members.members);
-  // Whoever is logged in (owner or trainer) gets stamped as `addedBy` /
-  // `by` on new members and extension history entries.
   const addedBy = useSelector((state) => state.auth.user?.name) || "Unknown";
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [editingMember, setEditingMember] = useState(null); // member being edited, or null
-  const [extendingMember, setExtendingMember] = useState(null); // member being extended, or null
-  const [viewingMember, setViewingMember] = useState(null); // member whose history is being viewed, or null
+  const [editingMember, setEditingMember] = useState(null); 
+  const [extendingMember, setExtendingMember] = useState(null); 
+  const [viewingMember, setViewingMember] = useState(null); 
+  const [deletingMemberId, setDeletingMemberId] = useState(null);
 
-  const handleEdit = (member) => {
-    setEditingMember(member);
-  };
+  const handleEdit = (member) => setEditingMember(member);
+  const handleView = (member) => setViewingMember(member);
+  const handleExtend = (member) => setExtendingMember(member);
 
   const handleSaveEdit = (id, changes) => {
     dispatch(updateMember({ id, changes }));
     setEditingMember(null);
-  };
-
-  const handleExtend = (member) => {
-    setExtendingMember(member);
   };
 
   const handleSaveExtend = (id, extensionPayload) => {
@@ -36,28 +31,20 @@ export default function MembersView() {
     setExtendingMember(null);
   };
 
-  const handleView = (member) => {
-    setViewingMember(member);
-  };
-
-  const handleDelete = (id, name) => {
-    if (window.confirm(`Are you sure you want to permanently delete ${name}?`)) {
-      dispatch(deleteMember(id));
-    }
+  const handleConfirmDelete = (id) => {
+    dispatch(deleteMember(id));
+    setDeletingMemberId(null);
   };
 
   const filteredMembers = members.filter((member) => {
     const query = searchQuery.toLowerCase().trim();
-    return (
-      member.name.toLowerCase().includes(query) ||
-      member.mobile.includes(query)
-    );
+    return member.name.toLowerCase().includes(query) || member.mobile.includes(query);
   });
 
   return (
     <div className="w-full text-gray-900 animate-in fade-in duration-200">
       
-      {/* 🔍 FULL-WIDTH SEARCH BAR */}
+      {/* 🔍 SEARCH BAR */}
       <div className="relative mb-6 w-full">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search className="h-4 w-4 text-gray-400" />
@@ -67,29 +54,23 @@ export default function MembersView() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search members by name or mobile number..."
-          className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-10 py-2.5 text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white text-gray-900 transition-all shadow-sm"
+          className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-10 py-2.5 text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm"
         />
         {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
-          >
+          <button onClick={() => setSearchQuery("")} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer">
             <X className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      {/* FALLBACK NO SEARCH RESULTS VIEW */}
+      {/* FALLBACK NO RESULTS */}
       {filteredMembers.length === 0 && (
         <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
           <p className="text-sm font-medium">No members match your search criteria.</p>
-          <p className="text-xs mt-1">Try checking the spelling or typing a different phone string.</p>
         </div>
       )}
 
-      {/* ========================================================================= */}
       {/* 💻 DESKTOP TABLE VIEW */}
-      {/* ========================================================================= */}
       {filteredMembers.length > 0 && (
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -126,34 +107,36 @@ export default function MembersView() {
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => handleView(member)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-md border border-blue-200 transition-colors cursor-pointer"
-                      >
+                    <div className="flex justify-end items-center gap-2">
+                      <a href={`tel:${member.mobile}`} className="p-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-md border border-gray-200 transition-colors cursor-pointer" title="Call Member">
+                        <Phone className="h-3.5 w-3.5" />
+                      </a>
+                      <button onClick={() => handleView(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-md border border-blue-200 transition-colors cursor-pointer">
                         <Eye className="h-3.5 w-3.5" />
                         <span>View</span>
                       </button>
-                      <button
-                        onClick={() => handleExtend(member)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200 transition-colors cursor-pointer"
-                      >
+                      <button onClick={() => handleExtend(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200 transition-colors cursor-pointer">
                         <CalendarPlus className="h-3.5 w-3.5" />
                         <span>Extend</span>
                       </button>
-                      <button
-                        onClick={() => handleEdit(member)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-md border border-gray-200 transition-colors cursor-pointer"
-                      >
+                      <button onClick={() => handleEdit(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-md border border-gray-200 transition-colors cursor-pointer">
                         <Edit2 className="h-3.5 w-3.5" />
                         <span>Edit</span>
                       </button>
-                      <button
-                        onClick={() => handleDelete(member.id, member.name)}
-                        className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-md border border-red-200 cursor-pointer"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {deletingMemberId === member.id ? (
+                        <div className="flex items-center gap-1 animate-in fade-in slide-in-from-right-2 duration-150">
+                          <button onClick={() => handleConfirmDelete(member.id)} className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-md cursor-pointer" title="Confirm Delete">
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                          <button onClick={() => setDeletingMemberId(null)} className="p-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md cursor-pointer" title="Cancel">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setDeletingMemberId(member.id)} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-md border border-red-200 cursor-pointer transition-colors" title="Delete Member">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -162,10 +145,7 @@ export default function MembersView() {
           </table>
         </div>
       )}
-
-      {/* ========================================================================= */}
       {/* 📱 MOBILE CARDS VIEW */}
-      {/* ========================================================================= */}
       {filteredMembers.length > 0 && (
         <div className="block md:hidden space-y-3">
           {filteredMembers.map((member) => (
@@ -185,13 +165,27 @@ export default function MembersView() {
                   <span className="bg-gray-100 text-gray-700 text-xs font-bold px-2 py-0.5 rounded-md">
                     Age: {member.age}
                   </span>
-                  <button
-                    onClick={() => handleDelete(member.id, member.name)}
-                    aria-label="Delete member"
-                    className="p-2 bg-red-50 active:bg-red-100 text-red-600 border border-red-100 rounded-lg cursor-pointer shrink-0"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  
+                  <div className="flex items-center gap-1.5">
+                    <a href={`tel:${member.mobile}`} className="p-2 bg-gray-100 active:bg-gray-200 text-gray-700 rounded-lg cursor-pointer shrink-0 border border-gray-200" aria-label="Call member">
+                      <Phone className="h-3.5 w-3.5" />
+                    </a>
+
+                    {deletingMemberId === member.id ? (
+                      <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200 animate-in scale-in duration-100">
+                        <button onClick={() => handleConfirmDelete(member.id)} className="px-2 py-1 bg-red-600 active:bg-red-700 text-white text-xs font-bold rounded-md cursor-pointer">
+                          Confirm
+                        </button>
+                        <button onClick={() => setDeletingMemberId(null)} className="px-2 py-1 bg-gray-200 active:bg-gray-300 text-gray-700 text-xs font-bold rounded-md cursor-pointer">
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setDeletingMemberId(member.id)} aria-label="Delete member" className="p-2 bg-red-50 active:bg-red-100 text-red-600 border border-red-100 rounded-lg cursor-pointer shrink-0">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -225,24 +219,15 @@ export default function MembersView() {
               </div>
 
               <div className="grid grid-cols-3 gap-2 pt-1">
-                <button
-                  onClick={() => handleView(member)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 active:bg-blue-100 text-blue-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-blue-200 cursor-pointer"
-                >
+                <button onClick={() => handleView(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 active:bg-blue-100 text-blue-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-blue-200 cursor-pointer">
                   <Eye className="h-3.5 w-3.5" />
                   <span>View</span>
                 </button>
-                <button
-                  onClick={() => handleExtend(member)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm cursor-pointer"
-                >
+                <button onClick={() => handleExtend(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm cursor-pointer">
                   <CalendarPlus className="h-3.5 w-3.5" />
                   <span>Extend</span>
                 </button>
-                <button
-                  onClick={() => handleEdit(member)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-gray-200 cursor-pointer"
-                >
+                <button onClick={() => handleEdit(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-gray-200 cursor-pointer">
                   <Edit2 className="h-3.5 w-3.5" />
                   <span>Edit</span>
                 </button>
@@ -252,26 +237,10 @@ export default function MembersView() {
         </div>
       )}
 
-      {/* ✏️ EDIT MODAL — shown when editingMember is set */}
-      <EditMemberModal
-        member={editingMember}
-        onSave={handleSaveEdit}
-        onClose={() => setEditingMember(null)}
-      />
-
-      {/* 🔄 EXTEND MODAL — shown when extendingMember is set */}
-      <ExtendMembershipModal
-        member={extendingMember}
-        addedBy={addedBy}
-        onSave={handleSaveExtend}
-        onClose={() => setExtendingMember(null)}
-      />
-
-      {/* 👁 HISTORY MODAL — shown when viewingMember is set */}
-      <MemberHistoryModal
-        member={viewingMember}
-        onClose={() => setViewingMember(null)}
-      />
+      {/* ✏️ MODALS */}
+      <EditMemberModal member={editingMember} onSave={handleSaveEdit} onClose={() => setEditingMember(null)} />
+      <ExtendMembershipModal member={extendingMember} addedBy={addedBy} onSave={handleSaveExtend} onClose={() => setExtendingMember(null)} />
+      <MemberHistoryModal member={viewingMember} onClose={() => setViewingMember(null)} />
 
     </div>
   );
