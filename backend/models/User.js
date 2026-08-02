@@ -19,11 +19,18 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
-    password: {
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      unique: true,
+      required: true,
+    },
+    password:{
       type: String,
       required: true,
-      select: false,
-    },
+      trim: true,
+    }
     photo: {
       type: String,
       default: "",
@@ -45,16 +52,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 
 const User = mongoose.model("User", userSchema);
 
-const Admin = User.discriminator(
-  "admin",
-  new mongoose.Schema({
-    email: {
-      type: String,
-      trim: true,
-      lowercase: true,
-    },
-  })
-);
+
 
 const Owner = User.discriminator(
   "owner",
@@ -63,12 +61,6 @@ const Owner = User.discriminator(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Gym",
       required: true,
-    },
-    email: {
-      type: String,
-      trim: true,
-      lowercase: true,
-      default: "",
     },
    
   })
