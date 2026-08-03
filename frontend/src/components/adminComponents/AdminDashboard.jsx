@@ -1,8 +1,25 @@
 import React from "react";
+import { useSelector } from "react-redux";
 import { Building2, CheckCircle2, XCircle, IndianRupee } from "lucide-react"; 
 import ExpiringGyms from "./ExpiringGyms";
 
 export default function AdminDashboard() {
+  const gyms = useSelector((state) => state.gyms.gyms);
+
+  // All 4 header metrics derived straight from the real gym slice —
+  // no hardcoded numbers.
+  const totalGyms = gyms.length;
+  const activeGyms = gyms.filter((g) => g.status === "active").length;
+  const inactiveGyms = gyms.filter((g) => g.status === "inactive").length;
+
+  // Lifetime income across every gym = sum of every subscription
+  // period ever purchased, for every gym.
+  const totalIncome = gyms.reduce(
+    (sum, gym) =>
+      sum + gym.subscriptionHistory.reduce((subSum, sub) => subSum + sub.amount, 0),
+    0
+  );
+
   return (
     <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
       <header className="mb-6 sm:mb-8 text-center sm:text-left">
@@ -24,7 +41,7 @@ export default function AdminDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider truncate">Total Gyms</p>
-            <p className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-bold text-slate-900 break-words">148</p>
+            <p className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-bold text-slate-900 break-words">{totalGyms}</p>
           </div>
         </div>
 
@@ -35,7 +52,7 @@ export default function AdminDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider truncate">Active Gyms</p>
-            <p className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-bold text-slate-900 break-words">132</p>
+            <p className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-bold text-slate-900 break-words">{activeGyms}</p>
           </div>
         </div>
 
@@ -46,7 +63,7 @@ export default function AdminDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold text-rose-600 uppercase tracking-wider truncate">Inactive Gyms</p>
-            <p className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-bold text-slate-900 break-words">16</p>
+            <p className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-bold text-slate-900 break-words">{inactiveGyms}</p>
           </div>
         </div>
 
@@ -58,7 +75,7 @@ export default function AdminDashboard() {
           {/* Added whitespace-nowrap here to lock text inline safely */}
           <div className="min-w-0 whitespace-nowrap">
             <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider truncate">Total Income</p>
-            <p className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-bold text-slate-900">₹4,52,800</p>
+            <p className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-bold text-slate-900">₹{totalIncome.toLocaleString("en-IN")}</p>
           </div>
           </div>
 

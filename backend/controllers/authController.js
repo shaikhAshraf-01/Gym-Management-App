@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
-import sendOTP from "../utils/sendOTP.js";
+import sendOTPEmails from "../utils/sendOTPEmails.js";
 
 const generateToken = (userId, role, rememberMe = false) => {
   return jwt.sign(
@@ -58,7 +58,7 @@ export const adminLogin = async (req, res) => {
 
 //====== Send OTP ======
 
-export const sendOTPToUser = async (req, res) => {
+export const sendOTP = async (req, res) => {
   try {
     const { email, role } = req.body;
     if (!email || !role) {
@@ -85,7 +85,7 @@ export const sendOTPToUser = async (req, res) => {
     user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
     
-    const isSent = await sendOTP(email, otp);
+    const isSent = await sendOTPEmails(email, otp);
     if (!isSent) {
       return res.status(500).json({
         success: false,
@@ -96,11 +96,11 @@ export const sendOTPToUser = async (req, res) => {
       success: true,
       message: "OTP sent successfully",
     });
-  } catch (error) {
+  } catch  {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message,
+     
     });
   }
 };
@@ -145,8 +145,8 @@ export const verifyOTP = async (req, res) => {
     }
 
     // 5. Clear OTP data so it cannot be used again
-    user.otp = undefined;
-    user.otpExpires = undefined;
+    user.otp = null;
+    user.otpExpires = null;
     await user.save();
 
     // 6. Generate access token
@@ -156,13 +156,20 @@ export const verifyOTP = async (req, res) => {
       success: true,
       message: `${role} logged in successfully`,
       token,
-      user,
+      user:{
+        _id:user._id,
+        name:user.name,
+        email:user.email,
+        mobile:user.mobile,
+        role:user.role,
+        photo:user.photo,
+      }
     });
-  } catch (error) {
+  } catch  {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message,
+    
     });
   }
 };

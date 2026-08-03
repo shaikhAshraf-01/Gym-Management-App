@@ -22,7 +22,7 @@ const gymSchema= new mongoose.Schema({
     },
     owner:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Owner",
+        ref:"owner",
         required:true,
     },
     status:{

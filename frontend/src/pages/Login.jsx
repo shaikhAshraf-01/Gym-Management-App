@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
 import { loginStart, loginSuccess, loginFailure } from "../redux/slices/authSlice";
 import LoginImg from "../assets/loginPage.png";
+import {adminLogin, sendOtp, verifyOtp} from "../api/authApi";
 
  function Login() {
   const [role, setRole] = useState("owner");
@@ -26,7 +26,7 @@ import LoginImg from "../assets/loginPage.png";
     if (!email) return;
     setVerifyingEmail(true);
     try {
-      await axios.post("/api/auth/send-otp", { email, role });
+      await sendOtp( { email, role });
       setIsEmailVerified(true);
     } catch (err) {
       dispatch(loginFailure(err.response?.data?.message || "Failed to send verification code."));
@@ -41,12 +41,14 @@ import LoginImg from "../assets/loginPage.png";
     try {
       let response;
       if (role === "admin") {
-        response = await axios.post("/api/auth/admin-login", { mobile, password, rememberMe });
+        response = await adminLogin({ mobile, password, rememberMe });
       } else {
-        response = await axios.post("/api/auth/verify-otp", { email, otp, role, rememberMe });
+        response = await verifyOtp({ email, otp, role, rememberMe });
       }
 
-      dispatch(loginSuccess({ user: response.data.user, role: role }));
+      dispatch(loginSuccess({ token:response.data.token,
+         user: response.data.user, 
+         role, }));
 
       setMobile("");
       setPassword("");

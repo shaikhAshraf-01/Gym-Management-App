@@ -1,5 +1,5 @@
 import transporter from "../config/nodemailer.js";
-const sendOTP=async(email, otp)=>{
+const sendOTPEmails=async(email, otp)=>{
     try{
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
@@ -16,4 +16,4 @@ const sendOTP=async(email, otp)=>{
         return false;
     }
 };
-export default sendOTP;
+export default sendOTPEmails;
