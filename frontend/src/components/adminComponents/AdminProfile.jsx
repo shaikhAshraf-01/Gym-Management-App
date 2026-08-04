@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { logout } from "../../redux/slices/authSlice";
+import { logout,getAdminProfileApi, changeAdminPassword } from "../../redux/slices/authSlice";
 import { User, Phone, Mail, Shield, LogOut, KeyRound } from "lucide-react";
 
 export default function AdminProfile() {
@@ -13,7 +13,12 @@ export default function AdminProfile() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [formError, setFormError] = useState("");
+   const [formSuccess, setFormSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+   useEffect(() => {
+    dispatch(fetchAdminProfile());
+  }, [dispatch]);
 
   // Real logged-in admin data
   const { user } = useSelector((state) => state.auth);
@@ -31,6 +36,7 @@ export default function AdminProfile() {
     setNewPassword("");
     setConfirmPassword("");
     setFormError("");
+     setFormSuccess("");
   };
 
   const handleCancel = () => {
@@ -41,6 +47,7 @@ export default function AdminProfile() {
   const handlePasswordChangeSubmit = async (e) => {
     e.preventDefault();
     setFormError("");
+      setFormSuccess("");
 
     if (newPassword !== confirmPassword) {
       setFormError("New password and confirmation do not match.");
@@ -51,12 +58,23 @@ export default function AdminProfile() {
       return;
     }
 
-    setSubmitting(true);
-    // TODO: wire to a real changePassword thunk once
-    // PATCH /api/admin/change-password (or similar) exists on the backend.
-    // For now this is UI-only — fields are validated and ready to dispatch.
-    console.log("Ready to submit:", { currentPassword, newPassword });
-    setSubmitting(false);
+    try {
+      setSubmitting(true);
+      
+      // Dispatch the thunk and unwrap to handle success/error locally
+      await dispatch(changeAdminPassword({ currentPassword, newPassword })).unwrap();
+      
+      setFormSuccess("Password updated successfully!");
+      setTimeout(() => {
+        setIsChangingPassword(false);
+        resetForm();
+      }, 2000); // Closes form after 2 seconds on success
+
+    } catch (err) {
+      setFormError(err || "Failed to update password. Please check your credentials.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

@@ -1,60 +1,91 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { restoreSession } from "./redux/slices/authSlice";
+
+// Security Gate Wrapper
+import ProtectedRoute from "./pages/protectedRoute"; // Adjust this path to match your folder structural layout
+
+// Public View
 import Login from "./pages/Login";
-//admin routes
+
+// Admin Views
 import AdminLayout from "./layouts/adminLayout/AdminLayout";
 import AdminDashboard from "./components/adminComponents/AdminDashboard";
 import AdminProfile from "./components/adminComponents/AdminProfile";
 import AllGyms from "./components/adminComponents/AllGyms";
 import AddGyms from "./components/adminComponents/AddGyms";
-//owner routes
+
+// Owner Views
 import OwnerLayout from "./layouts/ownerLayout/OwnerLayout";
 import OwnerDashboard from "./components/ownerComponents/OwnerDashboard";
 import AllMembers from "./components/ownerComponents/AllMembers";
 import AddSelectionContainer from "./layouts/ownerLayout/AddSelectionContainer";
 import Sales from "./components/ownerComponents/Sales";
 import OwnerProfile from "./components/ownerComponents/OwnerProfile";
-//trainer routes
+
+// Trainer Views
 import TrainerLayout from "./layouts/trainerLayout/TrainerLayout";
 import TrainerProfile from "./components/trainerComponents/TrainerProfile";
 
 function App() {
+  const dispatch = useDispatch();
+
+  // Run immediately on page boost to handle page refreshments
+  useEffect(() => {
+    dispatch(restoreSession());
+  }, [dispatch]);
+
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Path */}
+        {/* ==========================================
+            ========== PUBLIC DISPATCH ROUTES =========
+            ========================================== */}
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* 🔒 Nested Admin Routing Layer */}
-        <Route path="/admin" element={<AdminLayout />}>
-          {/* Automatically loads at "/admin" */}
-          <Route index element={<AdminDashboard />} />
-          <Route path="/admin/all-gyms" element={<AllGyms />} />
-          <Route path="/admin/add-gyms" element={<AddGyms />} />
-          <Route path="/admin/profile" element={<AdminProfile />} />
+        {/* ==========================================
+            ========= 🔒 SECURED ADMIN PATHS =========
+            ========================================== */}
+        <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            {/* Note: Fixed relative nested naming sub-paths */}
+            <Route path="all-gyms" element={<AllGyms />} />
+            <Route path="add-gyms" element={<AddGyms />} />
+            <Route path="profile" element={<AdminProfile />} />
+          </Route>
         </Route>
 
-        {/* Owner */}
-        <Route path="/owner" element={<OwnerLayout />}>
-          <Route index element={<OwnerDashboard />} />
-          <Route path="/owner/all-members" element={<AllMembers />} />
-          <Route path="/owner/add" element={<AddSelectionContainer />} />
-          <Route path="/owner/sales" element={<Sales />} />
-          <Route path="/owner/profile" element={<OwnerProfile />} />
+        {/* ==========================================
+            ========= 🔒 SECURED OWNER PATHS =========
+            ========================================== */}
+        <Route element={<ProtectedRoute allowedRoles={["owner"]} />}>
+          <Route path="/owner" element={<OwnerLayout />}>
+            <Route index element={<OwnerDashboard />} />
+            <Route path="all-members" element={<AllMembers />} />
+            <Route path="add" element={<AddSelectionContainer />} />
+            <Route path="sales" element={<Sales />} />
+            <Route path="profile" element={<OwnerProfile />} />
+          </Route>
         </Route>
 
-        {/* Trainer — reuses OwnerDashboard, AllMembers, and AddSelectionContainer
-            (same views owners get for the first three pages) plus its own
-            TrainerProfile for the fourth. */}
-        <Route path="/trainer" element={<TrainerLayout />}>
-          <Route index element={<OwnerDashboard />} />
-          <Route path="/trainer/all-members" element={<AllMembers />} />
-          <Route path="/trainer/add" element={<AddSelectionContainer />} />
-          <Route path="/trainer/profile" element={<TrainerProfile />} />
+        {/* ==========================================
+            ========= 🔒 SECURED TRAINER PATHS =======
+            ========================================== */}
+        <Route element={<ProtectedRoute allowedRoles={["trainer"]} />}>
+          <Route path="/trainer" element={<TrainerLayout />}>
+            <Route index element={<OwnerDashboard />} />
+            <Route path="all-members" element={<AllMembers />} />
+            <Route path="add" element={<AddSelectionContainer />} />
+            <Route path="profile" element={<TrainerProfile />} />
+          </Route>
         </Route>
 
-        {/* Fallback Redirection */}
+        {/* ==========================================
+            =========== FALLBACK NAVIGATION ===========
+            ========================================== */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
