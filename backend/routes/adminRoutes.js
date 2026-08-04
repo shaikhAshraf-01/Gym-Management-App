@@ -3,8 +3,7 @@ import authMiddleware from "../middlewares/authMiddleware.js";
 import roleMiddleware from "../middlewares/roleMiddleware.js";
 import {
   getAdminProfile,
-//   updateAdminProfile,
-//   changeAdminPassword,
+  changeAdminPassword,
 //   getDashboard,
 //   createGym,
 //   getAllGyms,
@@ -23,19 +22,12 @@ router.get(
   getAdminProfile
 );
 
-// router.put(
-//   "/profile",
-//   authMiddleware,
-//   roleMiddleware("admin"),
-//   updateAdminProfile
-// );
-
-// router.put(
-//   "/change-password",
-//   authMiddleware,
-//   roleMiddleware("admin"),
-//   changeAdminPassword
-// );
+router.patch(
+  "/change-password",
+  authMiddleware,
+  roleMiddleware("admin"),
+  changeAdminPassword
+);
 
 // ===== Dashboard =====
 // router.get(

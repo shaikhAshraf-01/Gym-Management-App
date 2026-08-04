@@ -1,7 +1,9 @@
+// src/api/adminApi.js
 import api from "./axios.js";
 
-// Fetch fresh admin profile data
-export const getAdminProfileApi = () => api.get("/admin/profile");
+export const getAdminProfileApi = (customHeaders = {}) => 
+  api.get("/admin/profile", { headers: customHeaders });
 
-// Patch change password payload
-export const changeAdminPasswordApi = (data) => api.patch("/admin/change-password", data);
+// 🚀 FIX: Update this function to accept custom headers as the second parameter
+export const changeAdminPasswordApi = (data, customHeaders = {}) => 
+  api.patch("/admin/change-password", data, { headers: customHeaders });

@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { logout,getAdminProfileApi, changeAdminPassword } from "../../redux/slices/authSlice";
+import { logout,fetchAdminProfile, changeAdminPassword } from "../../redux/slices/authSlice";
 import { User, Phone, Mail, Shield, LogOut, KeyRound } from "lucide-react";
 
 export default function AdminProfile() {
@@ -16,12 +16,15 @@ export default function AdminProfile() {
    const [formSuccess, setFormSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-   useEffect(() => {
+  const { user,isAuthenticated, token } = useSelector((state) => state.auth);
+  useEffect(() => {
+  // Only hit the profile endpoint if we are authenticated and have an active token string
+  if (isAuthenticated && token) {
     dispatch(fetchAdminProfile());
-  }, [dispatch]);
+  }
+}, [dispatch, isAuthenticated, token]);
 
   // Real logged-in admin data
-  const { user } = useSelector((state) => state.auth);
   const adminName = user?.name || "";
   const adminMobile = user?.mobile || "";
   const adminEmail = user?.email || "";

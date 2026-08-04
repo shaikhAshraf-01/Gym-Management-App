@@ -1,13 +1,17 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { adminLogin } from "../../api/authApi"; // Adjust paths to match your folder structure
+import { adminLogin } from "../../api/authApi"; 
 import { getAdminProfileApi, changeAdminPasswordApi } from "../../api/adminApi";
+
+// ==========================================
+// ====== ASYNC THUNKS (API LIFECYCLES) ======
+// ==========================================
 
 export const loginAdminThunk = createAsyncThunk(
   "auth/loginAdmin",
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await adminLogin(credentials);
-      return response.data; // Expects: { success: true, user, token, role }
+      return response.data; 
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Login failed. Please try again."
@@ -16,13 +20,24 @@ export const loginAdminThunk = createAsyncThunk(
   }
 );
 
-// 2. Fetch Fresh Admin Profile Thunk
+// 2. Fetch Fresh Admin Profile Thunk (Corrected and Bulletproof)
 export const fetchAdminProfile = createAsyncThunk(
   "auth/fetchAdminProfile",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await getAdminProfileApi();
-      return response.data; // Expects: { success: true, data: adminDoc }
+      const stored = localStorage.getItem("fitzone_auth");
+      let customHeaders = {};
+      
+      if (stored) {
+        const { token } = JSON.parse(stored);
+        if (token) {
+          customHeaders = { Authorization: `Bearer ${token}` };
+        }
+      }
+
+      // ✅ FIX: Use getAdminProfileApi and pass our freshly read fallback headers
+      const response = await getAdminProfileApi(customHeaders);
+      return response.data;
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch profile."
@@ -31,13 +46,25 @@ export const fetchAdminProfile = createAsyncThunk(
   }
 );
 
-// 3. Update Security Password Thunk
+// 3. Update Security Password Thunk (Corrected and Bulletproof)
 export const changeAdminPassword = createAsyncThunk(
   "auth/changeAdminPassword",
   async (passwordData, { rejectWithValue }) => {
     try {
-      const response = await changeAdminPasswordApi(passwordData);
-      return response.data; // Expects: { success: true, message: "..." }
+      // 🚀 THE FIX: Read the fresh token directly from localStorage right at this millisecond
+      const stored = localStorage.getItem("fitzone_auth");
+      let customHeaders = {};
+      
+      if (stored) {
+        const { token } = JSON.parse(stored);
+        if (token) {
+          customHeaders = { Authorization: `Bearer ${token}` };
+        }
+      }
+
+      // Pass the data payload and manually attach the fallback authorization headers
+      const response = await changeAdminPasswordApi(passwordData, customHeaders);
+      return response.data; 
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to update password."
@@ -45,6 +72,7 @@ export const changeAdminPassword = createAsyncThunk(
     }
   }
 );
+
 
 // ==========================================
 // ============= AUTHENTICATION SLICE =======
@@ -57,6 +85,7 @@ const initialState = {
   isAuthenticated: false,
   loading: false,
   error: null,
+    isInitialized: false
 };
 
 const authSlice = createSlice({
@@ -64,7 +93,6 @@ const authSlice = createSlice({
   initialState,
 
   reducers: {
-    // Basic synchronous login actions (if used alongside standard controllers)
     loginStart: (state) => {
       state.loading = true;
       state.error = null;
@@ -93,7 +121,6 @@ const authSlice = createSlice({
       state.error = action.payload;
     },
 
-    // Total session cleanup
     logout: (state) => {
       state.user = null;
       state.token = null;
@@ -105,11 +132,13 @@ const authSlice = createSlice({
       localStorage.removeItem("fitzone_auth");
     },
 
-    // Browser reload state persistence recovery hook
     restoreSession: (state) => {
       const stored = localStorage.getItem("fitzone_auth");
 
-      if (!stored) return;
+      if (!stored) {
+          isInitialized: false
+          return ;
+      }
 
       try {
         const { user, token, role } = JSON.parse(stored);
@@ -122,13 +151,12 @@ const authSlice = createSlice({
         }
       } catch (error) {
         localStorage.removeItem("fitzone_auth");
+      }finally{
+         state.isInitialized = true;
       }
     },
   },
 
-  // ==========================================
-  // ========== ASYNC EXTRA REDUCERS ==========
-  // ==========================================
   extraReducers: (builder) => {
     builder
       // --- Login Lifecycle ---
@@ -165,9 +193,8 @@ const authSlice = createSlice({
       })
       .addCase(fetchAdminProfile.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.data; // Syncs fresh MongoDB document profile fields to Redux state
+        state.user = action.payload.data; 
         
-        // Keeps localStorage profile fields updated
         const stored = JSON.parse(localStorage.getItem("fitzone_auth") || "{}");
         localStorage.setItem(
           "fitzone_auth",

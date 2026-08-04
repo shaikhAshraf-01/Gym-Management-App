@@ -1,5 +1,5 @@
 import User from "../models/User.js";
-
+import bcrypt from "bcryptjs"; // 🚀 Import bcrypt directly into the controller
 
 // ===== Get Admin Profile =====
 
@@ -26,13 +26,14 @@ export const getAdminProfile = async (req, res) => {
     });
   }
 };
-// controllers/adminController.js
 
-export const changePassword = async (req, res) => {
+ 
+
+export const changeAdminPassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    // 1. Force-select the password field because of 'select: false' in schema
+    // 1. Force select the password using the base User query instance
     const admin = await User.findById(req.user._id).select("+password");
 
     if (!admin) {
@@ -45,9 +46,15 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({ success: false, message: "Incorrect current password." });
     }
 
-    // 3. Assign new password (the pre('save') hook handles hashing automatically)
-    admin.password = newPassword;
-    await admin.save();
+    // 3. 🚀 THE ULTIMATE FIX: Hash manually and perform an atomic collection patch
+    // This safely avoids Mongoose model save validation triggers and discriminator state bugs
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await User.updateOne(
+      { _id: req.user._id },
+      { $set: { password: hashedPassword } }
+    );
 
     return res.status(200).json({
       success: true,
@@ -55,6 +62,12 @@ export const changePassword = async (req, res) => {
     });
 
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    // Standardize error formats for the frontend tracking layer
+    return res.status(500).json({ 
+      success: false, 
+      message: "Internal server error.",
+      error: error.message 
+    });
   }
 };
+

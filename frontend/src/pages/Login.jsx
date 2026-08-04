@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Added useEffect
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { loginStart, loginSuccess, loginFailure } from "../redux/slices/authSlice";
 import LoginImg from "../assets/loginPage.png";
-import {adminLogin, sendOtp, verifyOtp} from "../api/authApi";
+import { adminLogin, sendOtp, verifyOtp } from "../api/authApi";
 
- function Login() {
+export default function Login() {
   const [role, setRole] = useState("owner");
   
   const [mobile, setMobile] = useState("");
@@ -20,13 +20,22 @@ import {adminLogin, sendOtp, verifyOtp} from "../api/authApi";
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+
+  // 1. Grab authentication state flags and user role definitions from Redux
+  const { loading, error, isAuthenticated, isInitialized, role: currentRole } = useSelector((state) => state.auth);
+
+  // 2. 🚀 THE LIFECYCLE GATEWAY FIX: Automatically bypass the login window if already authenticated
+  useEffect(() => {
+    if (isInitialized && isAuthenticated && currentRole) {
+      navigate(`/${currentRole}`); // e.g. Automatically routes directly to /admin, /owner, or /trainer
+    }
+  }, [isAuthenticated, currentRole, isInitialized, navigate]);
 
   const handleVerifyEmail = async () => {
     if (!email) return;
     setVerifyingEmail(true);
     try {
-      await sendOtp( { email, role });
+      await sendOtp({ email, role });
       setIsEmailVerified(true);
     } catch (err) {
       dispatch(loginFailure(err.response?.data?.message || "Failed to send verification code."));
@@ -46,9 +55,11 @@ import {adminLogin, sendOtp, verifyOtp} from "../api/authApi";
         response = await verifyOtp({ email, otp, role, rememberMe });
       }
 
-      dispatch(loginSuccess({ token:response.data.token,
-         user: response.data.user, 
-         role, }));
+      dispatch(loginSuccess({ 
+        token: response.data.token,
+        user: response.data.user, 
+        role: response.data.role || role, // Prioritises explicit role returned from server configuration
+      }));
 
       setMobile("");
       setPassword("");
@@ -74,6 +85,15 @@ import {adminLogin, sendOtp, verifyOtp} from "../api/authApi";
     setOtp("");
     setIsEmailVerified(false);
   };
+
+  // 3. 🚀 Prevent rendering layout elements if local storage evaluation is still loading on app bootup
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
@@ -239,4 +259,3 @@ import {adminLogin, sendOtp, verifyOtp} from "../api/authApi";
   );
 }
 
-export default Login;
