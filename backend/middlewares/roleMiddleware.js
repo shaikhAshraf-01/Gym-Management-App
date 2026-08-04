@@ -23,6 +23,7 @@ const roleMiddleware = (...allowedRoles) => {
         success: false,
         message: "Internal server error.",
       });
+     
     }
   };
 };

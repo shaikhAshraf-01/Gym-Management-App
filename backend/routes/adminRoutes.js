@@ -4,13 +4,10 @@ import roleMiddleware from "../middlewares/roleMiddleware.js";
 import {
   getAdminProfile,
   changeAdminPassword,
-//   getDashboard,
-//   createGym,
-//   getAllGyms,
-//   getGymById,
-//   updateGym,
-//   updateGymStatus,
 } from "../controllers/adminController.js";
+import{
+  createGym
+} from "../controllers/gymController.js"
 
 const router = express.Router();
 
@@ -29,48 +26,11 @@ router.patch(
   changeAdminPassword
 );
 
-// ===== Dashboard =====
-// router.get(
-//   "/dashboard",
-//   authMiddleware,
-//   roleMiddleware("admin"),
-//   getDashboard
-// );
-
-// ===== Gym Management =====
-// router.post(
-//   "/gyms",
-//   authMiddleware,
-//   roleMiddleware("admin"),
-//   createGym
-// );
-
-// router.get(
-//   "/gyms",
-//   authMiddleware,
-//   roleMiddleware("admin"),
-//   getAllGyms
-// );
-
-// router.get(
-//   "/gyms/:id",
-//   authMiddleware,
-//   roleMiddleware("admin"),
-//   getGymById
-// );
-
-// router.put(
-//   "/gyms/:id",
-//   authMiddleware,
-//   roleMiddleware("admin"),
-//   updateGym
-// );
-
-// router.patch(
-//   "/gyms/:id/status",
-//   authMiddleware,
-//   roleMiddleware("admin"),
-//   updateGymStatus
-// );
-
+//===== Gym Management =====
+router.post(
+  "/createGyms",
+  authMiddleware,
+  roleMiddleware("admin"),
+  createGym
+);
 export default router;

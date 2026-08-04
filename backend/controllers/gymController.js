@@ -1,82 +1,94 @@
 import Gym from "../models/Gym.js";
 import { Owner } from "../models/User.js";
-import User from "../models/User.js";
 import GymSubscriptionHistory from "../models/GymSubscriptionHistory.js";
 
 // @route   POST /api/gyms
 // @access  Private (admin only)
 export const createGym = async (req, res) => {
+  try{
   const {
-    gymCode,
     gymName,
     location,
+    gymLogo,
+
     ownerName,
     ownerMobile,
     ownerEmail,
+
     subscriptionPlan,
     amount,
     paymentMode,
     durationMonths,
   } = req.body;
 
-  if (!gymCode || !gymName || !location || !ownerName || !ownerMobile || !ownerEmail || !subscriptionPlan || !amount || !paymentMode || !durationMonths) {
+  if ( !gymName || !ownerName || !ownerMobile || !ownerEmail ||
+     !subscriptionPlan || !amount || !paymentMode || !durationMonths) {
     return res.status(400).json({
       success: false,
-      message: "gymCode, gymName, location, ownerName, ownerMobile, ownerEmail, subscriptionPlan, amount, paymentMode, and durationMonths are all required.",
+      message: "Please filled all required fields.",
     });
   }
 
-  const existingUser = await User.findOne({ $or: [{ mobile: ownerMobile }, { email: ownerEmail }] });
-  if (existingUser) {
+  const existingOwner = await Owner.findOne({ $or: [{ mobile: ownerMobile }, { email: ownerEmail.toLowerCase() }] });
+  if (existingOwner) {
     return res.status(409).json({
       success: false,
-      message: "A user with this owner mobile number or email already exists.",
+      message: "An owner with this mobile number or email already exists.",
     });
   }
 
-  let gym;
-  try {
-    // Step 1: create the gym (owner left unset)
-    gym = await Gym.create({ gymCode, gymName, location });
-
-    // Step 2: create the owner — no password, OTP-based login
-    const owner = await Owner.create({
-      name: ownerName,
-      mobile: ownerMobile,
-      email: ownerEmail,
-      gymId: gym._id,
-    });
-
-    // Step 3: link the gym back to its new owner
-    gym.owner = owner._id;
-    await gym.save();
-
-    // Step 4: create the initial subscription entry
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + Number(durationMonths));
-
-    const subscription = await GymSubscriptionHistory.create({
-      gymId: gym._id,
-      subscriptionPlan,
-      durationMonths,
-      amount: Number(amount),
-      paymentMode,
-      startDate,
-      endDate,
-    });
-
-    return res.status(201).json({
-      success: true,
-      gym,
-      owner: { id: owner._id, name: owner.name, mobile: owner.mobile, email: owner.email },
-      subscription,
-    });
-  } catch (error) {
-    // Roll back the orphaned gym if a later step failed
-    if (gym && !gym.owner) {
-      await Gym.findByIdAndDelete(gym._id);
-    }
-    return res.status(500).json({ success: false, message: error.message });
+  const lastGym=await Gym.findOne().sort({ createdAt: -1 });
+  let nextNumber=101;
+  if(lastGym && lastGym.gymCode){
+    nextNumber=Number(lastGym.gymCode.split("-")[1])+1;
   }
-};
+  const gymCode=`GYM-${nextNumber}`;
+  //create gym
+  const gym=await Gym.create({
+    gymCode,
+    gymName,
+    location,
+    gymLogo,
+    status:"active",
+  });
+  // create owner
+  const owner=await Owner.create({
+    name: ownerName,
+    mobile: ownerMobile,
+    email: ownerEmail.toLowerCase(),
+    role: "owner",
+    gymId: gym._id,
+  });
+  //link owner
+  gym.owner=owner._id;
+  await gym.save();
+  //create subscription history 
+  const startDate=new Date();
+  const endDate=new Date(startDate);
+  endDate.setMonth(endDate.getMonth() + Number(durationMonths));
+  await GymSubscriptionHistory.create({
+    gymId: gym._id,
+    subscriptionPlan,
+    durationMonths,
+    amount,
+    paymentMode,
+    startDate,
+    endDate,
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "Gym created successfully.",
+    gym,
+  });
+}
+catch(error){
+  console.log(error);
+  res.status(500).json({
+    success:false,
+    message:"Internal server error",
+    error: error.message,
+    stack:error.stack,
+  })
+}
+}

@@ -5,4 +5,12 @@ const api=axios.create({
         "Content-Type":"application/json",
     },
 })
+api.interceptors.request.use((config)=>{
+    const auth=JSON.parse(localStorage.getItem("fitzone_auth"));
+    if(auth.token){
+        config.headers.Authorization=`Bearer ${auth.token}`;
+    }
+    return config;
+}
+)
 export default api;

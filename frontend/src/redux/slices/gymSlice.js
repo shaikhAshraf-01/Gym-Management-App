@@ -1,52 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  gyms: [
-   
-    {
-      id: "GYM-101",
-      name: "S11 Fitness",
-      ownerName: "Sajid Shaikh",
-      ownerMobile: "7798334404",
-      ownerPassword: "owner@123",
-      mustChangePassword: false,
-      email: "",
-      ownerPhoto: "", // base64 data URL, set via updateGymFields from OwnerProfile.jsx's photo upload
-      status: "active",
-      totalMembers: 0,
-      enquiries: 0,
-      address: "Near talab Masjid ,Kondhwa, Pune",
-      trainers: [
-        { id: "TRN-1", name: "Sanjay Patil", mobile: "9822055667", password: "sanjay@123", mustChangePassword: false },
-        { id: "TRN-2", name: "Anita Rao", mobile: "9765433221", password: "anita@456", mustChangePassword: false },
-      ],
-      subscriptionHistory: [
-        { id: "SUB-1", plan: "Basic", startDate: "2024-07-10", endDate: "2025-01-10", amount: 15000, paymentMode: "UPI" },
-        { id: "SUB-2", plan: "Plus", startDate: "2025-01-10", endDate: "2025-07-10", amount: 22000, paymentMode: "Card" },
-        { id: "SUB-3", plan: "Pro", startDate: "2025-07-10", endDate: "2026-07-10", amount: 45000, paymentMode: "Cash" },
-      ],
-    },
-    {
-      id: "GYM-102",
-      name: "Gold's Gym Center",
-      ownerName: "Amit Verma",
-      ownerMobile: "9123456789",
-      ownerPassword: "golds_owner_secure",
-      mustChangePassword: false,
-      email: "amit@goldsgym.in",
-      ownerPhoto: "", // base64 data URL, set via updateGymFields from OwnerProfile.jsx's photo upload
-      status: "inactive",
-      totalMembers: 198,
-      enquiries: 12,
-      address: "Galaxy Tower, 3rd Floor, MG Road, Mumbai, MH",
-      trainers: [
-        { id: "TRN-3", name: "Vikas Deshpande", mobile: "9090912345", password: "vikas@789", mustChangePassword: false },
-      ],
-      subscriptionHistory: [
-        { id: "SUB-4", plan: "Basic", startDate: "2025-06-10", endDate: "2026-06-10", amount: 18000, paymentMode: "Cash" },
-      ],
-    },
-  ],
+ gyms:[],
   loading: false,
   error: null,
 };

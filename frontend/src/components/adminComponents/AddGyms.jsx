@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
@@ -11,41 +10,15 @@ import {
   Calendar,
   ArrowLeft,
 } from "lucide-react";
-import { addGym } from "../../redux/slices/gymSlice";
-
-// ------------------------------------------------------------------
-// AddGym — Super Admin form to onboard a brand new gym.
-//
-// What this creates:
-//  1. The gym record itself (name, address, status)
-//  2. The OWNER's account — email + mobile only, NO password. Owner
-//     login is fully OTP-based now (email + one-time code), so there's
-//     nothing to "temporarily assign" or force a change on later.
-//  3. One initial subscriptionHistory entry.
-//
-// Trainers are NOT added here — handled separately once the gym exists.
-// ------------------------------------------------------------------
+import {createGym} from "../../api/gymApi";
 
 const PLAN_OPTIONS = ["Basic", "Plus", "Pro"];
 const PAYMENT_MODES = ["Cash", "UPI", "Card"];
 
-function generateGymId(existingIds) {
-  const numbers = existingIds
-    .map((id) => parseInt(id.replace("GYM-", ""), 10))
-    .filter((n) => !isNaN(n));
-
-  const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 101;
-  return `GYM-${nextNumber}`;
-}
-
 export default function AddGyms() {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const existingGymIds = useSelector((state) => state.gyms.gyms.map((g) => g.id));
-
   // ---------------- REQUIRED FIELDS ----------------
-  const [gymId] = useState(() => generateGymId(existingGymIds));
   const [gymName, setGymName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [ownerMobile, setOwnerMobile] = useState("");
@@ -64,7 +37,7 @@ export default function AddGyms() {
 
   const handleCancel = () => navigate("/admin/all-gyms");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -85,48 +58,28 @@ export default function AddGyms() {
       setError("Enter a valid owner email — it's how they'll log in via OTP.");
       return;
     }
-    if (existingGymIds.includes(gymId)) {
-      setError("Gym ID collision — refresh and try again.");
-      return;
-    }
     if (!amount || Number(amount) <= 0) {
       setError("Enter a valid plan amount.");
       return;
     }
-
-    // ---------------- BUILD THE SUBSCRIPTION ENTRY ----------------
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + Number(durationMonths));
-
-    const newGym = {
-      id: gymId,
-      name: gymName.trim(),
-      ownerName: ownerName.trim(),
+   
+   try{
+    await createGym({
+      gymName,
+      ownerName,
       ownerMobile,
-      ownerEmail: ownerEmail.trim(),
-      // No password field at all — owner logs in via email + OTP,
-      // there's nothing to hash/assign/reset here.
-      status: "active",
-      totalMembers: 0,
-      enquiries: 0,
-      address: address.trim(),
-      trainers: [],
-      subscriptionHistory: [
-        {
-          id: `SUB-${Date.now()}`,
-          plan,
-          startDate: startDate.toISOString().split("T")[0],
-          endDate: endDate.toISOString().split("T")[0],
-          amount: Number(amount),
-          paymentMode,
-        },
-      ],
-    };
-
-    dispatch(addGym(newGym));
+      ownerEmail,
+      location:address,
+      subscriptionPlan:plan,
+      durationMonths,
+      amount:Number(amount),
+      paymentMode,
+    });
     navigate("/admin/all-gyms");
-  };
+   }catch(err){
+    setError(err.response?.data?.message||"failed to create gym");
+   }
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-16">
@@ -165,7 +118,7 @@ export default function AddGyms() {
               <label className="text-[11px] text-slate-500">Gym ID (auto-generated)</label>
               <input
                 type="text"
-                value={gymId}
+                value="Auto Generated"
                 disabled
                 className="mt-1 w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm font-mono text-slate-500"
               />
