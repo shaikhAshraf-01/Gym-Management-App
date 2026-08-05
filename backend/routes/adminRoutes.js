@@ -6,7 +6,12 @@ import {
   changeAdminPassword,
 } from "../controllers/adminController.js";
 import{
-  createGym
+  createGym,
+  getAllGyms,
+  updateGym,
+  deleteGym,
+  addTrainer,
+  deleteTrainer,
 } from "../controllers/gymController.js"
 
 const router = express.Router();
@@ -33,4 +38,30 @@ router.post(
   roleMiddleware("admin"),
   createGym
 );
+
+//====All gyms details
+router.get("/gyms",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getAllGyms
+)
+
+router.put("/gyms/:id",authMiddleware,roleMiddleware("admin"),updateGym)
+router.delete("/gyms/:id",authMiddleware,roleMiddleware("admin"),deleteGym)
+
+//===== Trainer Management =====
+router.post(
+  "/gyms/:id/trainers",
+  authMiddleware,
+  roleMiddleware("admin"),
+  addTrainer
+)
+
+router.delete(
+  "/gyms/:id/trainers/:trainerId",
+  authMiddleware,
+  roleMiddleware("admin"),
+  deleteTrainer
+)
+
 export default router;

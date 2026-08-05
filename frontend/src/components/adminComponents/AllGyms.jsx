@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
@@ -19,12 +19,15 @@ import {
   Clock,
   ShieldCheck,
 } from "lucide-react";
-import { updateGym, deleteGym } from "../../redux/slices/gymSlice";
+import { fetchGyms, updateGym, deleteGym } from "../../redux/slices/gymSlice";
 // ^ Adjust this import path to wherever gymsSlice.js actually lives
 //   in your folder structure (e.g. "../../../features/superAdmin/gymsSlice").
 
 export default function AllGyms() {
   const dispatch = useDispatch();
+  useEffect(() => {
+    dispatch(fetchGyms());
+  }, [dispatch]);
   const navigate = useNavigate();
 
   // ------------------------------------------------------------------
@@ -43,40 +46,43 @@ export default function AllGyms() {
   // Confirmation state for destructive actions (gym delete / trainer delete).
   // Kept generic so ONE confirm modal can handle both cases.
   const [confirmDelete, setConfirmDelete] = useState(null);
-  // shape: { type: "gym" | "trainer", gymId: string, trainerId?: string, label: string } | null
 
-  // ------------------------------------------------------------------
-  // 2. GYM DATA — now read from Redux (gymsSlice) instead of local
-  // mock state, so AddGym.jsx and AllGyms.jsx share the same source
-  // of truth. Each gym still has:
-  //  - `trainers`: array of individual trainer logins (name + mobile,
-  //    no password managed here anymore)
-  //  - `subscriptionHistory`: every plan period ever purchased, oldest
-  //    first. status/startDate/endDate always mirror the LAST entry in
-  //    this array — there's no separate "current plan" field to drift
-  //    out of sync.
-  // ------------------------------------------------------------------
-  const gymsData = useSelector((state) => state.gyms.gyms);
+  const {
+    gyms: gymsData,
+    loading,
+    error,
+  } = useSelector((state) => state.gyms);
 
-  // ------------------------------------------------------------------
-  // Helpers to read "current" values off the last history entry —
-  // used everywhere instead of separate startDate/endDate fields.
-  // ------------------------------------------------------------------
-  const getCurrentSub = (gym) => gym.subscriptionHistory[gym.subscriptionHistory.length - 1];
-  const getClientSince = (gym) => gym.subscriptionHistory[0].startDate;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <h2 className="text-lg font-semibold">Loading gyms...</h2>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <h2 className="text-lg text-red-500">{error}</h2>
+      </div>
+    );
+  }
+
+  const getCurrentSub = (gym) => gym.currentSubscription;
+  const getClientSince = (gym) => gym.subscriptionHistory[0]?.startDate;
   const getLifetimeRevenue = (gym) =>
     gym.subscriptionHistory.reduce((sum, s) => sum + s.amount, 0);
 
-  // ------------------------------------------------------------------
   // 3. SEARCH + FILTER
-  // ------------------------------------------------------------------
   const filteredGyms = gymsData.filter((gym) => {
     const matchesSearch =
-      gym.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      gym.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      gym.ownerName.toLowerCase().includes(searchQuery.toLowerCase());
+      gym.gymName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      gym.gymCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      gym.owner?.name?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || gym.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || gym.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -88,7 +94,7 @@ export default function AllGyms() {
     setSelectedGym({
       ...gym,
       trainers: gym.trainers.map((t) => ({ ...t })),
-      subscriptionHistory: gym.subscriptionHistory.map((s) => ({ ...s })),
+      currentSubscription: { ...gym.currentSubscription },
     });
     setIsDrawerOpen(true);
   };
@@ -125,14 +131,11 @@ export default function AllGyms() {
 
   // ------------------------------------------------------------------
   // 6. RENEW SUBSCRIPTION
-  // Now APPENDS a new entry to subscriptionHistory instead of just
-  // overwriting an endDate — this is what makes the timeline modal
-  // actually show renewals as they happen. Carries forward the same
-  // plan name and amount as the last entry (admin can edit the plan
-  // name after saving, from the metrics section, if it changed).
+  //    Pushes a new entry into subscriptionHistory AND updates
+  //    currentSubscription, so the Timeline modal picks it up too.
   // ------------------------------------------------------------------
   const renewSubscription = (months) => {
-    const current = getCurrentSub(selectedGym);
+    const current = selectedGym.currentSubscription;
     const today = new Date();
     const base = new Date(current.endDate);
     const startFrom = base > today ? base : today; // don't lose remaining active days
@@ -143,7 +146,7 @@ export default function AllGyms() {
 
     const newSub = {
       id: `SUB-${Date.now()}`,
-      plan: current.plan,
+      subscriptionPlan: current.subscriptionPlan,
       startDate: newStart.toISOString().split("T")[0],
       endDate: newEnd.toISOString().split("T")[0],
       amount: current.amount, // admin can adjust in metrics if the price changed
@@ -153,6 +156,7 @@ export default function AllGyms() {
     setSelectedGym({
       ...selectedGym,
       status: "active", // renewing reactivates the gym
+      currentSubscription: newSub,
       subscriptionHistory: [...selectedGym.subscriptionHistory, newSub],
     });
   };
@@ -161,13 +165,13 @@ export default function AllGyms() {
   // 7. DELETE (gym or trainer) — routed through one confirm modal
   // ------------------------------------------------------------------
   const requestDeleteGym = (gym) => {
-    setConfirmDelete({ type: "gym", gymId: gym.id, label: gym.name });
+    setConfirmDelete({ type: "gym", gymId: gym._id, label: gym.gymName });
   };
 
   const requestDeleteTrainer = (trainer) => {
     setConfirmDelete({
       type: "trainer",
-      gymId: selectedGym.id,
+      gymId: selectedGym._id,
       trainerId: trainer.id,
       label: trainer.name || trainer.mobile,
     });
@@ -178,7 +182,9 @@ export default function AllGyms() {
 
     if (confirmDelete.type === "gym") {
       dispatch(deleteGym(confirmDelete.gymId));
-      if (selectedGym?.id === confirmDelete.gymId) setIsDrawerOpen(false);
+      if (selectedGym?._id === confirmDelete.gymId) {
+        setIsDrawerOpen(false);
+      }
     }
 
     if (confirmDelete.type === "trainer") {
@@ -263,14 +269,14 @@ export default function AllGyms() {
           const current = getCurrentSub(gym);
           return (
             <div
-              key={gym.id}
+              key={gym._id}
               className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between"
             >
               <div className="p-5 space-y-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="font-bold text-slate-800 text-lg leading-snug">{gym.name}</h3>
-                    <span className="text-xs text-slate-400 font-mono tracking-wider">{gym.id}</span>
+                    <h3 className="font-bold text-slate-800 text-lg leading-snug">{gym.gymName}</h3>
+                    <span className="text-xs text-slate-400 font-mono tracking-wider">{gym.gymCode}</span>
                   </div>
                   <span
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold capitalize border ${
@@ -291,15 +297,15 @@ export default function AllGyms() {
                 <div className="space-y-2 text-sm text-slate-600 border-t border-slate-50 pt-3">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-slate-400" />
-                    <span className="font-medium text-slate-700">{gym.ownerName}</span>
+                    <span className="font-medium text-slate-700">{gym.owner.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-slate-400" />
-                    <span>+91 {gym.ownerMobile}</span>
+                    <span>+91 {gym.owner.mobile}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-slate-400" />
-                    <span className="truncate">{gym.email}</span>
+                    <span className="truncate">{gym.owner.email}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-slate-400" />
@@ -313,7 +319,7 @@ export default function AllGyms() {
                 <div className="bg-slate-50 p-3 rounded-xl space-y-1.5 text-xs text-slate-500 border border-slate-100">
                   <div className="flex justify-between items-center">
                     <span>Current Plan:</span>
-                    <span className="font-semibold text-slate-700">{current.plan}</span>
+                    <span className="font-semibold text-slate-700">{current.subscriptionPlan}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Start Date:</span>
@@ -380,7 +386,7 @@ export default function AllGyms() {
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
                   <h2 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">
-                    {selectedGym.name}
+                    {selectedGym.gymName}
                   </h2>
                   <p className="text-xs text-slate-400 mt-0.5">
                     Manage subscription, owner, and trainer accounts
@@ -491,9 +497,12 @@ export default function AllGyms() {
                   <input
                     type="text"
                     required
-                    value={selectedGym.ownerName}
+                    value={selectedGym.owner.name}
                     onChange={(e) =>
-                      setSelectedGym({ ...selectedGym, ownerName: e.target.value })
+                      setSelectedGym({
+                        ...selectedGym,
+                        owner: { ...selectedGym.owner, name: e.target.value },
+                      })
                     }
                     className="mt-1 block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
                   />
@@ -503,9 +512,12 @@ export default function AllGyms() {
                   <input
                     type="text"
                     required
-                    value={selectedGym.ownerMobile}
+                    value={selectedGym.owner.mobile}
                     onChange={(e) =>
-                      setSelectedGym({ ...selectedGym, ownerMobile: e.target.value })
+                      setSelectedGym({
+                        ...selectedGym,
+                        owner: { ...selectedGym.owner, mobile: e.target.value },
+                      })
                     }
                     className="mt-1 block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 font-mono"
                   />
@@ -515,8 +527,13 @@ export default function AllGyms() {
                   <input
                     type="email"
                     required
-                    value={selectedGym.email}
-                    onChange={(e) => setSelectedGym({ ...selectedGym, email: e.target.value })}
+                    value={selectedGym.owner.email}
+                    onChange={(e) =>
+                      setSelectedGym({
+                        ...selectedGym,
+                        owner: { ...selectedGym.owner, email: e.target.value },
+                      })
+                    }
                     className="mt-1 block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
                   />
                 </div>
@@ -643,7 +660,7 @@ export default function AllGyms() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-800 tracking-tight">
-                  {timelineGym.name}
+                  {timelineGym.gymName}
                 </h2>
                 <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
                   <Clock className="h-3 w-3" />
@@ -696,7 +713,9 @@ export default function AllGyms() {
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-800 text-sm">{sub.plan} Plan</span>
+                          <span className="font-bold text-slate-800 text-sm">
+                            {sub.subscriptionPlan} Plan
+                          </span>
                           {active && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
                               <CheckCircle2 className="h-3 w-3" />

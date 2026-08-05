@@ -132,12 +132,14 @@ const authSlice = createSlice({
       localStorage.removeItem("fitzone_auth");
     },
 
-    restoreSession: (state) => {
+       restoreSession: (state) => {
       const stored = localStorage.getItem("fitzone_auth");
 
+      // 1. If nothing is in local storage, initialize immediately and stop
       if (!stored) {
-          isInitialized: false
-          return ;
+        state.isInitialized = true; // 🔓 Unlocks the loading spinner!
+        state.isAuthenticated = false;
+        return;
       }
 
       try {
@@ -148,13 +150,20 @@ const authSlice = createSlice({
           state.token = token;
           state.role = role;
           state.isAuthenticated = true;
+        } else {
+          // If the data structure is corrupt or incomplete, clean it up
+          localStorage.removeItem("fitzone_auth");
+          state.isAuthenticated = false;
         }
       } catch (error) {
         localStorage.removeItem("fitzone_auth");
-      }finally{
-         state.isInitialized = true;
+        state.isAuthenticated = false;
+      } finally {
+        // 2. This guarantees the initialization completes no matter what!
+        state.isInitialized = true;
       }
     },
+
   },
 
   extraReducers: (builder) => {

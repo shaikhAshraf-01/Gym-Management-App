@@ -10,7 +10,16 @@ import {
   Calendar,
   ArrowLeft,
 } from "lucide-react";
-import {createGym} from "../../api/gymApi";
+import { createGymApi } from "../../api/adminApi";
+// ^ Switched from ../../api/gymApi — that version didn't accept auth
+//   headers at all, which would 401 if /admin/createGyms is protected.
+
+const getAuthHeaders = () => {
+  const stored = localStorage.getItem("fitzone_auth");
+  if (!stored) return {};
+  const { token } = JSON.parse(stored);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 const PLAN_OPTIONS = ["Basic", "Plus", "Pro"];
 const PAYMENT_MODES = ["Cash", "UPI", "Card"];
@@ -64,17 +73,20 @@ export default function AddGyms() {
     }
    
    try{
-    await createGym({
-      gymName,
-      ownerName,
-      ownerMobile,
-      ownerEmail,
-      location:address,
-      subscriptionPlan:plan,
-      durationMonths,
-      amount:Number(amount),
-      paymentMode,
-    });
+    await createGymApi(
+      {
+        gymName,
+        ownerName,
+        ownerMobile,
+        ownerEmail,
+        location:address,
+        subscriptionPlan:plan,
+        durationMonths,
+        amount:Number(amount),
+        paymentMode,
+      },
+      getAuthHeaders()
+    );
     navigate("/admin/all-gyms");
    }catch(err){
     setError(err.response?.data?.message||"failed to create gym");
