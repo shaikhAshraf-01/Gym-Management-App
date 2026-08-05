@@ -2,16 +2,21 @@ import { useState, useEffect } from "react"; // Added useEffect
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { loginStart, loginSuccess, loginFailure } from "../redux/slices/authSlice";
+import {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+} from "../redux/slices/authSlice";
 import LoginImg from "../assets/loginPage.png";
 import { adminLogin, sendOtp, verifyOtp } from "../api/authApi";
+import { fetchGyms } from "../redux/slices/gymSlice";
 
 export default function Login() {
   const [role, setRole] = useState("owner");
-  
+
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
-  
+
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [isEmailVerified, setIsEmailVerified] = useState(false);
@@ -22,7 +27,13 @@ export default function Login() {
   const navigate = useNavigate();
 
   // 1. Grab authentication state flags and user role definitions from Redux
-  const { loading, error, isAuthenticated, isInitialized, role: currentRole } = useSelector((state) => state.auth);
+  const {
+    loading,
+    error,
+    isAuthenticated,
+    isInitialized,
+    role: currentRole,
+  } = useSelector((state) => state.auth);
 
   // 2. 🚀 THE LIFECYCLE GATEWAY FIX: Automatically bypass the login window if already authenticated
   useEffect(() => {
@@ -38,7 +49,11 @@ export default function Login() {
       await sendOtp({ email, role });
       setIsEmailVerified(true);
     } catch (err) {
-      dispatch(loginFailure(err.response?.data?.message || "Failed to send verification code."));
+      dispatch(
+        loginFailure(
+          err.response?.data?.message || "Failed to send verification code.",
+        ),
+      );
     } finally {
       setVerifyingEmail(false);
     }
@@ -55,12 +70,16 @@ export default function Login() {
         response = await verifyOtp({ email, otp, role, rememberMe });
       }
 
-      dispatch(loginSuccess({ 
-        token: response.data.token,
-        user: response.data.user, 
-        role: response.data.role || role, // Prioritises explicit role returned from server configuration
-      }));
-
+      dispatch(
+        loginSuccess({
+          token: response.data.token,
+          user: response.data.user,
+          role: response.data.role || role, // Prioritises explicit role returned from server configuration
+        }),
+      );
+      if (role === "admin") {
+        await dispatch(fetchGyms());
+      }
       setMobile("");
       setPassword("");
       setEmail("");
@@ -73,7 +92,12 @@ export default function Login() {
         navigate(`/${role}`);
       }
     } catch (err) {
-      dispatch(loginFailure(err.response?.data?.message || "Invalid credentials. Please try again."));
+      dispatch(
+        loginFailure(
+          err.response?.data?.message ||
+            "Invalid credentials. Please try again.",
+        ),
+      );
     }
   };
 
@@ -98,14 +122,22 @@ export default function Login() {
   return (
     <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
       <div className="hidden md:block md:w-[55%] h-full">
-        <img src={LoginImg} alt="Login Dashboard Frame" className="w-full h-full object-cover" />
+        <img
+          src={LoginImg}
+          alt="Login Dashboard Frame"
+          className="w-full h-full object-cover"
+        />
       </div>
 
       <div className="w-full md:w-[45%] h-full bg-linear-30 from-blue-200 to-purple-300 flex items-center justify-center p-8 sm:p-12">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-slate-800 tracking-tight">Welcome Back</h2>
-            <p className="mt-2 text-sm text-slate-500">Please select your role and sign in</p>
+            <h2 className="text-3xl font-bold text-slate-800 tracking-tight">
+              Welcome Back
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Please select your role and sign in
+            </p>
           </div>
 
           <div className="flex bg-slate-200 p-1 rounded-xl relative">
@@ -124,7 +156,11 @@ export default function Login() {
                     <motion.div
                       layoutId="activeTabIndicator"
                       className="absolute inset-0 bg-white rounded-lg shadow-sm -z-10"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 380,
+                        damping: 30,
+                      }}
                     />
                   )}
                 </button>
@@ -152,7 +188,9 @@ export default function Login() {
                 {role === "admin" ? (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700">Mobile Number</label>
+                      <label className="block text-sm font-medium text-slate-700">
+                        Mobile Number
+                      </label>
                       <input
                         type="tel"
                         required
@@ -166,7 +204,9 @@ export default function Login() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700">Password</label>
+                      <label className="block text-sm font-medium text-slate-700">
+                        Password
+                      </label>
                       <input
                         type="password"
                         required
@@ -181,7 +221,9 @@ export default function Login() {
                 ) : (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700">Email Address</label>
+                      <label className="block text-sm font-medium text-slate-700">
+                        Email Address
+                      </label>
                       <div className="flex mt-1 space-x-2">
                         <input
                           type="email"
@@ -194,11 +236,20 @@ export default function Login() {
                         />
                         <button
                           type="button"
-                          disabled={loading || verifyingEmail || !email || isEmailVerified}
+                          disabled={
+                            loading ||
+                            verifyingEmail ||
+                            !email ||
+                            isEmailVerified
+                          }
                           onClick={handleVerifyEmail}
                           className="px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-xs transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-slate-300 disabled:text-slate-500 whitespace-nowrap"
                         >
-                          {verifyingEmail ? "Sending..." : isEmailVerified ? "Sent" : "Verify"}
+                          {verifyingEmail
+                            ? "Sending..."
+                            : isEmailVerified
+                              ? "Sent"
+                              : "Verify"}
                         </button>
                       </div>
                     </div>
@@ -209,7 +260,9 @@ export default function Login() {
                         animate={{ opacity: 1, y: 0 }}
                         className="space-y-1"
                       >
-                        <label className="block text-sm font-medium text-slate-700">Enter OTP</label>
+                        <label className="block text-sm font-medium text-slate-700">
+                          Enter OTP
+                        </label>
                         <input
                           type="text"
                           required
@@ -237,7 +290,10 @@ export default function Login() {
                     <span>Remember me</span>
                   </label>
                   {role === "admin" && (
-                    <a href="#" className="text-indigo-600 hover:underline font-medium focus:outline-none">
+                    <a
+                      href="#"
+                      className="text-indigo-600 hover:underline font-medium focus:outline-none"
+                    >
                       Forgot password?
                     </a>
                   )}
@@ -258,4 +314,3 @@ export default function Login() {
     </div>
   );
 }
-

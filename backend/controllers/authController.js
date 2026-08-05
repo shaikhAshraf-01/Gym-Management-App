@@ -84,7 +84,8 @@ export const sendOTP = async (req, res) => {
     user.otp = otp;
     user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
-    
+   
+    console.log("Function", typeof sendOTPEmails);
     const isSent = await sendOTPEmails(email, otp);
     if (!isSent) {
       return res.status(500).json({
