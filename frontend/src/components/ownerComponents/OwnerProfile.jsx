@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
@@ -7,201 +7,339 @@ import {
   Phone,
   Mail,
   MapPin,
-  Users,
-  LogOut,
+  CalendarDays,
+  BadgeCheck,
   Camera,
+  Trash2,
+  LogOut,
 } from "lucide-react";
+
 import { logout } from "../../redux/slices/authSlice";
+import { fetchOwnerProfile, uploadGymLogo } from "../../redux/slices/ownerSlice";
 
 export default function OwnerProfile() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // TODO: Replace this with the logged-in owner's gym ID later.
-  const activeGymId = "GYM-101";
-  
-  const gym = useSelector((state) =>
-    state.gyms.gyms.find(
-      (g) => g._id === activeGymId || g.gymCode === activeGymId || g.id === activeGymId
-    )
-  );
-
-  // Local state to track frontend-only image preview
-  const [previewPhoto, setPreviewPhoto] = useState(null);
   const photoInputRef = useRef(null);
 
-  if (!gym) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 text-gray-500 text-sm font-medium">
-        Gym profile data could not be found.
-      </div>
-    );
-  }
+  const {
+    owner,
+    gym,
+    currentSubscription,
+    loading,
+    error,
+  } = useSelector((state) => state.owner);
+
+  const [previewLogo, setPreviewLogo] = useState(null);
+
+  useEffect(() => {
+    dispatch(fetchOwnerProfile());
+  }, [dispatch]);
 
   const handleLogout = () => {
     dispatch(logout());
     navigate("/login");
   };
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleLogoChange = async (e) => {
+  const file = e.target.files?.[0];
 
-    if (!file.type.startsWith("image/")) {
-      alert("Please choose an image.");
-      return;
-    }
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    alert("Please select an image.");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("gymLogo", file);
+
+  try {
+    await dispatch(uploadGymLogo(formData)).unwrap();
 
     const reader = new FileReader();
+
     reader.onload = () => {
-      setPreviewPhoto(reader.result); // Updates state to trigger visual re-render
+      setPreviewLogo(reader.result);
     };
+
     reader.readAsDataURL(file);
-    e.target.value = "";
+
+  } catch (error) {
+    alert(error);
+  }
+
+  e.target.value = "";
+};
+
+  const removeLogo = () => {
+    setPreviewLogo(null);
   };
 
-  const owner = gym.owner || {};
-  // Prioritise preview photo over saved gym photo
-  const currentPhoto = previewPhoto || gym.ownerPhoto; 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-gray-50">
+        <div className="h-10 w-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
-  return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto bg-gray-50 min-h-screen pb-16 text-gray-900">
-      {/* ================= HEADER ================= */}
-      <div className="flex flex-col items-center text-center border-b border-gray-200 pb-6 mb-6">
-        <div className="relative shrink-0 mb-3">
-          <div className="h-20 w-20 md:h-24 md:w-24 rounded-full overflow-hidden bg-gray-200 border-2 border-white shadow-sm flex items-center justify-center">
-            {currentPhoto ? (
-              <img
-                src={currentPhoto}
-                alt={owner.name}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <User className="h-10 w-10 md:h-12 md:w-12 text-gray-400" />
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => photoInputRef.current?.click()}
-            className="absolute -bottom-1 -right-1 p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-md border-2 border-white cursor-pointer"
-          >
-            <Camera className="h-3.5 w-3.5" />
-          </button>
-          <input
-            ref={photoInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handlePhotoChange}
-          />
-        </div>
-        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-          {gym.gymName}
-        </h1>
-        <p className="text-gray-500 text-xs md:text-sm mt-1 flex items-center gap-1">
-          <Building2 className="h-4 w-4" /> {gym.gymCode}
+  if (error) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-gray-50">
+        <p className="text-red-500 font-medium">
+          {error}
         </p>
       </div>
+    );
+  }
 
-      {/* ================= CONTENT ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* LEFT COLUMN (1/3 Width) */}
-        <div className="space-y-6">
-          {/* Owner Details */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-gray-100 mb-4">
-              <User className="h-5 w-5 text-blue-600" />
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">
-                Owner Details
-              </h3>
+  if (!gym || !owner) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-gray-50">
+        <p className="text-gray-500">
+          Gym profile data could not be found.
+        </p>
+      </div>
+    );
+  }
+
+const logo=previewLogo||gym?.gymLogo||"";
+  const subscription=currentSubscription||{};
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 pb-20">
+      <div className="max-w-xl mx-auto">
+
+        {/* ===================== LOGO ===================== */}
+
+        <div className="flex flex-col items-center text-center">
+
+          <div className="relative">
+
+            <div className="w-28 h-28 rounded-full bg-white border shadow-md overflow-hidden flex items-center justify-center">
+
+              {logo ? (
+                <img
+                  src={logo}
+                  alt={gym.gymName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Building2 className="w-12 h-12 text-gray-400" />
+              )}
+
             </div>
-            <div className="space-y-4">
+
+            <button
+              onClick={() => photoInputRef.current?.click()}
+              className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 shadow-lg"
+            >
+              <Camera size={16} />
+            </button>
+
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleLogoChange}
+            />
+
+          </div>
+
+          {logo && (
+            <button
+              onClick={removeLogo}
+              className="mt-2 flex items-center gap-1 text-red-500 text-sm"
+            >
+              <Trash2 size={14} />
+              Remove Logo
+            </button>
+          )}
+
+          <h1 className="text-2xl font-bold mt-4">
+            {gym.gymName}
+          </h1>
+
+          <p className="text-gray-500 text-sm flex items-center gap-1 mt-1">
+            <Building2 size={14} />
+            {gym.gymCode}
+          </p>
+
+        </div>
+        {/* ===================== OWNER DETAILS ===================== */}
+
+        <div className="bg-white rounded-xl shadow-sm border mt-8 p-5">
+
+          <h2 className="text-sm font-bold text-gray-500 uppercase mb-5">
+            Owner Details
+          </h2>
+
+          <div className="space-y-5">
+
+            <div className="flex items-center gap-3">
+              <User size={18} className="text-blue-600" />
               <div>
-                <p className="text-xs text-gray-400 font-medium">Full Name</p>
-                <p className="text-sm font-semibold text-gray-900">{owner.name}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
-                  <Phone className="h-3 w-3" /> Mobile
+                <p className="text-xs text-gray-400">
+                  Owner Name
                 </p>
-                <p className="text-sm font-semibold text-gray-900">{owner.mobile}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
-                  <Mail className="h-3 w-3" /> Email
+                <p className="font-semibold">
+                  {owner.name}
                 </p>
-                <p className="text-sm font-semibold text-gray-900 break-all">
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Phone size={18} className="text-blue-600" />
+              <div>
+                <p className="text-xs text-gray-400">
+                  Mobile Number
+                </p>
+                <p className="font-semibold">
+                  {owner.mobile}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Mail size={18} className="text-blue-600" />
+              <div>
+                <p className="text-xs text-gray-400">
+                  Email Address
+                </p>
+                <p className="font-semibold break-all">
                   {owner.email}
                 </p>
               </div>
             </div>
+
           </div>
 
-          {/* Address */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-gray-100 mb-4">
-              <MapPin className="h-5 w-5 text-gray-600" />
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">
-                Address
-              </h3>
-            </div>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              {gym.address || gym.location || "No address available"}
-            </p>
-          </div>
         </div>
 
-        {/* RIGHT COLUMN (2/3 Width) */}
-        <div className="md:col-span-2 space-y-4">
-          <div className="flex items-center gap-2.5 pb-2">
-            <Users className="h-5 w-5 text-gray-600" />
-            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">
-              Gym Trainers ({gym.trainers?.length || 0})
-            </h3>
-          </div>
+        {/* ===================== GYM DETAILS ===================== */}
 
-          {!gym.trainers || gym.trainers.length === 0 ? (
-            <div className="border border-dashed border-gray-200 bg-white rounded-xl py-12 text-center">
-              <p className="text-sm text-gray-400">No trainers assigned to this gym.</p>
+        <div className="bg-white rounded-xl shadow-sm border mt-6 p-5">
+
+          <h2 className="text-sm font-bold text-gray-500 uppercase mb-5">
+            Gym Details
+          </h2>
+
+          <div className="space-y-5">
+
+            <div className="flex items-center gap-3">
+              <MapPin size={18} className="text-blue-600" />
+              <div>
+                <p className="text-xs text-gray-400">
+                  Location
+                </p>
+                <p className="font-semibold">
+                  {gym.location}
+                </p>
+              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {gym.trainers.map((trainer) => (
-                <div
-                  key={trainer.id || trainer._id}
-                  className="bg-white border border-gray-100 shadow-sm rounded-xl p-4 space-y-2"
+
+            <div className="flex items-center gap-3">
+              <Building2 size={18} className="text-blue-600" />
+              <div>
+                <p className="text-xs text-gray-400">
+                  Gym Code
+                </p>
+                <p className="font-semibold">
+                  {gym.gymCode}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <BadgeCheck size={18} className="text-green-600" />
+              <div>
+                <p className="text-xs text-gray-400">
+                  Gym Status
+                </p>
+
+                <span
+                  className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
+                    gym.status === "active"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
                 >
-                  <div>
-                    <p className="text-xs text-gray-400">Trainer Name</p>
-                    <p className="text-sm font-semibold text-gray-900">{trainer.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400 flex items-center gap-1">
-                      <Phone className="h-3 w-3" /> Mobile
-                    </p>
-                    <p className="text-sm text-gray-700">{trainer.mobile}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400 flex items-center gap-1">
-                      <Mail className="h-3 w-3" /> Email
-                    </p>
-                    <p className="text-sm text-gray-700 break-all">{trainer.email}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+                  {gym.status}
+                </span>
 
-      {/* Logout Button */}
-      <div className="mt-8">
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+        {/* ===================== SUBSCRIPTION DETAILS ===================== */}
+
+        <div className="bg-white rounded-xl shadow-sm border mt-6 p-5">
+
+          <h2 className="text-sm font-bold text-gray-500 uppercase mb-5">
+            Subscription Details
+          </h2>
+
+          <div className="space-y-5">
+
+            <div className="flex items-center gap-3">
+              <BadgeCheck size={18} className="text-green-600" />
+              <div>
+                <p className="text-xs text-gray-400">
+                  Current Plan
+                </p>
+                <p className="font-semibold">
+                  {subscription.subscriptionPlan || "No Active Plan"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <CalendarDays size={18} className="text-blue-600" />
+              <div>
+                <p className="text-xs text-gray-400">
+                  Start Date
+                </p>
+                <p className="font-semibold">
+                  {subscription.startDate
+                    ? new Date(subscription.startDate).toLocaleDateString()
+                    : "--"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <CalendarDays size={18} className="text-red-600" />
+              <div>
+                <p className="text-xs text-gray-400">
+                  Expiry Date
+                </p>
+                <p className="font-semibold">
+                  {subscription.endDate
+                    ? new Date(subscription.endDate).toLocaleDateString()
+                    : "--"}
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* ===================== LOGOUT ===================== */}
+
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 transition px-4 py-3 rounded-xl text-sm font-bold border border-red-200 cursor-pointer"
+          className="mt-8 w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl py-3 font-semibold transition"
         >
-          <LogOut className="h-4 w-4" /> Logout
+          <LogOut size={18} />
+          Logout
         </button>
+
       </div>
     </div>
   );
