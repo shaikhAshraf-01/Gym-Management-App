@@ -1,5 +1,5 @@
 import express from "express";
-import { getOwnerProfile, uploadGymLogo } from "../controllers/ownerController.js";
+import { getOwnerProfile, uploadGymLogo,removeGymLogo } from "../controllers/ownerController.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import roleMiddleware from "../middlewares/roleMiddleware.js";
 import upload from "../middlewares/upload.js";
@@ -20,5 +20,12 @@ router.patch(
 
   upload.single("gymLogo"),
   uploadGymLogo,
+)
+router.delete(
+  "/logo",
+  authMiddleware,
+    roleMiddleware("owner"),
+
+  removeGymLogo,
 )
 export default router;

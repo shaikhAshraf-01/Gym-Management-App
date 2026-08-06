@@ -20,6 +20,10 @@ const gymSchema= new mongoose.Schema({
         type:String,
         default:"",
     },
+    gymLogoPublicId:{
+        type:String,
+        default:""
+    },
     owner:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User",

@@ -103,10 +103,15 @@ export const uploadGymLogo = async (req, res) => {
         streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
       });
 
+      if(gym.gymLogoPublicId){
+        await cloudinary.uploader.destroy(gym.gymLogoPublicId);
+        gym.gymLogoPublicId="",
+        gym.gymLogo=""
+      }
     const result = await uploadFromBuffer();
 
     gym.gymLogo = result.secure_url;
-
+    gym.gymLogoPublicId=result.public_id;
     await gym.save();
 
     return res.status(200).json({
@@ -120,6 +125,50 @@ export const uploadGymLogo = async (req, res) => {
       success: false,
       message: "Internal server error.",
       error: error.message,
+    });
+  }
+};
+
+export const removeGymLogo = async (req, res) => {
+  try {
+    const owner = await User.findById(req.user._id);
+
+    if (!owner || owner.role !== "owner") {
+      return res.status(404).json({
+        success: false,
+        message: "Owner not found.",
+      });
+    }
+
+    const gym = await Gym.findOne({ owner: owner._id });
+
+    if (!gym) {
+      return res.status(404).json({
+        success: false,
+        message: "Gym not found.",
+      });
+    }
+
+    // Delete image from Cloudinary
+    if (gym.gymLogoPublicId) {
+      await cloudinary.uploader.destroy(gym.gymLogoPublicId);
+    }
+
+    // Clear database fields
+    gym.gymLogo = "";
+    gym.gymLogoPublicId = "";
+
+    await gym.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Gym logo removed successfully.",
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };

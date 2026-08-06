@@ -1,5 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getOwnerProfileApi, uploadGymLogoApi } from "../../api/ownerApi";
+import {
+  getOwnerProfileApi,
+  uploadGymLogoApi,
+  removeGymLogoApi,
+} from "../../api/ownerApi";
 
 const getAuthHeaders = () => {
   const stored = localStorage.getItem("fitzone_auth");
@@ -41,12 +45,27 @@ export const uploadGymLogo = createAsyncThunk(
     }
   },
 );
+export const removeGymLogo = createAsyncThunk(
+  "owner/removeGymLogo",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await removeGymLogoApi(getAuthHeaders());
+
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to remove logo.",
+      );
+    }
+  },
+);
 
 const initialState = {
   owner: null,
   gym: null,
   currentSubscription: null,
   loading: false,
+  uploading:false,
   error: null,
 };
 const ownerSlice = createSlice({
@@ -76,11 +95,11 @@ const ownerSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(uploadGymLogo.pending, (state) => {
-        state.loading = true;
+        state.uploading = true;
       })
 
       .addCase(uploadGymLogo.fulfilled, (state, action) => {
-        state.loading = false;
+        state.uploading = false;
 
         if (state.gym) {
           state.gym.gymLogo = action.payload.gymLogo;
@@ -88,7 +107,24 @@ const ownerSlice = createSlice({
       })
 
       .addCase(uploadGymLogo.rejected, (state, action) => {
-        state.loading = false;
+        state.uploading = false;
+        state.error = action.payload;
+      })
+      .addCase(removeGymLogo.pending, (state) => {
+        state.uploading = true;
+      })
+
+      .addCase(removeGymLogo.fulfilled, (state) => {
+        state.uploading = false;
+
+        if (state.gym) {
+          state.gym.gymLogo = "";
+          state.gym.gymLogoPublicId = "";
+        }
+      })
+
+      .addCase(removeGymLogo.rejected, (state, action) => {
+        state.uploading = false;
         state.error = action.payload;
       });
   },

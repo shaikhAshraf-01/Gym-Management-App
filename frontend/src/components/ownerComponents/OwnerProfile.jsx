@@ -15,7 +15,11 @@ import {
 } from "lucide-react";
 
 import { logout } from "../../redux/slices/authSlice";
-import { fetchOwnerProfile, uploadGymLogo } from "../../redux/slices/ownerSlice";
+import {
+  fetchOwnerProfile,
+  uploadGymLogo,
+  removeGymLogo,
+} from "../../redux/slices/ownerSlice";
 
 export default function OwnerProfile() {
   const dispatch = useDispatch();
@@ -23,15 +27,8 @@ export default function OwnerProfile() {
 
   const photoInputRef = useRef(null);
 
-  const {
-    owner,
-    gym,
-    currentSubscription,
-    loading,
-    error,
-  } = useSelector((state) => state.owner);
-
-  const [previewLogo, setPreviewLogo] = useState(null);
+  const { owner, gym, currentSubscription, loading, uploading, error } =
+    useSelector((state) => state.owner);
 
   useEffect(() => {
     dispatch(fetchOwnerProfile());
@@ -41,40 +38,27 @@ export default function OwnerProfile() {
     dispatch(logout());
     navigate("/login");
   };
-
   const handleLogoChange = async (e) => {
-  const file = e.target.files?.[0];
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  if (!file) return;
+    const formData = new FormData();
+    formData.append("gymLogo", file);
 
-  if (!file.type.startsWith("image/")) {
-    alert("Please select an image.");
-    return;
-  }
+    try {
+      await dispatch(uploadGymLogo(formData)).unwrap();
+    } catch (err) {
+      alert(err);
+    }
 
-  const formData = new FormData();
-  formData.append("gymLogo", file);
-
-  try {
-    await dispatch(uploadGymLogo(formData)).unwrap();
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      setPreviewLogo(reader.result);
-    };
-
-    reader.readAsDataURL(file);
-
-  } catch (error) {
-    alert(error);
-  }
-
-  e.target.value = "";
-};
-
-  const removeLogo = () => {
-    setPreviewLogo(null);
+    e.target.value = "";
+  };
+  const handleRemoveLogo = async () => {
+    try {
+      await dispatch(removeGymLogo()).unwrap();
+    } catch (error) {
+      alert(error);
+    }
   };
 
   if (loading) {
@@ -88,9 +72,7 @@ export default function OwnerProfile() {
   if (error) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-gray-50">
-        <p className="text-red-500 font-medium">
-          {error}
-        </p>
+        <p className="text-red-500 font-medium">{error}</p>
       </div>
     );
   }
@@ -98,28 +80,22 @@ export default function OwnerProfile() {
   if (!gym || !owner) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-gray-50">
-        <p className="text-gray-500">
-          Gym profile data could not be found.
-        </p>
+        <p className="text-gray-500">Gym profile data could not be found.</p>
       </div>
     );
   }
 
-const logo=previewLogo||gym?.gymLogo||"";
-  const subscription=currentSubscription||{};
+  const logo = gym?.gymLogo || "";
+  const subscription = currentSubscription || {};
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 pb-20">
       <div className="max-w-xl mx-auto">
-
         {/* ===================== LOGO ===================== */}
 
         <div className="flex flex-col items-center text-center">
-
           <div className="relative">
-
             <div className="w-28 h-28 rounded-full bg-white border shadow-md overflow-hidden flex items-center justify-center">
-
               {logo ? (
                 <img
                   src={logo}
@@ -129,14 +105,14 @@ const logo=previewLogo||gym?.gymLogo||"";
               ) : (
                 <Building2 className="w-12 h-12 text-gray-400" />
               )}
-
             </div>
 
             <button
+              disabled={uploading}
               onClick={() => photoInputRef.current?.click()}
               className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 shadow-lg"
             >
-              <Camera size={16} />
+              {uploading ? "Uploading ..." : <Camera size={16} />}
             </button>
 
             <input
@@ -146,119 +122,94 @@ const logo=previewLogo||gym?.gymLogo||"";
               className="hidden"
               onChange={handleLogoChange}
             />
-
           </div>
 
           {logo && (
             <button
-              onClick={removeLogo}
+              disabled={uploading}
+              onClick={handleRemoveLogo}
               className="mt-2 flex items-center gap-1 text-red-500 text-sm"
             >
-              <Trash2 size={14} />
-              Remove Logo
+              {uploading ? (
+                <>Removing...</>
+              ) : (
+                <>
+                  <Trash2 size={14} />
+                  Remove Logo
+                </>
+              )}
             </button>
           )}
 
-          <h1 className="text-2xl font-bold mt-4">
-            {gym.gymName}
-          </h1>
+          <h1 className="text-2xl font-bold mt-4">{gym.gymName}</h1>
 
           <p className="text-gray-500 text-sm flex items-center gap-1 mt-1">
             <Building2 size={14} />
             {gym.gymCode}
           </p>
-
         </div>
         {/* ===================== OWNER DETAILS ===================== */}
 
         <div className="bg-white rounded-xl shadow-sm border mt-8 p-5">
-
           <h2 className="text-sm font-bold text-gray-500 uppercase mb-5">
             Owner Details
           </h2>
 
           <div className="space-y-5">
-
             <div className="flex items-center gap-3">
               <User size={18} className="text-blue-600" />
               <div>
-                <p className="text-xs text-gray-400">
-                  Owner Name
-                </p>
-                <p className="font-semibold">
-                  {owner.name}
-                </p>
+                <p className="text-xs text-gray-400">Owner Name</p>
+                <p className="font-semibold">{owner.name}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <Phone size={18} className="text-blue-600" />
               <div>
-                <p className="text-xs text-gray-400">
-                  Mobile Number
-                </p>
-                <p className="font-semibold">
-                  {owner.mobile}
-                </p>
+                <p className="text-xs text-gray-400">Mobile Number</p>
+                <p className="font-semibold">{owner.mobile}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <Mail size={18} className="text-blue-600" />
               <div>
-                <p className="text-xs text-gray-400">
-                  Email Address
-                </p>
-                <p className="font-semibold break-all">
-                  {owner.email}
-                </p>
+                <p className="text-xs text-gray-400">Email Address</p>
+                <p className="font-semibold break-all">{owner.email}</p>
               </div>
             </div>
-
           </div>
-
         </div>
 
         {/* ===================== GYM DETAILS ===================== */}
 
         <div className="bg-white rounded-xl shadow-sm border mt-6 p-5">
-
           <h2 className="text-sm font-bold text-gray-500 uppercase mb-5">
             Gym Details
           </h2>
 
           <div className="space-y-5">
-
             <div className="flex items-center gap-3">
               <MapPin size={18} className="text-blue-600" />
               <div>
-                <p className="text-xs text-gray-400">
-                  Location
-                </p>
-                <p className="font-semibold">
-                  {gym.location}
-                </p>
+                <p className="text-xs text-gray-400">Location</p>
+                <p className="font-semibold">{gym.location}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <Building2 size={18} className="text-blue-600" />
               <div>
-                <p className="text-xs text-gray-400">
-                  Gym Code
-                </p>
-                <p className="font-semibold">
-                  {gym.gymCode}
-                </p>
+                <p className="text-xs text-gray-400">Gym Code</p>
+                <p className="font-semibold">{gym.gymCode}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <BadgeCheck size={18} className="text-green-600" />
               <div>
-                <p className="text-xs text-gray-400">
-                  Gym Status
-                </p>
+                <p className="text-xs text-gray-400">Gym Status</p>
 
                 <span
                   className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
@@ -269,29 +220,22 @@ const logo=previewLogo||gym?.gymLogo||"";
                 >
                   {gym.status}
                 </span>
-
               </div>
             </div>
-
           </div>
-
         </div>
         {/* ===================== SUBSCRIPTION DETAILS ===================== */}
 
         <div className="bg-white rounded-xl shadow-sm border mt-6 p-5">
-
           <h2 className="text-sm font-bold text-gray-500 uppercase mb-5">
             Subscription Details
           </h2>
 
           <div className="space-y-5">
-
             <div className="flex items-center gap-3">
               <BadgeCheck size={18} className="text-green-600" />
               <div>
-                <p className="text-xs text-gray-400">
-                  Current Plan
-                </p>
+                <p className="text-xs text-gray-400">Current Plan</p>
                 <p className="font-semibold">
                   {subscription.subscriptionPlan || "No Active Plan"}
                 </p>
@@ -301,9 +245,7 @@ const logo=previewLogo||gym?.gymLogo||"";
             <div className="flex items-center gap-3">
               <CalendarDays size={18} className="text-blue-600" />
               <div>
-                <p className="text-xs text-gray-400">
-                  Start Date
-                </p>
+                <p className="text-xs text-gray-400">Start Date</p>
                 <p className="font-semibold">
                   {subscription.startDate
                     ? new Date(subscription.startDate).toLocaleDateString()
@@ -315,9 +257,7 @@ const logo=previewLogo||gym?.gymLogo||"";
             <div className="flex items-center gap-3">
               <CalendarDays size={18} className="text-red-600" />
               <div>
-                <p className="text-xs text-gray-400">
-                  Expiry Date
-                </p>
+                <p className="text-xs text-gray-400">Expiry Date</p>
                 <p className="font-semibold">
                   {subscription.endDate
                     ? new Date(subscription.endDate).toLocaleDateString()
@@ -325,9 +265,7 @@ const logo=previewLogo||gym?.gymLogo||"";
                 </p>
               </div>
             </div>
-
           </div>
-
         </div>
 
         {/* ===================== LOGOUT ===================== */}
@@ -339,7 +277,6 @@ const logo=previewLogo||gym?.gymLogo||"";
           <LogOut size={18} />
           Logout
         </button>
-
       </div>
     </div>
   );
