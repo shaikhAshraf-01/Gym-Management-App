@@ -20,6 +20,7 @@ import AllMembers from "./components/ownerComponents/AllMembers";
 import AddSelectionContainer from "./layouts/ownerLayout/AddSelectionContainer";
 import Sales from "./components/ownerComponents/Sales";
 import OwnerProfile from "./components/ownerComponents/OwnerProfile";
+import WhatsAppSetup from "./components/ownerComponents/WhatsAppSetup";
 //trainer routes
 import TrainerLayout from "./layouts/trainerLayout/TrainerLayout";
 import TrainerProfile from "./components/trainerComponents/TrainerProfile";
@@ -58,6 +59,8 @@ function App() {
             <Route path="/owner/add" element={<AddSelectionContainer />} />
             <Route path="/owner/sales" element={<Sales />} />
             <Route path="/owner/profile" element={<OwnerProfile />} />
+            <Route path="/owner/whatsapp/setup" element={<WhatsAppSetup />} />
+            
           </Route>
         </Route>
 
