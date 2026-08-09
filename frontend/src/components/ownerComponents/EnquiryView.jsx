@@ -1,19 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { Edit2, Phone, User, Search, X, Calendar, CalendarClock, UserCheck, Trash2, Check, AlertCircle } from "lucide-react";
-import { updateEnquiry, deleteEnquiry } from "../../redux/slices/enquiriesSlice";
+import { fetchEnquiries, updateEnquiry, deleteEnquiry } from "../../redux/slices/enquiriesSlice";
 
 export default function EnquiryView() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const enquiries = useSelector((state) => state.enquiries.enquiries);
+  const loading = useSelector((state) => state.enquiries.loading);
   const [searchQuery, setSearchQuery] = useState("");
 
   const [editingId, setEditingId] = useState(null);
   const [editWillingToJoin, setEditWillingToJoin] = useState("");
   // Localized track for current inline delete row/card confirmation
   const [deletingId, setDeletingId] = useState(null);
+
+  // Enquiries now come from the backend — fetch them on mount instead
+  // of relying on a hardcoded initialState.
+  useEffect(() => {
+    dispatch(fetchEnquiries());
+  }, [dispatch]);
 
   const handleConvert = (enquiry) => {
     navigate("/owner/add", {
@@ -62,8 +69,15 @@ export default function EnquiryView() {
         )}
       </div>
 
+      {/* LOADING STATE */}
+      {loading && (
+        <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
+          <p className="text-sm font-medium">Loading enquiries...</p>
+        </div>
+      )}
+
       {/* FALLBACK NO SEARCH RESULTS */}
-      {filteredEnquiries.length === 0 && (
+      {!loading && filteredEnquiries.length === 0 && (
         <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
           <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-300" />
           <p className="text-sm font-medium">No system log enquiries match your search criteria.</p>

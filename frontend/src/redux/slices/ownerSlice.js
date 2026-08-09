@@ -5,21 +5,14 @@ import {
   removeGymLogoApi,
 } from "../../api/ownerApi";
 
-const getAuthHeaders = () => {
-  const stored = localStorage.getItem("fitzone_auth");
-
-  if (!stored) return {};
-
-  const { token } = JSON.parse(stored);
-
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+// ❌ REMOVED: getAuthHeaders() is no longer needed because 
+// your Axios request interceptor attaches the Authorization token automatically!
 
 export const fetchOwnerProfile = createAsyncThunk(
   "owner/fetchOwnerProfile",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await getOwnerProfileApi(getAuthHeaders());
+      const response = await getOwnerProfileApi(); // Clean & direct call
 
       return response.data;
     } catch (error) {
@@ -32,10 +25,9 @@ export const fetchOwnerProfile = createAsyncThunk(
 
 export const uploadGymLogo = createAsyncThunk(
   "owner/uploadGymLogo",
-
   async (formData, { rejectWithValue }) => {
     try {
-      const response = await uploadGymLogoApi(formData, getAuthHeaders());
+      const response = await uploadGymLogoApi(formData);
 
       return response.data;
     } catch (error) {
@@ -45,11 +37,12 @@ export const uploadGymLogo = createAsyncThunk(
     }
   },
 );
+
 export const removeGymLogo = createAsyncThunk(
   "owner/removeGymLogo",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await removeGymLogoApi(getAuthHeaders());
+      const response = await removeGymLogoApi();
 
       return response.data;
     } catch (error) {
@@ -65,9 +58,10 @@ const initialState = {
   gym: null,
   currentSubscription: null,
   loading: false,
-  uploading:false,
+  uploading: false,
   error: null,
 };
+
 const ownerSlice = createSlice({
   name: "owner",
   initialState,
@@ -82,14 +76,12 @@ const ownerSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-
       .addCase(fetchOwnerProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.owner = action.payload.owner;
         state.gym = action.payload.gym;
         state.currentSubscription = action.payload.currentSubscription;
       })
-
       .addCase(fetchOwnerProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
@@ -97,15 +89,12 @@ const ownerSlice = createSlice({
       .addCase(uploadGymLogo.pending, (state) => {
         state.uploading = true;
       })
-
       .addCase(uploadGymLogo.fulfilled, (state, action) => {
         state.uploading = false;
-
         if (state.gym) {
           state.gym.gymLogo = action.payload.gymLogo;
         }
       })
-
       .addCase(uploadGymLogo.rejected, (state, action) => {
         state.uploading = false;
         state.error = action.payload;
@@ -113,22 +102,20 @@ const ownerSlice = createSlice({
       .addCase(removeGymLogo.pending, (state) => {
         state.uploading = true;
       })
-
       .addCase(removeGymLogo.fulfilled, (state) => {
         state.uploading = false;
-
         if (state.gym) {
           state.gym.gymLogo = "";
           state.gym.gymLogoPublicId = "";
         }
       })
-
       .addCase(removeGymLogo.rejected, (state, action) => {
         state.uploading = false;
         state.error = action.payload;
       });
   },
 });
+
 export const { clearOwnerError } = ownerSlice.actions;
 
 export default ownerSlice.reducer;

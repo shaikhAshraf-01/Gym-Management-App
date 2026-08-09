@@ -44,6 +44,13 @@ export default function AddSelectionContainer() {
   // 💾 Save a new membership — either a fresh signup, or a converted
   // enquiry (in which case prefillData.enquiryId tells us which
   // enquiry to remove once the member has been created).
+  //
+  // NOTE: membersSlice.js is still local-only (no backend yet), so
+  // this stays synchronous — no .unwrap(), no WhatsApp confirm step.
+  // Once the Member backend is built, this will switch to the same
+  // async pattern handleSaveEnquiry uses below, and a WhatsApp
+  // confirmation (via your existing WhatsAppMessagePopup.jsx) will
+  // slot in here.
   const handleSaveMembership = (formData) => {
     dispatch(addMember({ ...formData, addedBy }));
 
@@ -54,10 +61,16 @@ export default function AddSelectionContainer() {
     navigate(location.pathname.startsWith("/trainer") ? "/trainer/all-members" : "/owner/all-members");
   };
 
-  // 💾 Save a new enquiry/lead
-  const handleSaveEnquiry = (formData) => {
-    dispatch(addEnquiry(formData));
-    navigate(location.pathname.startsWith("/trainer") ? "/trainer/all-members" : "/owner/all-members");
+  // 💾 Save a new enquiry/lead — addEnquiry is a real backend call now,
+  // so this awaits it and surfaces any failure instead of navigating
+  // away optimistically.
+  const handleSaveEnquiry = async (formData) => {
+    try {
+      await dispatch(addEnquiry(formData)).unwrap();
+      navigate(location.pathname.startsWith("/trainer") ? "/trainer/all-members" : "/owner/all-members");
+    } catch (error) {
+      alert(typeof error === "string" ? error : "Failed to add enquiry.");
+    }
   };
 
   return (

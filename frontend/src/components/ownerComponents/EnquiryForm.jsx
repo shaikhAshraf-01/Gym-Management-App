@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function EnquiryForm({ onSubmit }) {
+export default function EnquiryForm({ onSave }) {
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
@@ -17,14 +17,13 @@ export default function EnquiryForm({ onSubmit }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Pass form data back up to the parent component
-    if (onSubmit) {
-      onSubmit({
-        ...formData,
-        id: Date.now(),
-        enquiryAddDate: new Date().toISOString().split("T")[0], // Automatically track when the enquiry was logged
-      });
+
+    // Pass form data back up to the parent component (AddSelectionContainer
+    // dispatches addEnquiry from here). id/enquiryAddDate are no longer
+    // generated client-side — the backend stamps its own _id and
+    // createdAt now, so sending fake ones here would just be ignored.
+    if (onSave) {
+      onSave(formData);
     }
 
     // Reset Form fields back to defaults

@@ -1,21 +1,18 @@
 import api from "./axios.js";
+
 // ================= OWNER PROFILE =================
-export const getOwnerProfileApi = (customHeaders = {}) =>
-  api.get("/owner/profile", {
-    headers: customHeaders,
-  });
+export const getOwnerProfileApi = () => 
+  api.get("/owner/profile");
+
 // ================= GYM LOGO =================
 // Upload / Replace Logo
-export const uploadGymLogoApi = (formData, customHeaders = {}) =>
+export const uploadGymLogoApi = (formData) =>
   api.patch("/owner/logo", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
-      ...customHeaders,
     },
   });
 
 // Remove Logo
-export const removeGymLogoApi = (customHeaders = {}) =>
-  api.delete("/owner/logo", {
-    headers: customHeaders,
-  });
+export const removeGymLogoApi = () => 
+  api.delete("/owner/logo");
