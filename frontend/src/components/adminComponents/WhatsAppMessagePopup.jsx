@@ -9,12 +9,22 @@ export default function WhatsAppMessagePopup({
   plan,
   durationMonths,
   amount,
+  // Optional: pass a fully-built message (e.g. for member-join
+  // confirmations) to skip the gym-subscription auto-generation below.
+  // AddGyms.jsx doesn't pass this, so its behaviour is unchanged.
+  customMessage,
 }) {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (isOpen) {
-      const generatedMessage = `Hello ${gymName},
+    if (!isOpen) return;
+
+    if (customMessage !== undefined) {
+      setMessage(customMessage);
+      return;
+    }
+
+    const generatedMessage = `Hello ${gymName},
 
 Your subscription has been successfully activated for ${durationMonths} month(s).
 
@@ -25,9 +35,8 @@ Amount: ₹${amount}
 Thank you for choosing FitZone! 💪
 We’re happy to have you with us.`;
 
-      setMessage(generatedMessage);
-    }
-  }, [isOpen, gymName, plan, durationMonths, amount]);
+    setMessage(generatedMessage);
+  }, [isOpen, gymName, plan, durationMonths, amount, customMessage]);
 
   if (!isOpen) return null;
 
@@ -61,7 +70,7 @@ We’re happy to have you with us.`;
                 Send WhatsApp Message
               </h2>
               <p className="text-xs text-slate-500">
-                Subscription confirmation
+                {customMessage !== undefined ? "Membership confirmation" : "Subscription confirmation"}
               </p>
             </div>
           </div>
@@ -136,4 +145,3 @@ We’re happy to have you with us.`;
     </div>
   );
 }
-

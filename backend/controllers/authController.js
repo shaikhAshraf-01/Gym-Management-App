@@ -2,7 +2,13 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import sendOTPEmails from "../utils/sendOTPEmails.js";
 
-const generateToken = (userId, role, rememberMe = false) => {
+// Token now always lives for JWT_EXPIRE (set this to something long in
+// .env, e.g. "90d") regardless of "Remember Me" — the old behaviour
+// silently expired non-rememberMe sessions after just 1 day, which is
+// what was killing sessions mid-use. Actual logout is what clears the
+// session client-side now (see axios.js's 401 interceptor + authSlice's
+// logout action), not token expiry.
+const generateToken = (userId, role) => {
   return jwt.sign(
     {
       id: userId,
@@ -10,7 +16,7 @@ const generateToken = (userId, role, rememberMe = false) => {
     },
     process.env.JWT_SECRET,
     {
-      expiresIn: rememberMe ? process.env.JWT_EXPIRE : "1d",
+      expiresIn: process.env.JWT_EXPIRE,
     },
   );
 };
@@ -19,7 +25,7 @@ const generateToken = (userId, role, rememberMe = false) => {
 
 export const adminLogin = async (req, res) => {
   try {
-    const { mobile, password, rememberMe } = req.body;
+    const { mobile, password } = req.body;
     if (!mobile || !password) {
       return res.status(400).json({
         success: false,
@@ -40,7 +46,7 @@ export const adminLogin = async (req, res) => {
         message: "Invalid mobile or password",
       });
     }
-    const token = generateToken(admin._id, admin.role, rememberMe);
+    const token = generateToken(admin._id, admin.role);
     return res.status(200).json({
       success: true,
       message: "Admin logged in successfully",
@@ -110,7 +116,7 @@ export const sendOTP = async (req, res) => {
 
 export const verifyOTP = async (req, res) => {
   try {
-    const { email, role, otp, rememberMe } = req.body;
+    const { email, role, otp } = req.body;
 
     // 1. Validation
     if (!email || !role || !otp) {
@@ -151,7 +157,7 @@ export const verifyOTP = async (req, res) => {
     await user.save();
 
     // 6. Generate access token
-    const token = generateToken(user._id, user.role, rememberMe);
+    const token = generateToken(user._id, user.role);
 
     return res.status(200).json({
       success: true,
@@ -170,7 +176,6 @@ export const verifyOTP = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-    
     });
   }
 };

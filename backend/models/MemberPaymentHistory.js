@@ -14,9 +14,13 @@ const memberPaymentHistorySchema = new mongoose.Schema(
       min: 0,
     },
 
+    // NOTE: changed from ["Cash","UPI","Card"] -> ["upi","cash","both"].
+    // Frontend forms (MembershipForm, EditMemberModal, ExtendMembershipModal)
+    // send lowercase "upi" | "cash" | "both" — the old enum didn't even
+    // have a "both" option and would have rejected every save.
     paymentMode: {
       type: String,
-      enum: ["Cash", "UPI", "Card"],
+      enum: ["upi", "cash", "both"],
       required: true,
     },
 

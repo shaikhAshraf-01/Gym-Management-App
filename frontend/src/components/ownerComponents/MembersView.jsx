@@ -1,21 +1,61 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Edit2, CalendarPlus, Phone, User, Search, X, Calendar, CalendarX, Trash2, Eye, Check } from "lucide-react";
-import { updateMember, deleteMember, extendMembership, PLAN_LABELS } from "../../redux/slices/membersSlice";
+import { Edit2, CalendarPlus, Phone, User, Search, X, Calendar, CalendarX, Trash2, Eye, Check, MessageCircle } from "lucide-react";
+import { fetchMembers, updateMember, deleteMember, extendMembership, PLAN_LABELS } from "../../redux/slices/membersSlice";
+import { fetchOwnerProfile } from "../../redux/slices/ownerSlice";
 import EditMemberModal from "./EditMemberModal";
 import ExtendMembershipModal from "./ExtendMembershipModal";
 import MemberHistoryModal from "./MemberHistoryModal";
+import WhatsAppMessagePopup from "../adminComponents/WhatsAppMessagePopup";
+import WhatsAppRenewMessagePopup from "../adminComponents/WhatsAppRenewMessagePopup";
 
 export default function MembersView() {
   const dispatch = useDispatch();
   const members = useSelector((state) => state.members.members);
+  const loading = useSelector((state) => state.members.loading);
   const addedBy = useSelector((state) => state.auth.user?.name) || "Unknown";
+  // Owner-only (trainers won't have this loaded) — falls back to a
+  // generic phrase in the message builder below.
+  const gymName = useSelector((state) => state.owner.gym?.gymName);
+  const role = useSelector((state) => state.auth.role);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [editingMember, setEditingMember] = useState(null); 
   const [extendingMember, setExtendingMember] = useState(null); 
   const [viewingMember, setViewingMember] = useState(null); 
   const [deletingMemberId, setDeletingMemberId] = useState(null);
+  // Member currently being sent a balance-due reminder WhatsApp message
+  const [remindingBalanceMember, setRemindingBalanceMember] = useState(null);
+  // Holds { ...updatedMember, _extensionPayload } after a successful
+  // extend, so the renewal popup can show the right numbers.
+  const [confirmingRenewalMember, setConfirmingRenewalMember] = useState(null);
+
+  // Members now come from the backend — fetch them on mount instead
+  // of relying on a hardcoded initialState.
+  useEffect(() => {
+    dispatch(fetchMembers());
+  }, [dispatch]);
+
+  // gymName is needed for the WhatsApp reminder text below — fetch it
+  // here too (not just on the Profile page). Owner-only endpoint.
+  useEffect(() => {
+    if (role === "owner" && !gymName) {
+      dispatch(fetchOwnerProfile());
+    }
+  }, [dispatch, role, gymName]);
+
+  // Builds the balance-due reminder WhatsApp text for a given member.
+  const buildBalanceMessage = (member) => {
+    const gym = gymName || "our gym";
+    return `Hello ${member.name},
+
+This is a friendly reminder that you have a pending balance of ₹${member.balanceAmount} at ${gym}.
+
+Please clear it at your earliest convenience.
+
+Thank you!
+${gym} Team 💪`;
+  };
 
   const handleEdit = (member) => setEditingMember(member);
   const handleView = (member) => setViewingMember(member);
@@ -26,9 +66,41 @@ export default function MembersView() {
     setEditingMember(null);
   };
 
-  const handleSaveExtend = (id, extensionPayload) => {
-    dispatch(extendMembership({ id, ...extensionPayload }));
-    setExtendingMember(null);
+  const handleSaveExtend = async (id, extensionPayload) => {
+    try {
+      const updatedMember = await dispatch(extendMembership({ id, ...extensionPayload })).unwrap();
+      setExtendingMember(null);
+      setConfirmingRenewalMember({ ...updatedMember, _extensionPayload: extensionPayload });
+    } catch (error) {
+      alert(typeof error === "string" ? error : "Failed to extend membership.");
+    }
+  };
+
+  // Builds the renewal confirmation text — uses what was actually
+  // submitted in the extend form (this transaction's amount/plan),
+  // not the member's cumulative totals, plus the freshly-computed
+  // new expiry date from the backend response.
+  const buildRenewalMessage = (member) => {
+    const gym = gymName || "our gym";
+    const payload = member._extensionPayload || {};
+    const durationLabel = (payload.plan || member.plan || "").replace("_", "-");
+    const balance = Number(payload.balanceAmount ?? member.balanceAmount ?? 0);
+
+    let message = `Hello ${member.name},
+
+Your membership at ${gym} has been renewed for ${durationLabel}. We've received your payment of ₹${payload.amountPayingToday || 0}.`;
+
+    if (balance > 0) {
+      message += `
+Remaining balance: ₹${balance} — please clear this at your earliest convenience.`;
+    }
+
+    message += `
+Your new expiry date is ${member.expiryDate}.
+
+Thank you for continuing with us! 💪`;
+
+    return message;
   };
 
   const handleConfirmDelete = (id) => {
@@ -63,8 +135,15 @@ export default function MembersView() {
         )}
       </div>
 
+      {/* LOADING STATE */}
+      {loading && (
+        <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
+          <p className="text-sm font-medium">Loading members...</p>
+        </div>
+      )}
+
       {/* FALLBACK NO RESULTS */}
-      {filteredMembers.length === 0 && (
+      {!loading && filteredMembers.length === 0 && (
         <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
           <p className="text-sm font-medium">No members match your search criteria.</p>
         </div>
@@ -102,9 +181,20 @@ export default function MembersView() {
                   <td className="py-3.5 px-4 text-gray-600">{member.expiryDate}</td>
                   <td className="py-3.5 px-4 font-medium text-gray-900">₹{member.planAmount}</td>
                   <td className="py-3.5 px-4">
-                    <span className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-500" : "text-emerald-600"}`}>
-                      ₹{member.balanceAmount}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-500" : "text-emerald-600"}`}>
+                        ₹{member.balanceAmount}
+                      </span>
+                      {Number(member.balanceAmount) > 0 && (
+                        <button
+                          onClick={() => setRemindingBalanceMember(member)}
+                          className="p-1 bg-green-50 hover:bg-green-100 text-green-600 rounded-md border border-green-200 cursor-pointer"
+                          title="Send balance reminder via WhatsApp"
+                        >
+                          <MessageCircle className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex justify-end items-center gap-2">
@@ -212,9 +302,20 @@ export default function MembersView() {
                 </div>
                 <div className="col-span-2 pt-1.5">
                   <p className="text-gray-400 uppercase font-bold tracking-wider text-[10px]">Balance Outstanding</p>
-                  <p className={`font-bold mt-0.5 ${Number(member.balanceAmount) > 0 ? "text-red-500" : "text-emerald-600"}`}>
-                    ₹{member.balanceAmount}
-                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-500" : "text-emerald-600"}`}>
+                      ₹{member.balanceAmount}
+                    </p>
+                    {Number(member.balanceAmount) > 0 && (
+                      <button
+                        onClick={() => setRemindingBalanceMember(member)}
+                        className="flex items-center gap-1 px-2 py-1 bg-green-50 active:bg-green-100 text-green-600 rounded-md border border-green-200 cursor-pointer text-[10px] font-bold"
+                      >
+                        <MessageCircle className="h-3 w-3" />
+                        Remind
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -241,6 +342,22 @@ export default function MembersView() {
       <EditMemberModal member={editingMember} onSave={handleSaveEdit} onClose={() => setEditingMember(null)} />
       <ExtendMembershipModal member={extendingMember} addedBy={addedBy} onSave={handleSaveExtend} onClose={() => setExtendingMember(null)} />
       <MemberHistoryModal member={viewingMember} onClose={() => setViewingMember(null)} />
+
+      {/* 💬 BALANCE-DUE REMINDER WHATSAPP POPUP */}
+      <WhatsAppMessagePopup
+        isOpen={!!remindingBalanceMember}
+        onClose={() => setRemindingBalanceMember(null)}
+        phone={remindingBalanceMember?.mobile}
+        customMessage={remindingBalanceMember ? buildBalanceMessage(remindingBalanceMember) : ""}
+      />
+
+      {/* 💬 RENEWAL CONFIRMATION WHATSAPP POPUP */}
+      <WhatsAppRenewMessagePopup
+        isOpen={!!confirmingRenewalMember}
+        onClose={() => setConfirmingRenewalMember(null)}
+        phone={confirmingRenewalMember?.mobile}
+        customMessage={confirmingRenewalMember ? buildRenewalMessage(confirmingRenewalMember) : ""}
+      />
 
     </div>
   );

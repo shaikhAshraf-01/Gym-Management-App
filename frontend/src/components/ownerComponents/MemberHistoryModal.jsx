@@ -5,8 +5,8 @@ import { PLAN_LABELS } from "../../redux/slices/membersSlice";
 export default function MemberHistoryModal({ member, onClose }) {
   if (!member) return null;
 
-  // Most recent first, capped to the last 3 events.
-  const history = [...(member.membershipHistory || [])].reverse().slice(0, 3);
+  // Most recent first, capped to the last 2 events.
+  const history = [...(member.membershipHistory || [])].reverse().slice(0, 2);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">

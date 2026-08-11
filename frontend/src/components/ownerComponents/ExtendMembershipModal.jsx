@@ -1,98 +1,159 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
-export default function ExtendMembershipModal({ member, onSave, onClose }) {
+export default function ExtendMembershipModal({
+  member,
+  onSave,
+  onClose,
+}) {
   const [formData, setFormData] = useState({
     plan: "1_month",
     extensionAmount: "",
     amountPayingToday: "",
-    balanceAmount: "",
+    balanceAmount: "0",
     paymentMode: "upi",
+    newStartDate: "",
     newExpiryDate: "",
   });
 
-  // Whenever a new member is selected for extension, reset the form
-  // and seed the balance with whatever they currently owe.
-  useEffect(() => {
-    if (member) {
-      setFormData({
-        plan: member.plan || "1_month",
-        extensionAmount: "",
-        amountPayingToday: "",
-        balanceAmount: member.balanceAmount || "0",
-        paymentMode: member.paymentMode || "upi",
-        newExpiryDate: "",
-      });
-    }
-  }, [member]);
+  // ---------------------------------------------------------------
+  // Format Date -> YYYY-MM-DD
+  // ---------------------------------------------------------------
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
 
-  // 📅 Auto-calculate the new expiry date — extends from whichever is
-  // later, today or the member's current expiry, so extending early
-  // doesn't throw away time still left on the current plan. Same
-  // logic as membersSlice's extendMember reducer.
+    return `${year}-${month}-${day}`;
+  };
+
+  // ---------------------------------------------------------------
+  // Calculate default Start Date
+  //
+  // Expired:
+  //     Start = today
+  //
+  // Active:
+  //     Start = current expiry + 1 day
+  // ---------------------------------------------------------------
+  const calculateDefaultStartDate = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let startDate = new Date(today);
+
+    if (member?.expiryDate) {
+      const currentExpiry = new Date(member.expiryDate);
+      currentExpiry.setHours(0, 0, 0, 0);
+
+      if (currentExpiry >= today) {
+        startDate = new Date(currentExpiry);
+        startDate.setDate(startDate.getDate() + 1);
+      }
+    }
+
+    return formatDate(startDate);
+  };
+
+  // ---------------------------------------------------------------
+  // Calculate Expiry Date from selected Start Date + Plan
+  // ---------------------------------------------------------------
   useEffect(() => {
-    if (!member) return;
+    if (!member || !formData.newStartDate) return;
 
     let monthsToAdd = 1;
-    if (formData.plan === "3_month") monthsToAdd = 3;
-    if (formData.plan === "6_month") monthsToAdd = 6;
-    if (formData.plan === "1_year") monthsToAdd = 12;
 
-    const today = new Date();
-    const currentExpiry = member.expiryDate ? new Date(member.expiryDate) : today;
-    const startFrom = currentExpiry > today ? currentExpiry : today;
+    if (formData.plan === "3_month") {
+      monthsToAdd = 3;
+    } else if (formData.plan === "6_month") {
+      monthsToAdd = 6;
+    } else if (formData.plan === "1_year") {
+      monthsToAdd = 12;
+    }
 
-    const newExpiry = new Date(startFrom);
-    newExpiry.setMonth(newExpiry.getMonth() + monthsToAdd);
+    // Add T12:00 to avoid timezone-related date shifting
+    const startDate = new Date(
+      `${formData.newStartDate}T12:00:00`
+    );
 
-    const year = newExpiry.getFullYear();
-    const monthStr = String(newExpiry.getMonth() + 1).padStart(2, "0");
-    const day = String(newExpiry.getDate()).padStart(2, "0");
+    const expiryDate = new Date(startDate);
+
+    expiryDate.setMonth(
+      expiryDate.getMonth() + monthsToAdd
+    );
 
     setFormData((prev) => ({
       ...prev,
-      newExpiryDate: `${year}-${monthStr}-${day}`,
+      newExpiryDate: formatDate(expiryDate),
     }));
-  }, [formData.plan, member]);
+  }, [formData.plan, formData.newStartDate, member]);
+
+  // ---------------------------------------------------------------
+  // Reset modal when member changes
+  // ---------------------------------------------------------------
+  useEffect(() => {
+    if (!member) return;
+
+    setFormData({
+      plan: member.plan || "1_month",
+      extensionAmount: "",
+      amountPayingToday: "",
+      balanceAmount: "0",
+      paymentMode: member.paymentMode || "upi",
+      newStartDate: calculateDefaultStartDate(),
+      newExpiryDate: "",
+    });
+  }, [member]);
 
   if (!member) return null;
 
+  // ---------------------------------------------------------------
+  // Input change
+  // ---------------------------------------------------------------
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
+  // ---------------------------------------------------------------
+  // Submit
+  // ---------------------------------------------------------------
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Roll the extension into the member's record: plan updates to
-    // the new duration, expiry pushes out, plan amount grows by the
-    // extension fee, and payment/balance reflect what was collected.
-    const updatedPlanAmount =
-      Number(member.planAmount || 0) + Number(formData.extensionAmount || 0);
-    const updatedAmountPaid =
-      Number(member.amountPayingToday || 0) + Number(formData.amountPayingToday || 0);
-
     onSave(member.id, {
       plan: formData.plan,
-      expiryDate: formData.newExpiryDate,
-      planAmount: String(updatedPlanAmount),
-      amountPayingToday: String(updatedAmountPaid),
+      extensionAmount: formData.extensionAmount,
+      amountPayingToday: formData.amountPayingToday,
       balanceAmount: formData.balanceAmount,
       paymentMode: formData.paymentMode,
+
+      // IMPORTANT:
+      // Send the selected start date to backend.
+      newStartDate: formData.newStartDate,
     });
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+
+        {/* Header */}
         <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
           <div>
             <h2 className="text-base font-bold text-gray-900 uppercase tracking-wider">
-              Extend Membership
+              Renew Membership
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">{member.name} · {member.mobile}</p>
+
+            <p className="text-xs text-gray-500 mt-0.5">
+              {member.name} · {member.mobile}
+            </p>
           </div>
+
           <button
             onClick={onClose}
             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
@@ -101,70 +162,161 @@ export default function ExtendMembershipModal({ member, onSave, onClose }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 md:p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="p-4 md:p-6"
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            {/* Plan */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">Extend By</label>
+              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+                Renew For
+              </label>
+
               <select
-                name="plan" value={formData.plan} onChange={handleChange}
+                name="plan"
+                value={formData.plan}
+                onChange={handleChange}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
               >
-                <option value="1_month">1 Month</option>
-                <option value="3_month">3 Months</option>
-                <option value="6_month">6 Months</option>
-                <option value="1_year">1 Year</option>
+                <option value="1_month">
+                  1 Month
+                </option>
+
+                <option value="3_month">
+                  3 Months
+                </option>
+
+                <option value="6_month">
+                  6 Months
+                </option>
+
+                <option value="1_year">
+                  1 Year
+                </option>
               </select>
             </div>
 
+            {/* New Start Date */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-400 mb-1">New Expiry Date</label>
+              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+                New Start Date
+              </label>
+
               <input
-                type="date" name="newExpiryDate" value={formData.newExpiryDate} readOnly
+                type="date"
+                name="newStartDate"
+                value={formData.newStartDate}
+                onChange={handleChange}
+                required
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-blue-600 font-semibold focus:outline-none focus:border-blue-500"
+              />
+
+              <p className="text-[10px] text-gray-400 mt-1">
+                Expired: today · Active: day after current expiry
+              </p>
+            </div>
+
+            {/* New Expiry Date */}
+            <div>
+              <label className="block text-xs uppercase font-bold text-gray-400 mb-1">
+                New Expiry Date
+              </label>
+
+              <input
+                type="date"
+                name="newExpiryDate"
+                value={formData.newExpiryDate}
+                readOnly
                 className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-blue-600 font-semibold cursor-not-allowed outline-none"
               />
             </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">Extension Fee</label>
+            {/* Extension Fee */}
+            <div>
+              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+                New Membership Fee
+              </label>
+
               <input
-                type="number" name="extensionAmount" value={formData.extensionAmount} onChange={handleChange}
+                type="number"
+                name="extensionAmount"
+                value={formData.extensionAmount}
+                onChange={handleChange}
+                min="0"
+                required
+                placeholder="Enter new membership fee"
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-                placeholder="Amount charged for this extension" required
               />
             </div>
 
+            {/* Amount Paid */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">Amount Paying Today</label>
+              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+                Amount Paying Today
+              </label>
+
               <input
-                type="number" name="amountPayingToday" value={formData.amountPayingToday} onChange={handleChange}
+                type="number"
+                name="amountPayingToday"
+                value={formData.amountPayingToday}
+                onChange={handleChange}
+                min="0"
+                required
+                placeholder="Enter collected payment"
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-emerald-600 font-bold focus:outline-none focus:border-blue-500"
-                placeholder="Enter collected payment" required
               />
             </div>
 
+            {/* Balance */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">Balance Amount</label>
+              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+                Balance Amount
+              </label>
+
               <input
-                type="number" name="balanceAmount" value={formData.balanceAmount} onChange={handleChange}
+                type="number"
+                name="balanceAmount"
+                value={formData.balanceAmount}
+                onChange={handleChange}
+                min="0"
+                required
+                placeholder="Enter remaining balance"
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold focus:outline-none focus:border-blue-500"
-                placeholder="Enter remaining balance" required
               />
             </div>
 
+            {/* Payment Mode */}
             <div className="md:col-span-2">
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">Payment Mode</label>
+              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+                Payment Mode
+              </label>
+
               <select
-                name="paymentMode" value={formData.paymentMode} onChange={handleChange}
+                name="paymentMode"
+                value={formData.paymentMode}
+                onChange={handleChange}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
               >
-                <option value="upi">UPI</option>
-                <option value="cash">Cash</option>
-                <option value="both">Both (UPI + Cash)</option>
+                <option value="upi">
+                  UPI
+                </option>
+
+                <option value="cash">
+                  Cash
+                </option>
+
+                <option value="both">
+                  Both (UPI + Cash)
+                </option>
               </select>
             </div>
           </div>
 
+          {/* Buttons */}
           <div className="flex gap-3 mt-6">
+
             <button
               type="button"
               onClick={onClose}
@@ -172,12 +324,14 @@ export default function ExtendMembershipModal({ member, onSave, onClose }) {
             >
               Cancel
             </button>
+
             <button
               type="submit"
               className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold uppercase tracking-wider p-3 rounded-lg transition-colors cursor-pointer shadow-sm"
             >
-              Confirm Extension
+              Confirm Renewal
             </button>
+
           </div>
         </form>
       </div>

@@ -10,11 +10,20 @@ export default function WhatsAppRenewalMessagePopup({
   months,
   amount,
   newEndDate,
+  // Optional: pass a fully-built message to skip the auto-generation
+  // below. Existing callers that don't pass this keep working exactly
+  // as before.
+  customMessage,
 }) {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
+
+    if (customMessage !== undefined) {
+      setMessage(customMessage);
+      return;
+    }
 
     const renewalMessage = `Hello ${gymName},
 
@@ -28,7 +37,7 @@ New expiry date: ${newEndDate}
 Thank you for continuing with FitZone! 💪`;
 
     setMessage(renewalMessage);
-  }, [isOpen, gymName, plan, months, amount, newEndDate]);
+  }, [isOpen, gymName, plan, months, amount, newEndDate, customMessage]);
 
   if (!isOpen) return null;
 

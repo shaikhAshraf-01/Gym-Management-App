@@ -4,21 +4,31 @@ import GymSubscriptionHistory from "../models/GymSubscriptionHistory.js";
 
 import cloudinary from "../config/cloudinary.js"
 import streamifier from "streamifier"
-// ================= GET OWNER PROFILE =================
+// ================= GET OWNER / TRAINER PROFILE =================
+// Originally owner-only. Now also serves Trainers (used by
+// TrainerProfile.jsx) — a trainer has no gym logo/subscription
+// management rights, but they still need read access to their own
+// info + which gym they belong to. The owner lookup path below is
+// UNCHANGED from before (still Gym.findOne({ owner: owner._id })) so
+// existing owner behaviour has zero regression risk; trainer support
+// is purely additive via a separate branch.
 
 export const getOwnerProfile = async (req, res) => {
   try {
-    const owner = await User.findById(req.user._id).select("-password -otp -otpExpires");
+    const user = await User.findById(req.user._id).select("-password -otp -otpExpires");
 
-    if (!owner || owner.role !== "owner") {
+    if (!user || (user.role !== "owner" && user.role !== "trainer")) {
       return res.status(404).json({
         success: false,
-        message: "Owner not found",
+        message: "Profile not found",
       });
     }
 
-    const gym = await Gym.findOne({ owner: owner._id });
-    
+    const gym =
+      user.role === "owner"
+        ? await Gym.findOne({ owner: user._id })
+        : await Gym.findById(user.gymId);
+
     if (!gym) {
         return res.status(404).json({
             success: false,
@@ -33,11 +43,12 @@ export const getOwnerProfile = async (req, res) => {
     return res.status(200).json({
       success: true,
       owner: {
-        _id: owner._id,
-        name: owner.name,
-        email: owner.email,
-        mobile: owner.mobile,
-        photo: owner.photo,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        mobile: user.mobile,
+        photo: user.photo,
+        role: user.role,
       },
       gym,
       currentSubscription,
@@ -165,6 +176,112 @@ export const removeGymLogo = async (req, res) => {
       message: "Gym logo removed successfully.",
     });
 
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ================= TRAINER PROFILE PHOTO =================
+// Trainer's own headshot — separate from the gym logo (which stays
+// owner-only). Same Cloudinary upload/replace/remove pattern as
+// uploadGymLogo/removeGymLogo above, just scoped to the trainer's own
+// User document instead of a Gym document.
+
+export const uploadTrainerPhoto = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please select an image.",
+      });
+    }
+
+    const trainer = await User.findById(req.user._id);
+
+    if (!trainer || trainer.role !== "trainer") {
+      return res.status(404).json({
+        success: false,
+        message: "Trainer not found.",
+      });
+    }
+
+    const uploadFromBuffer = () =>
+      new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: "GymOpsFlow/trainer-photos",
+            transformation: [
+              {
+                width: 500,
+                height: 500,
+                crop: "fill",
+                gravity: "center", // plain geometric center — no AI guessing, always predictable
+                quality: "auto",
+                fetch_format: "auto",
+              },
+            ],
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+
+        streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+      });
+
+    if (trainer.photoPublicId) {
+      await cloudinary.uploader.destroy(trainer.photoPublicId);
+      trainer.photoPublicId = "";
+      trainer.photo = "";
+    }
+
+    const result = await uploadFromBuffer();
+
+    trainer.photo = result.secure_url;
+    trainer.photoPublicId = result.public_id;
+    await trainer.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Photo uploaded successfully.",
+      photo: trainer.photo,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+      error: error.message,
+    });
+  }
+};
+
+export const removeTrainerPhoto = async (req, res) => {
+  try {
+    const trainer = await User.findById(req.user._id);
+
+    if (!trainer || trainer.role !== "trainer") {
+      return res.status(404).json({
+        success: false,
+        message: "Trainer not found.",
+      });
+    }
+
+    if (trainer.photoPublicId) {
+      await cloudinary.uploader.destroy(trainer.photoPublicId);
+    }
+
+    trainer.photo = "";
+    trainer.photoPublicId = "";
+    await trainer.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Photo removed successfully.",
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,

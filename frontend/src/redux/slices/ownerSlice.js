@@ -3,6 +3,8 @@ import {
   getOwnerProfileApi,
   uploadGymLogoApi,
   removeGymLogoApi,
+  uploadTrainerPhotoApi,
+  removeTrainerPhotoApi,
 } from "../../api/ownerApi";
 
 // ❌ REMOVED: getAuthHeaders() is no longer needed because 
@@ -48,6 +50,36 @@ export const removeGymLogo = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to remove logo.",
+      );
+    }
+  },
+);
+
+// ================= TRAINER PROFILE PHOTO =================
+
+export const uploadTrainerPhoto = createAsyncThunk(
+  "owner/uploadTrainerPhoto",
+  async (formData, { rejectWithValue }) => {
+    try {
+      const response = await uploadTrainerPhotoApi(formData);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Photo upload failed.",
+      );
+    }
+  },
+);
+
+export const removeTrainerPhoto = createAsyncThunk(
+  "owner/removeTrainerPhoto",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await removeTrainerPhotoApi();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to remove photo.",
       );
     }
   },
@@ -110,6 +142,33 @@ const ownerSlice = createSlice({
         }
       })
       .addCase(removeGymLogo.rejected, (state, action) => {
+        state.uploading = false;
+        state.error = action.payload;
+      })
+      // ---------------- Trainer Photo ----------------
+      .addCase(uploadTrainerPhoto.pending, (state) => {
+        state.uploading = true;
+      })
+      .addCase(uploadTrainerPhoto.fulfilled, (state, action) => {
+        state.uploading = false;
+        if (state.owner) {
+          state.owner.photo = action.payload.photo;
+        }
+      })
+      .addCase(uploadTrainerPhoto.rejected, (state, action) => {
+        state.uploading = false;
+        state.error = action.payload;
+      })
+      .addCase(removeTrainerPhoto.pending, (state) => {
+        state.uploading = true;
+      })
+      .addCase(removeTrainerPhoto.fulfilled, (state) => {
+        state.uploading = false;
+        if (state.owner) {
+          state.owner.photo = "";
+        }
+      })
+      .addCase(removeTrainerPhoto.rejected, (state, action) => {
         state.uploading = false;
         state.error = action.payload;
       });

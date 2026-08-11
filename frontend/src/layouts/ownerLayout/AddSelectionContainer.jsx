@@ -4,8 +4,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { CreditCard, FileText, ArrowLeft } from "lucide-react";
 import MembershipForm from "../../components/ownerComponents/MembershipForm";
 import EnquiryForm from "../../components/ownerComponents/EnquiryForm";
+import WhatsAppMessagePopup from "../../components/adminComponents/WhatsAppMessagePopup";
+// ^ This file physically lives in adminComponents/ (AddGyms.jsx uses it
+//   too) — reused here as-is rather than duplicated into ownerComponents/.
 import { addMember } from "../../redux/slices/membersSlice";
 import { addEnquiry, deleteEnquiry } from "../../redux/slices/enquiriesSlice";
+import { fetchOwnerProfile } from "../../redux/slices/ownerSlice";
 
 export default function AddSelectionContainer() {
   const location = useLocation();
@@ -14,11 +18,30 @@ export default function AddSelectionContainer() {
   // Whoever is logged in (owner or trainer) gets stamped as `addedBy`
   // on the member record — see membersSlice's addMember.prepare.
   const addedBy = useSelector((state) => state.auth.user?.name) || "Unknown";
+  // Owner-only field (trainers don't have this loaded via ownerSlice —
+  // GET /owner/profile is owner-only) — falls back to a generic phrase
+  // in the message builder below when undefined.
+  const gymName = useSelector((state) => state.owner.gym?.gymName);
+  const role = useSelector((state) => state.auth.role);
 
   const [selectedType, setSelectedType] = useState(null); // 'membership' | 'enquiry' | null
 
   // ✅ Explicitly defined local state container for conversion data
   const [prefillData, setPrefillData] = useState(null);
+
+  // Holds the just-saved member so the WhatsApp confirmation popup can
+  // show up right after a successful add, before navigating away.
+  const [confirmingMember, setConfirmingMember] = useState(null);
+
+  // gymName is needed for the WhatsApp message text below — fetch it
+  // here too (not just on the Profile page) so it's populated no
+  // matter which page the owner lands on first. Trainers don't have
+  // access to GET /owner/profile, so this is owner-only.
+  useEffect(() => {
+    if (role === "owner" && !gymName) {
+      dispatch(fetchOwnerProfile());
+    }
+  }, [dispatch, role, gymName]);
 
   // Capture incoming routing selection state updates from mobile or convert actions
   useEffect(() => {
@@ -41,24 +64,53 @@ export default function AddSelectionContainer() {
     navigate(location.pathname, { replace: true, state: {} });
   };
 
+  const goToMembersList = () => {
+    navigate(location.pathname.startsWith("/trainer") ? "/trainer/all-members" : "/owner/all-members");
+  };
+
+  // Builds the WhatsApp confirmation text for a just-added member.
+  // Balance line only appears when there's actually money still owed.
+  const buildMembershipMessage = (member) => {
+    const durationLabel = (member.plan || "").replace("_", "-"); // "3_month" -> "3-month"
+    const gym = gymName || "our gym";
+
+    let message = `Welcome to ${gym}, 
+Hello ${member.name},  
+Your ${durationLabel} membership at ${gym} is now active. We've received your payment of ₹${member.amountPayingToday}.`;
+
+    if (Number(member.balanceAmount) > 0) {
+      message += `  
+Remaining balance: ₹${member.balanceAmount} — please clear this at your earliest convenience.`;
+    }
+
+    message += `  
+Thank you for choosing us. We look forward to helping you reach your fitness goals!`;
+
+    return message;
+  };
+
   // 💾 Save a new membership — either a fresh signup, or a converted
   // enquiry (in which case prefillData.enquiryId tells us which
   // enquiry to remove once the member has been created).
-  //
-  // NOTE: membersSlice.js is still local-only (no backend yet), so
-  // this stays synchronous — no .unwrap(), no WhatsApp confirm step.
-  // Once the Member backend is built, this will switch to the same
-  // async pattern handleSaveEnquiry uses below, and a WhatsApp
-  // confirmation (via your existing WhatsAppMessagePopup.jsx) will
-  // slot in here.
-  const handleSaveMembership = (formData) => {
-    dispatch(addMember({ ...formData, addedBy }));
+  // Navigation is deferred until the WhatsApp popup is dismissed
+  // (Cancel/Open WhatsApp) — see handleWhatsAppModalClose.
+  const handleSaveMembership = async (formData) => {
+    try {
+      const savedMember = await dispatch(addMember({ ...formData, addedBy })).unwrap();
 
-    if (prefillData?.enquiryId) {
-      dispatch(deleteEnquiry(prefillData.enquiryId));
+      if (prefillData?.enquiryId) {
+        dispatch(deleteEnquiry(prefillData.enquiryId));
+      }
+
+      setConfirmingMember(savedMember);
+    } catch (error) {
+      alert(typeof error === "string" ? error : "Failed to add member.");
     }
+  };
 
-    navigate(location.pathname.startsWith("/trainer") ? "/trainer/all-members" : "/owner/all-members");
+  const handleWhatsAppModalClose = () => {
+    setConfirmingMember(null);
+    goToMembersList();
   };
 
   // 💾 Save a new enquiry/lead — addEnquiry is a real backend call now,
@@ -67,7 +119,7 @@ export default function AddSelectionContainer() {
   const handleSaveEnquiry = async (formData) => {
     try {
       await dispatch(addEnquiry(formData)).unwrap();
-      navigate(location.pathname.startsWith("/trainer") ? "/trainer/all-members" : "/owner/all-members");
+      goToMembersList();
     } catch (error) {
       alert(typeof error === "string" ? error : "Failed to add enquiry.");
     }
@@ -179,6 +231,13 @@ export default function AddSelectionContainer() {
           )}
         </div>
       </div>
+
+      <WhatsAppMessagePopup
+        isOpen={!!confirmingMember}
+        onClose={handleWhatsAppModalClose}
+        phone={confirmingMember?.mobile}
+        customMessage={confirmingMember ? buildMembershipMessage(confirmingMember) : ""}
+      />
     </div>
   );
 }
