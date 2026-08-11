@@ -80,19 +80,19 @@ export default function OwnerDashboard() {
     const durationLabel = (payload.plan || member.plan || "").replace("_", "-");
     const balance = Number(payload.balanceAmount ?? member.balanceAmount ?? 0);
 
-    let message = `Hello ${member.name},
+    let message = `Hello ${member.name}! 🎉
 
-Your membership at ${gym} has been renewed for ${durationLabel}. We've received your payment of ₹${payload.amountPayingToday || 0}.`;
+✅ Your membership at ${gym} has been renewed for ${durationLabel}. We've received your payment of ₹${payload.amountPayingToday || 0}.`;
 
     if (balance > 0) {
       message += `
-Remaining balance: ₹${balance} — please clear this at your earliest convenience.`;
+💰 Remaining balance: ₹${balance} — please clear this at your earliest convenience.`;
     }
 
     message += `
-Your new expiry date is ${member.expiryDate}.
+📅 Your new expiry date is ${member.expiryDate}.
 
-Thank you for continuing with us! 💪`;
+Thank you for continuing with us! 💪🙌`;
 
     return message;
   };
@@ -117,13 +117,13 @@ Thank you for continuing with us! 💪`;
       expiryText = `expires in ${member.daysLeft} days`;
     }
 
-    return `Hello ${member.name},
+    return `Hello ${member.name}! 👋
 
-Your membership at ${gym} ${expiryText} (${member.expiryDate}).
+⚠️ Your membership at ${gym} ${expiryText} (${member.expiryDate}).
 
-Please renew soon to continue enjoying uninterrupted access.
+🔽 Please renew soon to continue enjoying uninterrupted access.
 
-Thank you!
+Thank you! 🙏
 ${gym} Team 💪`;
   };
 

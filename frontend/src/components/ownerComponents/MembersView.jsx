@@ -47,13 +47,13 @@ export default function MembersView() {
   // Builds the balance-due reminder WhatsApp text for a given member.
   const buildBalanceMessage = (member) => {
     const gym = gymName || "our gym";
-    return `Hello ${member.name},
+    return `Hello ${member.name}! 👋
 
-This is a friendly reminder that you have a pending balance of ₹${member.balanceAmount} at ${gym}.
+⏰ This is a friendly reminder that you have a pending balance of ₹${member.balanceAmount} at ${gym}.
 
-Please clear it at your earliest convenience.
+💰 Please clear it at your earliest convenience.
 
-Thank you!
+Thank you! 🙏
 ${gym} Team 💪`;
   };
 
@@ -86,19 +86,19 @@ ${gym} Team 💪`;
     const durationLabel = (payload.plan || member.plan || "").replace("_", "-");
     const balance = Number(payload.balanceAmount ?? member.balanceAmount ?? 0);
 
-    let message = `Hello ${member.name},
+    let message = `Hello ${member.name}! 🎉
 
-Your membership at ${gym} has been renewed for ${durationLabel}. We've received your payment of ₹${payload.amountPayingToday || 0}.`;
+✅ Your membership at ${gym} has been renewed for ${durationLabel}. We've received your payment of ₹${payload.amountPayingToday || 0}.`;
 
     if (balance > 0) {
       message += `
-Remaining balance: ₹${balance} — please clear this at your earliest convenience.`;
+💰 Remaining balance: ₹${balance} — please clear this at your earliest convenience.`;
     }
 
     message += `
-Your new expiry date is ${member.expiryDate}.
+📅 Your new expiry date is ${member.expiryDate}.
 
-Thank you for continuing with us! 💪`;
+Thank you for continuing with us! 💪🙌`;
 
     return message;
   };

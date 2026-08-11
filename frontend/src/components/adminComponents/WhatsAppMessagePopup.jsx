@@ -42,17 +42,26 @@ We’re happy to have you with us.`;
 
   const cleanPhone = String(phone || "").replace(/\D/g, "");
 
-  const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(
-    message
-  )}`;
-
   const handleOpenWhatsApp = () => {
     if (!cleanPhone || cleanPhone.length !== 10) {
       alert("Invalid WhatsApp mobile number.");
       return;
     }
 
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+    // 1. Detect if the user is on a mobile device
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // Direct deep link to trigger the native mobile application instantly
+      const mobileUrl = `whatsapp://send?phone=91${cleanPhone}&text=${encodeURIComponent(message)}`;
+      window.location.href = mobileUrl;
+    } else {
+      // 2. Desktop fallback using webapi with a named tab identifier to prevent duplication
+      const desktopUrl = `https://whatsapp.com{cleanPhone}&text=${encodeURIComponent(message)}`;
+      
+      // Target the identical window identifier used in the renewal file
+      window.open(desktopUrl, "FitZoneWhatsAppTab");
+    }
   };
 
   return (
@@ -117,7 +126,7 @@ We’re happy to have you with us.`;
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={10}
-              className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm leading-6 text-slate-700 outline-none transition focus:border-green-500 focus:bg-white focus:ring-1 focus:ring-green-500"
+              className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-base leading-7 text-slate-700 outline-none transition focus:border-green-500 focus:bg-white focus:ring-1 focus:ring-green-500"
             />
           </div>
         </div>
