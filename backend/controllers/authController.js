@@ -70,54 +70,45 @@ export const adminLogin = async (req, res) => {
 };
 
 //====== Send OTP ======
-
 export const sendOTP = async (req, res) => {
   try {
     const { email, role } = req.body;
+    
     if (!email || !role) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and role are required",
-      });
+      return res.status(400).json({ success: false, message: "Email and role are required" });
     }
+
     if (!["owner", "trainer"].includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid role",
-      });
+      return res.status(400).json({ success: false, message: "Invalid role" });
     }
+
     const user = await User.findOne({ email, role }).select("+otp +otpExpires");
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: `${role} not found`,
-      });
+      return res.status(404).json({ success: false, message: `${role} not found` });
     }
+
+    // 1. Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.otp = otp;
     user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
-   
-    console.log("Function", typeof sendOTPEmails);
+
+    // 2. Dispatch OTP via Resend (Ensure this variable name matches your import)
     const isSent = await sendOTPEmails(email, otp);
+
     if (!isSent) {
-      return res.status(500).json({
-        success: false,
-        message: "Failed to send OTP",
-      });
+      return res.status(500).json({ success: false, message: "Failed to send OTP" });
     }
-    return res.status(200).json({
-      success: true,
-      message: "OTP sent successfully",
-    });
-  } catch  {
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-     
-    });
+
+    return res.status(200).json({ success: true, message: "OTP sent successfully" });
+
+  } catch (error) {
+    // CRITICAL: Always return error.message here during testing so your frontend 
+    // can tell you exactly what crashed instead of just saying "500"
+    return res.status(500).json({ success: false, message: "Internal server error", error: error.message });
   }
 };
+
 
 //====== Verify OTP & Login ======
 
