@@ -127,7 +127,7 @@ Thank you for choosing us. We look forward to helping you reach your fitness goa
 
   return (
     <div className="p-2 md:p-6 max-w-7xl mx-auto bg-gray-50 min-h-screen pb-24 md:pb-6 overflow-y-hidden text-gray-900">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto overflow-y-hidden">
         
         {/* 📱 MOBILE SCREEN HEADER AND BACK BUTTON BAR */}
         <div className="block md:hidden mb-4">
