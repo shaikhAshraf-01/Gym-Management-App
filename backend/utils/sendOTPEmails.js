@@ -1,44 +1,41 @@
-import { Resend } from "resend";
+import brevo from "@getbrevo/brevo";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize the Brevo HTTP API client
+const apiInstance = new brevo.TransactionalEmailsApi();
+const apiKey = apiInstance.authentications['apiKey'];
+apiKey.apiKey = process.env.BREVO_API_KEY; // Managed securely in Render dashboard
 
 const sendOTPEmails = async (email, otp) => {
   try {
-    // 1. Check if the recipient matches your allowed Resend Sandbox email
-    const allowedSandboxEmail = "gymopsflow@gmail.com";
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
 
-    if (email.toLowerCase() !== allowedSandboxEmail.toLowerCase()) {
-      // DEVELOPMENT BYPASS LOGIC:
-      console.log("=========================================");
-      console.log(`[SANDBOX BYPASS] OTP for ${email} is: ${otp}`);
-      console.log("=========================================");
-      
-      // Return true so the backend treats it as a success!
-      return true; 
-    }
+    // Configure your sender name and your free account email address
+    sendSmtpEmail.sender = { 
+      name: "GymOpsFlow", 
+      email: "gymopsflow@gmail.com" 
+    };
+    
+    // Delivers the code to any target user's custom email address
+    sendSmtpEmail.to = [{ email: email }];
+    sendSmtpEmail.subject = "Your OTP for Login - GymOpsFlow";
+    
+    sendSmtpEmail.htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #333;">GymOpsFlow Login Verification</h2>
+        <p style="font-size: 16px; color: #555;">Use the following One-Time Password (OTP) to complete your login.</p>
+        <div style="background-color: #f4f4f6; padding: 15px; text-align: center; border-radius: 4px; margin: 20px 0;">
+          <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #111;">${otp}</span>
+        </div>
+        <p style="font-size: 14px; color: #888;">This OTP is valid for <strong>5 minutes</strong> only. Please do not share it with anyone.</p>
+      </div>
+    `;
 
-    // 2. If it IS your email, proceed to send the real email via Resend
-    const { data, error } = await resend.emails.send({
-      from: "GymOpsFlow <onboarding@resend.dev>",
-      to: email,
-      subject: "Your OTP for Login - GymOpsFlow",
-      html: `
-        <h2>GymOpsFlow Login Verification</h2>
-        <p>Your OTP is: <strong>${otp}</strong></p>
-        <p>This OTP is valid for 5 minutes only.</p>
-      `,
-    });
-
-    if (error) {
-      console.error("Resend error:", error);
-      return false;
-    }
-
-    console.log("OTP email sent successfully via Resend:", data);
+    const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log("OTP email sent successfully via Brevo API:", data.messageId);
     return true;
 
   } catch (error) {
-    console.error("Error sending OTP:", error);
+    console.error("Brevo API Error:", error.response?.body || error.message);
     return false;
   }
 };
