@@ -1,21 +1,21 @@
-import brevo from "@getbrevo/brevo";
+import * as brevo from "@getbrevo/brevo";
 
-// Initialize the Brevo HTTP API client
+// Initialize the Brevo Transactional API client
 const apiInstance = new brevo.TransactionalEmailsApi();
 const apiKey = apiInstance.authentications['apiKey'];
-apiKey.apiKey = process.env.BREVO_API_KEY; // Managed securely in Render dashboard
+apiKey.apiKey = process.env.BREVO_API_KEY;
 
 const sendOTPEmails = async (email, otp) => {
   try {
     const sendSmtpEmail = new brevo.SendSmtpEmail();
 
-    // Configure your sender name and your free account email address
+    // Your App Information
     sendSmtpEmail.sender = { 
       name: "GymOpsFlow", 
-      email: "gymopsflow@gmail.com" 
+      email: "gymopsflow@gmail.com" // Brevo में रजिस्टर्ड आपका ईमेल
     };
     
-    // Delivers the code to any target user's custom email address
+    // Target Destination
     sendSmtpEmail.to = [{ email: email }];
     sendSmtpEmail.subject = "Your OTP for Login - GymOpsFlow";
     
@@ -35,7 +35,7 @@ const sendOTPEmails = async (email, otp) => {
     return true;
 
   } catch (error) {
-    console.error("Brevo API Error:", error.response?.body || error.message);
+    console.error("Brevo API Error Details:", error.response?.body || error.message);
     return false;
   }
 };
