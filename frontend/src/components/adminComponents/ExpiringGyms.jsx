@@ -32,8 +32,8 @@ export default function ExpiringGyms() {
       return {
         id: gym._id,
         name: gym.gymName,
-        owner: gym.ownerName,
-        phone: gym.ownerMobile,
+        owner: gym.owner?.name || "—",
+        phone: gym.owner?.mobile || "",
         plan: current.plan,
         value: `₹${(current.amount || 0).toLocaleString("en-IN")}`,
         daysLeft,
@@ -216,4 +216,3 @@ FitZone Team 💪`;
     </div>
   );
 }
-

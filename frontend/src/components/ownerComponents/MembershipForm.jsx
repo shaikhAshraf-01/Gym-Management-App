@@ -8,11 +8,9 @@ export default function MembershipForm({ onSave, prefill }) {
     plan: "1_month",
     planAmount: "", 
     amountPayingToday: "", 
-    balanceAmount: 0, // Changed to default number 0
     paymentMode: "upi",
     joiningDate: new Date().toISOString().split("T")[0], 
     remainingPayingDate: "", 
-    expiryDate: "",
   });
 
   // 🔄 Prefill listener for automatic conversions from EnquiryView
@@ -26,38 +24,24 @@ export default function MembershipForm({ onSave, prefill }) {
     }
   }, [prefill]);
 
-  // 📅 Automatic plan expiry AND balance amount calculator
-  useEffect(() => {
-    // 1. Calculate Expiry Date
-    let monthsToAdd = 1;
-    if (formData.plan === "3_month") monthsToAdd = 3;
-    if (formData.plan === "6_month") monthsToAdd = 6;
-    if (formData.plan === "1_year") monthsToAdd = 12;
+  // 🧮 Live Calculations during the component render cycle
+  const monthsMap = { "1_month": 1, "3_month": 3, "6_month": 6, "1_year": 12 };
+  const monthsToAdd = monthsMap[formData.plan] || 1;
 
-    let calculatedExpiry = "";
-    if (formData.joiningDate) {
-      const date = new Date(formData.joiningDate);
-      date.setMonth(date.getMonth() + monthsToAdd);
-      
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      calculatedExpiry = `${year}-${month}-${day}`;
-    }
+  let calculatedExpiry = "";
+  if (formData.joiningDate) {
+    const date = new Date(formData.joiningDate);
+    date.setMonth(date.getMonth() + monthsToAdd);
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    calculatedExpiry = `${year}-${month}-${day}`;
+  }
 
-    // 2. Calculate Balance Amount safely
-    const total = parseFloat(formData.planAmount) || 0;
-    const paid = parseFloat(formData.amountPayingToday) || 0;
-    const calculatedBalance = Math.max(0, total - paid); // Prevents negative numbers
-
-    // Update state once for both calculations to optimize performance
-    setFormData((prev) => ({
-      ...prev,
-      expiryDate: calculatedExpiry,
-      balanceAmount: calculatedBalance
-    }));
-
-  }, [formData.plan, formData.joiningDate, formData.planAmount, formData.amountPayingToday]);
+  const total = parseFloat(formData.planAmount) || 0;
+  const paid = parseFloat(formData.amountPayingToday) || 0;
+  const calculatedBalance = Math.max(0, total - paid);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -66,9 +50,22 @@ export default function MembershipForm({ onSave, prefill }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (onSave) onSave(formData);
 
-    // Reset Form Fields back to defaults
+    // Extra safety check before submission
+    if (paid > total) {
+      alert("Amount paying today cannot be greater than the Plan Amount!");
+      return;
+    }
+
+    const finalData = {
+      ...formData,
+      balanceAmount: calculatedBalance,
+      expiryDate: calculatedExpiry
+    };
+
+    if (onSave) onSave(finalData);
+
+    // Reset Form Fields back to clean initial values
     setFormData({
       name: "",
       mobile: "",
@@ -76,11 +73,9 @@ export default function MembershipForm({ onSave, prefill }) {
       plan: "1_month",
       planAmount: "",
       amountPayingToday: "",
-      balanceAmount: 0,
       paymentMode: "upi",
       joiningDate: new Date().toISOString().split("T")[0],
       remainingPayingDate: "",
-      expiryDate: "",
     });
   };
 
@@ -155,7 +150,11 @@ export default function MembershipForm({ onSave, prefill }) {
         <div>
           <label className="block text-xs uppercase font-bold text-gray-500 mb-1">Amount Paying Today</label>
           <input 
-            type="number" name="amountPayingToday" value={formData.amountPayingToday} onChange={handleChange} 
+            type="number" 
+            name="amountPayingToday" 
+            value={formData.amountPayingToday} 
+            onChange={handleChange} 
+            max={formData.planAmount || undefined} // 🌟 Restricts the input value from exceeding the total price
             className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-emerald-600 font-bold focus:outline-none focus:border-blue-500" 
             placeholder="Enter collected payment" required 
           />
@@ -164,7 +163,7 @@ export default function MembershipForm({ onSave, prefill }) {
         <div>
           <label className="block text-xs uppercase font-bold text-gray-500 mb-1">Balance Amount</label>
           <input 
-            type="number" name="balanceAmount" value={formData.balanceAmount} readOnly
+            type="number" name="balanceAmount" value={calculatedBalance} readOnly
             className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold cursor-not-allowed outline-none" 
             placeholder="Calculated automatically" 
           />
@@ -183,18 +182,21 @@ export default function MembershipForm({ onSave, prefill }) {
         </div>
 
         {/* Condition Dates */}
-        <div>
-          <label className="block text-xs uppercase font-bold text-gray-500 mb-1">Remaining Paying Date</label>
-          <input 
-            type="date" name="remainingPayingDate" value={formData.remainingPayingDate} onChange={handleChange} 
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500" 
-          />
-        </div>
+        {calculatedBalance > 0 && (
+          <div className="transition-all duration-200">
+            <label className="block text-xs uppercase font-bold text-gray-500 mb-1">Remaining Paying Date</label>
+            <input 
+              type="date" name="remainingPayingDate" value={formData.remainingPayingDate} onChange={handleChange} 
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500" 
+              required
+            />
+          </div>
+        )}
 
-        <div className="md:col-span-2">
+        <div className={calculatedBalance > 0 ? "" : "md:col-span-2"}>
           <label className="block text-xs uppercase font-bold text-gray-400 mb-1">Automatic Plan Expiry Date</label>
           <input 
-            type="date" name="expiryDate" value={formData.expiryDate} readOnly 
+            type="date" name="expiryDate" value={calculatedExpiry} readOnly 
             className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-blue-600 font-semibold cursor-not-allowed outline-none" 
           />
         </div>
