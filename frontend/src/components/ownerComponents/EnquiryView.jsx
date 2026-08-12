@@ -23,7 +23,8 @@ export default function EnquiryView() {
   }, [dispatch]);
 
   const handleConvert = (enquiry) => {
-    navigate("/owner/add", {
+    const addPath= location.pathname.startsWith("/trainer")? "/trainer/add": "/owner/add";
+    navigate(addPath, {
       state: {
         type: "membership",
         prefill: { name: enquiry.name, mobile: enquiry.mobile, enquiryId: enquiry.id },
