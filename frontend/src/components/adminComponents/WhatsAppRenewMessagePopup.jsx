@@ -49,19 +49,20 @@ Thank you for continuing with FitZone! 💪`;
       return;
     }
 
-    // 1. Detect if the user is on a mobile device
+    const waLink = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
     if (isMobile) {
-      // Direct deep link to trigger the native mobile application instantly
-      const mobileUrl = `whatsapp://send?phone=91${cleanPhone}&text=${encodeURIComponent(message)}`;
-      window.location.href = mobileUrl;
+      // Navigating the CURRENT tab to wa.me lets the OS hand off to
+      // the native WhatsApp app directly — no new tab, and if
+      // WhatsApp isn't installed wa.me falls back gracefully instead
+      // of a dead "can't open page" error (which a hand-rolled
+      // whatsapp:// scheme link would show with no fallback).
+      window.location.href = waLink;
     } else {
-      // 2. Fixed Desktop URL path with proper web protocol and string interpolation variables
-      const desktopUrl = `https://whatsapp.com{cleanPhone}&text=${encodeURIComponent(message)}`;
-      
-      // Target a named window identifier instead of '_blank' to reuse the same tab
-      window.open(desktopUrl, "FitZoneWhatsAppTab");
+      // Named target = the SAME tab gets reused on every click
+      // instead of a new one opening each time.
+      window.open(waLink, "FitZoneWhatsAppTab");
     }
   };
 
