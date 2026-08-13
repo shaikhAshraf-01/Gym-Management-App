@@ -52,7 +52,17 @@ export default function AllGyms() {
   // This is only populated after a renewal has been selected.
   // The popup is shown only after Save Changes succeeds.
   const [renewalWhatsApp, setRenewalWhatsApp] = useState(null);
-
+  
+  // Renewal form fields — separate from selectedGym so the drawer can
+  // show "pending renewal" values without touching the gym's live
+  // data until "Apply Renewal" is pressed.
+  const [renewPlan, setRenewPlan] = useState("Basic");
+  const [renewDurationMonths, setRenewDurationMonths] = useState(1);
+  const [renewStartDate, setRenewStartDate] = useState("");
+  const [renewEndDate, setRenewEndDate] = useState("");
+  const [renewAmount, setRenewAmount] = useState("");
+  const [renewPaymentMode, setRenewPaymentMode] = useState("UPI");
+  const [renewalPending, setRenewalPending] = useState(false);
   const {
     gyms: gymsData,
     loading,
@@ -111,16 +121,6 @@ export default function AllGyms() {
     return `${year}-${month}-${day}`;
   };
 
-  // Renewal form fields — separate from selectedGym so the drawer can
-  // show "pending renewal" values without touching the gym's live
-  // data until "Apply Renewal" is pressed.
-  const [renewPlan, setRenewPlan] = useState("Basic");
-  const [renewDurationMonths, setRenewDurationMonths] = useState(1);
-  const [renewStartDate, setRenewStartDate] = useState("");
-  const [renewEndDate, setRenewEndDate] = useState("");
-  const [renewAmount, setRenewAmount] = useState("");
-  const [renewPaymentMode, setRenewPaymentMode] = useState("UPI");
-  const [renewalPending, setRenewalPending] = useState(false);
 
   const calculateDefaultRenewStartDate = (gym) => {
     const today = new Date();
