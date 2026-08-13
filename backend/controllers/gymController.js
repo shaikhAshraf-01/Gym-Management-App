@@ -5,6 +5,13 @@ import mongoose from "mongoose";
 import Gym from "../models/Gym.js";
 import User, { Owner, Trainer } from "../models/User.js";
 import GymSubscriptionHistory from "../models/GymSubscriptionHistory.js";
+import Member from "../models/Member.js";
+
+// Gym model has no totalMembers field — count comes live from the
+// Member collection instead of relying on a stale/undefined property.
+const getMembersCount = async (gymId) => {
+  return await Member.countDocuments({ gym: gymId });
+};
 
 // Trainers are separate User documents (role: "trainer"), not an
 // embedded array on Gym. Frontend code keys off `trainer.id`, so we
@@ -104,6 +111,7 @@ export const createGym = async (req, res) => {
   const currentSubscription =
     subscriptionHistory[subscriptionHistory.length - 1] || null;
   const trainers = await getFormattedTrainers(gym._id);
+  const totalMembers = await getMembersCount(gym._id);
 
   res.status(201).json({
     success: true,
@@ -117,7 +125,7 @@ export const createGym = async (req, res) => {
       status: populatedGym.status,
       owner: populatedGym.owner,
       trainers,
-      totalMembers: populatedGym.totalMembers || 0,
+      totalMembers,
       enquiries: populatedGym.enquiries || 0,
       address: populatedGym.address || "",
       subscriptionHistory,
@@ -153,6 +161,7 @@ export const getAllGyms = async (req, res) => {
             ? subscription[subscription.length - 1]
             : null;
         const trainers = await getFormattedTrainers(gym._id);
+        const totalMembers = await getMembersCount(gym._id);
         return {
           _id: gym._id,
           gymCode: gym.gymCode,
@@ -162,7 +171,7 @@ export const getAllGyms = async (req, res) => {
           status: gym.status,
           owner: gym.owner,
           trainers,
-          totalMembers: gym.totalMembers || 0,
+          totalMembers,
           enquiries: gym.enquiries || 0,
           address: gym.address || "",
           subscriptionHistory: subscription,
@@ -276,6 +285,7 @@ export const updateGym = async (req, res) => {
     const updatedCurrentSubscription =
       subscriptionHistory[subscriptionHistory.length - 1] || null;
     const updatedTrainers = await getFormattedTrainers(gym._id);
+    const totalMembers = await getMembersCount(gym._id);
 
     res.status(200).json({
       success: true,
@@ -289,7 +299,7 @@ export const updateGym = async (req, res) => {
         status: populatedGym.status,
         owner: populatedGym.owner,
         trainers: updatedTrainers,
-        totalMembers: populatedGym.totalMembers || 0,
+        totalMembers,
         enquiries: populatedGym.enquiries || 0,
         address: populatedGym.address || "",
         subscriptionHistory,
@@ -356,6 +366,7 @@ export const addTrainer = async (req, res) => {
 
     const populatedGym = await Gym.findById(id).populate("owner");
     const trainers = await getFormattedTrainers(gym._id);
+    const totalMembers = await getMembersCount(gym._id);
     const subscriptionHistory = await GymSubscriptionHistory.find({
       gymId: gym._id,
     }).sort({ startDate: 1 });
@@ -374,7 +385,7 @@ export const addTrainer = async (req, res) => {
         status: populatedGym.status,
         owner: populatedGym.owner,
         trainers,
-        totalMembers: populatedGym.totalMembers || 0,
+        totalMembers,
         enquiries: populatedGym.enquiries || 0,
         address: populatedGym.address || "",
         subscriptionHistory,
@@ -420,6 +431,7 @@ export const deleteTrainer = async (req, res) => {
 
     const populatedGym = await Gym.findById(id).populate("owner");
     const trainers = await getFormattedTrainers(gym._id);
+    const totalMembers = await getMembersCount(gym._id);
     const subscriptionHistory = await GymSubscriptionHistory.find({
       gymId: gym._id,
     }).sort({ startDate: 1 });
@@ -438,7 +450,7 @@ export const deleteTrainer = async (req, res) => {
         status: populatedGym.status,
         owner: populatedGym.owner,
         trainers,
-        totalMembers: populatedGym.totalMembers || 0,
+        totalMembers,
         enquiries: populatedGym.enquiries || 0,
         address: populatedGym.address || "",
         subscriptionHistory,
