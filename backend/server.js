@@ -20,9 +20,14 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // 1. Agar request mobile app se hai, toh origin ya toh undefined hoga ya file:// ya localhost
-    // 2. Kuch devices me localhost ke aage port (jaise http://localhost:80) bhi aa sakta hai
-    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost') || origin.startsWith('capacitor://localhost')) {
+    // Agar mobile app se request hai toh origin undefined hota hai, ya fir usme localhost/capacitor/file keyword hota hai
+    if (
+      !origin || 
+      allowedOrigins.includes(origin) || 
+      origin.includes('localhost') || 
+      origin.includes('capacitor://') || 
+      origin.includes('file://')
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -30,6 +35,7 @@ app.use(cors({
   },
   credentials: true
 }));
+
 
 
 app.use(express.json());
