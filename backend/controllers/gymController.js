@@ -271,6 +271,7 @@ export const updateGym = async (req, res) => {
       await GymSubscriptionHistory.create({
         gymId: gym._id,
         subscriptionPlan: currentSubscription.subscriptionPlan,
+        durationMonths: currentSubscription.durationMonths,
         amount: currentSubscription.amount,
         paymentMode: currentSubscription.paymentMode,
         startDate: currentSubscription.startDate,
