@@ -11,7 +11,25 @@ import ownerRoutes from "./routes/ownerRoutes.js"
 connectDB();
 const app=express();
 
-app.use(cors({origin: process.env.CLIENT_ORIGIN, credentials:true}));
+// Purani line ko hata kar yeh lagayein:
+const allowedOrigins = [
+  process.env.CLIENT_ORIGIN, // Aapki purani website ka URL (jo .env me hai)
+  "http://localhost",        // 👈 Android Mobile App ke liye
+  "capacitor://localhost"    // 👈 Capacitor/iOS ke liye
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Agar request mobile app se hai toh origin undefined ya localhost hoga
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
