@@ -104,6 +104,44 @@ export default function AllGyms() {
   // ------------------------------------------------------------------
   // 4. EDIT DRAWER OPEN / SAVE
   // ------------------------------------------------------------------
+  const formatDateInput = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Renewal form fields — separate from selectedGym so the drawer can
+  // show "pending renewal" values without touching the gym's live
+  // data until "Apply Renewal" is pressed.
+  const [renewPlan, setRenewPlan] = useState("Basic");
+  const [renewDurationMonths, setRenewDurationMonths] = useState(1);
+  const [renewStartDate, setRenewStartDate] = useState("");
+  const [renewEndDate, setRenewEndDate] = useState("");
+  const [renewAmount, setRenewAmount] = useState("");
+  const [renewPaymentMode, setRenewPaymentMode] = useState("UPI");
+  const [renewalPending, setRenewalPending] = useState(false);
+
+  const calculateDefaultRenewStartDate = (gym) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let startDate = new Date(today);
+    const currentEndDate = gym?.currentSubscription?.endDate;
+
+    if (currentEndDate) {
+      const currentExpiry = new Date(currentEndDate);
+      currentExpiry.setHours(0, 0, 0, 0);
+
+      if (currentExpiry >= today) {
+        startDate = new Date(currentExpiry);
+        startDate.setDate(startDate.getDate() + 1);
+      }
+    }
+
+    return formatDateInput(startDate);
+  };
+
   const openEditDrawer = (gym) => {
     setSelectedGym({
       ...gym,
@@ -111,8 +149,32 @@ export default function AllGyms() {
       currentSubscription: { ...gym.currentSubscription },
     });
 
+    // Reset the renewal form to reflect the gym's current plan/amount
+    // so "Apply Renewal" defaults sensibly if the admin doesn't touch
+    // the plan or duration at all.
+    setRenewPlan(gym.currentSubscription?.subscriptionPlan || "Basic");
+    setRenewDurationMonths(gym.currentSubscription?.durationMonths || 1);
+    setRenewStartDate(calculateDefaultRenewStartDate(gym));
+    setRenewEndDate("");
+    setRenewAmount(gym.currentSubscription?.amount || "");
+    setRenewPaymentMode(gym.currentSubscription?.paymentMode || "UPI");
+    setRenewalPending(false);
+
     setIsDrawerOpen(true);
   };
+
+  // Auto-calculate end date from start date + duration, but the admin
+  // can still override it manually afterwards (input isn't readOnly).
+  useEffect(() => {
+    if (!renewStartDate) return;
+
+    const startDate = new Date(`${renewStartDate}T12:00:00`);
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + Number(renewDurationMonths));
+
+    setRenewEndDate(formatDateInput(endDate));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renewDurationMonths, renewStartDate]);
 
   const handleDrawerSave = async (e) => {
     e.preventDefault();
@@ -181,33 +243,24 @@ export default function AllGyms() {
   };
 
   // ------------------------------------------------------------------
-  // 6. RENEW SUBSCRIPTION
+  // 6. RENEW / CHANGE SUBSCRIPTION
   // ------------------------------------------------------------------
-  // Existing renewal logic is preserved.
-  const renewSubscription = (months) => {
-    const current = selectedGym.currentSubscription;
-    const today = new Date();
-    const base = new Date(current.endDate);
-
-    const startFrom = base > today ? base : today;
-
-    const newStart = new Date(startFrom);
-    const newEnd = new Date(startFrom);
-
-    newEnd.setMonth(newEnd.getMonth() + months);
+  // Replaces the old fixed-month-only renewal — now the admin can also
+  // change the plan (Basic/Plus/Pro) and freely edit both the start
+  // date and the end date before applying.
+  const applyRenewal = () => {
+    if (!renewStartDate || !renewEndDate || !renewAmount) return;
 
     const newSub = {
       id: `SUB-${Date.now()}`,
-      subscriptionPlan: current.subscriptionPlan,
-      startDate: newStart.toISOString().split("T")[0],
-      endDate: newEnd.toISOString().split("T")[0],
-      amount: current.amount,
-      paymentMode: current.paymentMode,
+      subscriptionPlan: renewPlan,
+      durationMonths: Number(renewDurationMonths),
+      startDate: renewStartDate,
+      endDate: renewEndDate,
+      amount: Number(renewAmount),
+      paymentMode: renewPaymentMode,
     };
 
-    // --------------------------------------------------------------
-    // EXISTING RENEWAL STATE UPDATE
-    // --------------------------------------------------------------
     setSelectedGym({
       ...selectedGym,
       status: "active",
@@ -218,17 +271,16 @@ export default function AllGyms() {
       ],
     });
 
-    // --------------------------------------------------------------
-    // STORE WHATSAPP DATA
-    // --------------------------------------------------------------
-    // Popup will NOT open here.
-    // It will open only after Save Changes succeeds.
+    setRenewalPending(true);
+
+    // Popup will NOT open here. It will open only after Save Changes
+    // succeeds.
     setRenewalWhatsApp({
       phone: selectedGym.owner?.mobile,
       gymName: selectedGym.gymName,
-      plan: current.subscriptionPlan,
-      months,
-      amount: current.amount,
+      plan: renewPlan,
+      months: renewDurationMonths,
+      amount: renewAmount,
       newEndDate: newSub.endDate,
     });
   };
@@ -546,38 +598,130 @@ export default function AllGyms() {
                 </select>
               </div>
 
-              {/* RENEW SUBSCRIPTION */}
-              <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-4 space-y-2">
+              {/* RENEW / CHANGE SUBSCRIPTION */}
+              <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-4 space-y-3">
 
                 <label className="flex items-center gap-1.5 text-xs font-bold text-indigo-700 uppercase tracking-wider">
                   <RefreshCw className="h-3.5 w-3.5" />
-                  Renew Subscription
+                  Renew / Change Subscription
                 </label>
 
                 <p className="text-xs text-slate-500">
-                  Current end date:{" "}
+                  Current plan:{" "}
+                  <span className="font-semibold text-slate-700">
+                    {getCurrentSub(selectedGym).subscriptionPlan}
+                  </span>
+                  {" · "}Current end date:{" "}
                   <span className="font-semibold text-slate-700">
                     {getCurrentSub(selectedGym).endDate}
                   </span>
                 </p>
 
-                <div className="flex gap-2 flex-wrap">
-                  {[1, 3, 6, 12].map((months) => (
-                    <button
-                      key={months}
-                      type="button"
-                      onClick={() => renewSubscription(months)}
-                      className="px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+                <div className="grid grid-cols-2 gap-2.5">
+                  {/* Plan */}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+                      Plan
+                    </label>
+                    <select
+                      value={renewPlan}
+                      onChange={(e) => setRenewPlan(e.target.value)}
+                      className="w-full bg-white border border-indigo-200 rounded-lg p-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500"
                     >
-                      +{months}{" "}
-                      {months === 1 ? "month" : "months"}
-                    </button>
-                  ))}
+                      <option value="Basic">Basic</option>
+                      <option value="Plus">Plus</option>
+                      <option value="Pro">Pro</option>
+                    </select>
+                  </div>
+
+                  {/* Duration */}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+                      Duration
+                    </label>
+                    <select
+                      value={renewDurationMonths}
+                      onChange={(e) => setRenewDurationMonths(Number(e.target.value))}
+                      className="w-full bg-white border border-indigo-200 rounded-lg p-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value={1}>1 Month</option>
+                      <option value={3}>3 Months</option>
+                      <option value={6}>6 Months</option>
+                      <option value={12}>1 Year</option>
+                    </select>
+                  </div>
+
+                  {/* Start Date — editable, defaults to today (expired)
+                      or day after current expiry (still active) */}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={renewStartDate}
+                      onChange={(e) => setRenewStartDate(e.target.value)}
+                      className="w-full bg-white border border-indigo-200 rounded-lg p-2 text-sm text-indigo-700 font-semibold focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  {/* End Date — auto-calculated from Start + Duration,
+                      but freely editable if a custom date is needed */}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={renewEndDate}
+                      onChange={(e) => setRenewEndDate(e.target.value)}
+                      className="w-full bg-white border border-indigo-200 rounded-lg p-2 text-sm text-indigo-700 font-semibold focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  {/* Amount */}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+                      Amount
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={renewAmount}
+                      onChange={(e) => setRenewAmount(e.target.value)}
+                      placeholder="₹ amount"
+                      className="w-full bg-white border border-indigo-200 rounded-lg p-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  {/* Payment Mode */}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+                      Payment Mode
+                    </label>
+                    <select
+                      value={renewPaymentMode}
+                      onChange={(e) => setRenewPaymentMode(e.target.value)}
+                      className="w-full bg-white border border-indigo-200 rounded-lg p-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="UPI">UPI</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Card">Card</option>
+                    </select>
+                  </div>
                 </div>
 
-                {renewalWhatsApp && (
+                <button
+                  type="button"
+                  onClick={applyRenewal}
+                  className="w-full px-3 py-2 text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Apply Renewal
+                </button>
+
+                {renewalPending && (
                   <p className="text-[11px] text-indigo-600 pt-1">
-                    Renewal selected. Save Changes to complete the renewal.
+                    Renewal set to {renewPlan} · {renewStartDate} → {renewEndDate}. Save Changes to complete it.
                   </p>
                 )}
               </div>

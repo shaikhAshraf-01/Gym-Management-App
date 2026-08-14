@@ -120,27 +120,20 @@ export default function Login() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
-      <div className="hidden md:block md:w-[55%] h-full">
-        <img
-          src={LoginImg}
-          alt="Login Dashboard Frame"
-          className="w-full h-full object-cover"
-        />
-      </div>
+    <div className="flex h-screen w-full justify-center items-center bg-black overflow-hidden p-4">
 
-      <div className="w-full md:w-[45%] h-full bg-linear-30 from-blue-200 to-purple-300 flex items-center justify-center p-8 sm:p-12">
-        <div className="w-full max-w-md space-y-8">
+      <div className="w-full max-w-md rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-md space-y-5">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-slate-800 tracking-tight">
-              Welcome Back
+            <h2 className="text-2xl font-bold text-white tracking-tight">
+              GymOpsFlow
             </h2>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-300">
               Please select your role and sign in
             </p>
           </div>
 
-          <div className="flex bg-slate-200 p-1 rounded-xl relative">
+          <div className="flex bg-white/10 p-1 rounded-xl relative">
             {["admin", "owner", "trainer"].map((item) => {
               const isActive = role === item;
               return (
@@ -148,7 +141,7 @@ export default function Login() {
                   key={item}
                   type="button"
                   onClick={() => handleRoleChange(item)}
-                  className="flex-1 py-2 text-sm font-medium rounded-lg capitalize transition-colors duration-200 relative z-10 text-slate-600 data-[active=true]:text-slate-900 data-[active=true]:font-semibold focus:outline-none"
+                  className="flex-1 py-2 text-sm font-medium rounded-lg capitalize transition-colors duration-200 relative z-10 text-slate-300 data-[active=true]:text-slate-900 data-[active=true]:font-semibold focus:outline-none"
                   data-active={isActive}
                 >
                   {item}
@@ -169,12 +162,12 @@ export default function Login() {
           </div>
 
           {error && (
-            <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg text-center animate-pulse">
+            <div className="p-3 text-sm text-red-200 bg-red-500/20 border border-red-400/30 rounded-lg text-center animate-pulse">
               {error}
             </div>
           )}
 
-          <div className="relative min-h-[340px]">
+          <div className="relative min-h-[300px]">
             <AnimatePresence mode="wait">
               <motion.form
                 key={role}
@@ -183,12 +176,12 @@ export default function Login() {
                 exit={{ opacity: 0, x: -15 }}
                 transition={{ duration: 0.18 }}
                 onSubmit={handleSubmit}
-                className="space-y-5 absolute w-full"
+                className="space-y-4 absolute w-full"
               >
                 {role === "admin" ? (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700">
+                      <label className="block text-sm font-medium text-slate-200">
                         Mobile Number
                       </label>
                       <input
@@ -200,11 +193,11 @@ export default function Login() {
                         placeholder="Enter 10-digit mobile number"
                         value={mobile}
                         onChange={(e) => setMobile(e.target.value)}
-                        className="mt-1 block w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors disabled:bg-slate-100"
+                        className="mt-1 block w-full px-4 py-2.5 bg-white/10 border border-white/20 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-colors disabled:bg-white/5"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700">
+                      <label className="block text-sm font-medium text-slate-200">
                         Password
                       </label>
                       <input
@@ -214,14 +207,14 @@ export default function Login() {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="mt-1 block w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors disabled:bg-slate-100"
+                        className="mt-1 block w-full px-4 py-2.5 bg-white/10 border border-white/20 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-colors disabled:bg-white/5"
                       />
                     </div>
                   </>
                 ) : (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700">
+                      <label className="block text-sm font-medium text-slate-200">
                         Email Address
                       </label>
                       <div className="flex mt-1 space-x-2">
@@ -232,7 +225,7 @@ export default function Login() {
                           placeholder="name@example.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="block w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors disabled:bg-slate-100"
+                          className="block w-full px-4 py-2.5 bg-white/10 border border-white/20 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-colors disabled:bg-white/5"
                         />
                         <button
                           type="button"
@@ -243,7 +236,7 @@ export default function Login() {
                             isEmailVerified
                           }
                           onClick={handleVerifyEmail}
-                          className="px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-xs transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-slate-300 disabled:text-slate-500 whitespace-nowrap"
+                          className="px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-xs transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-slate-500 disabled:text-slate-300 whitespace-nowrap"
                         >
                           {verifyingEmail
                             ? "Sending..."
@@ -260,7 +253,7 @@ export default function Login() {
                         animate={{ opacity: 1, y: 0 }}
                         className="space-y-1"
                       >
-                        <label className="block text-sm font-medium text-slate-700">
+                        <label className="block text-sm font-medium text-slate-200">
                           Enter OTP
                         </label>
                         <input
@@ -271,7 +264,7 @@ export default function Login() {
                           placeholder="Enter 6-digit OTP"
                           value={otp}
                           onChange={(e) => setOtp(e.target.value)}
-                          className="mt-1 block w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors disabled:bg-slate-100 text-center tracking-widest font-semibold"
+                          className="mt-1 block w-full px-4 py-2.5 bg-white/10 border border-white/20 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-colors disabled:bg-white/5 text-center tracking-widest font-semibold"
                         />
                       </motion.div>
                     )}
@@ -279,20 +272,20 @@ export default function Login() {
                 )}
 
                 <div className="flex items-center justify-between text-sm">
-                  <label className="flex items-center space-x-2 text-slate-600 cursor-pointer select-none">
+                  <label className="flex items-center space-x-2 text-slate-300 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       disabled={loading}
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 h-4 w-4"
+                      className="rounded text-indigo-600 border-slate-400 focus:ring-indigo-500 h-4 w-4"
                     />
                     <span>Remember me</span>
                   </label>
                   {role === "admin" && (
                     <a
                       href="#"
-                      className="text-indigo-600 hover:underline font-medium focus:outline-none"
+                      className="text-indigo-400 hover:underline font-medium focus:outline-none"
                     >
                       Forgot password?
                     </a>
