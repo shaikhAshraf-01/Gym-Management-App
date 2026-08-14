@@ -89,6 +89,25 @@ export default function ExtendMembershipModal({
   }, [formData.plan, formData.newStartDate, member]);
 
   // ---------------------------------------------------------------
+  // Auto-calculate Balance Amount
+  //
+  // Balance = New Membership Fee − Amount Paying Today, floored at 0.
+  // No manual entry — this stays in sync automatically whenever
+  // either of those two fields changes, so it can't drift out of
+  // sync the way a manually-typed balance could.
+  // ---------------------------------------------------------------
+  useEffect(() => {
+    const fee = Number(formData.extensionAmount) || 0;
+    const paid = Number(formData.amountPayingToday) || 0;
+    const balance = Math.max(0, fee - paid);
+
+    setFormData((prev) => ({
+      ...prev,
+      balanceAmount: String(balance),
+    }));
+  }, [formData.extensionAmount, formData.amountPayingToday]);
+
+  // ---------------------------------------------------------------
   // Reset modal when member changes
   // ---------------------------------------------------------------
   useEffect(() => {
@@ -110,14 +129,27 @@ export default function ExtendMembershipModal({
   // ---------------------------------------------------------------
   // Input change
   // ---------------------------------------------------------------
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+ const handleChange = (e) => {
+  const { name, value } = e.target;
 
-    setFormData((prev) => ({
+  setFormData((prev) => {
+    // Amount Paying Today can never exceed the membership fee
+    if (name === "amountPayingToday") {
+      const fee = Number(prev.extensionAmount) || 0;
+      const paid = Number(value) || 0;
+
+      return {
+        ...prev,
+        amountPayingToday: String(Math.min(paid, fee)),
+      };
+    }
+
+    return {
       ...prev,
       [name]: value,
-    }));
-  };
+    };
+  });
+};
 
   // ---------------------------------------------------------------
   // Submit
@@ -263,6 +295,7 @@ export default function ExtendMembershipModal({
                 value={formData.amountPayingToday}
                 onChange={handleChange}
                 min="0"
+                max={formData.extensionAmount||0}
                 required
                 placeholder="Enter collected payment"
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-emerald-600 font-bold focus:outline-none focus:border-blue-500"
@@ -279,12 +312,13 @@ export default function ExtendMembershipModal({
                 type="number"
                 name="balanceAmount"
                 value={formData.balanceAmount}
-                onChange={handleChange}
-                min="0"
-                required
-                placeholder="Enter remaining balance"
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold focus:outline-none focus:border-blue-500"
+                readOnly
+                className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold cursor-not-allowed outline-none"
               />
+
+              <p className="text-[10px] text-gray-400 mt-1">
+                Auto-calculated: Fee − Amount Paid
+              </p>
             </div>
 
             {/* Payment Mode */}

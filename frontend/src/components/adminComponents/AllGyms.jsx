@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import {
   Search,
   Phone,
@@ -28,8 +27,6 @@ export default function AllGyms() {
   useEffect(() => {
     dispatch(fetchGyms());
   }, [dispatch]);
-
-  const navigate = useNavigate();
 
   // ------------------------------------------------------------------
   // 1. TOP LEVEL STATE
@@ -365,15 +362,6 @@ export default function AllGyms() {
             Monitor subscriptions, manage trainer accounts, and renew plans.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={() => navigate("/admin/add-gyms")}
-          className="inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 rounded-xl transition-colors cursor-pointer shrink-0"
-        >
-          <Plus className="h-4 w-4" />
-          Add Gym
-        </button>
       </header>
 
       {/* SEARCH + FILTER BAR */}
@@ -604,6 +592,94 @@ export default function AllGyms() {
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
+              </div>
+
+              {/* CURRENT SUBSCRIPTION — DIRECT EDIT
+                  Corrects the existing plan/start/end date in place.
+                  Unlike "Renew / Change Subscription" below, this does
+                  NOT create a new subscriptionHistory entry and does
+                  NOT trigger the WhatsApp renewal popup — use it for
+                  fixing a mistake, not for an actual renewal. */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2.5">
+
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <Edit3 className="h-3.5 w-3.5" />
+                  Current Subscription
+                </label>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  {/* Current Plan */}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+                      Plan
+                    </label>
+                    <select
+                      value={getCurrentSub(selectedGym).subscriptionPlan}
+                      onChange={(e) =>
+                        setSelectedGym({
+                          ...selectedGym,
+                          currentSubscription: {
+                            ...selectedGym.currentSubscription,
+                            subscriptionPlan: e.target.value,
+                          },
+                        })
+                      }
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="Basic">Basic</option>
+                      <option value="Plus">Plus</option>
+                      <option value="Pro">Pro</option>
+                    </select>
+                  </div>
+
+                  <div />
+
+                  {/* Current Start Date */}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={getCurrentSub(selectedGym).startDate}
+                      onChange={(e) =>
+                        setSelectedGym({
+                          ...selectedGym,
+                          currentSubscription: {
+                            ...selectedGym.currentSubscription,
+                            startDate: e.target.value,
+                          },
+                        })
+                      }
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2 text-sm text-slate-800 font-semibold focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  {/* Current End Date */}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={getCurrentSub(selectedGym).endDate}
+                      onChange={(e) =>
+                        setSelectedGym({
+                          ...selectedGym,
+                          currentSubscription: {
+                            ...selectedGym.currentSubscription,
+                            endDate: e.target.value,
+                          },
+                        })
+                      }
+                      className="w-full bg-white border border-slate-200 rounded-lg p-2 text-sm text-slate-800 font-semibold focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-slate-400">
+                  Corrects the current subscription only — save changes below to apply. This doesn't add a new plan to the timeline.
+                </p>
               </div>
 
               {/* RENEW / CHANGE SUBSCRIPTION */}
