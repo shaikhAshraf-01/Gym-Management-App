@@ -23,6 +23,14 @@ export default function AddSelectionContainer() {
   // in the message builder below when undefined.
   const gymName = useSelector((state) => state.owner.gym?.gymName);
   const role = useSelector((state) => state.auth.role);
+  // WhatsApp reminders (manual wa.me links) are only available on the
+  // Basic plan for now — Plus/Pro will get automatic WhatsApp sending
+  // once the Twilio API integration is built, so no popup shows here
+  // for them at all.
+  const subscriptionPlan = useSelector(
+    (state) => state.owner.currentSubscription?.subscriptionPlan
+  );
+  const canUseManualWhatsApp = subscriptionPlan === "Basic";
 
   const [selectedType, setSelectedType] = useState(null); // 'membership' | 'enquiry' | null
 
@@ -102,7 +110,15 @@ Thank you for choosing us. We look forward to helping you reach your fitness goa
         dispatch(deleteEnquiry(prefillData.enquiryId));
       }
 
-      setConfirmingMember(savedMember);
+      // Basic plan: show the wa.me confirmation popup so the owner can
+      // manually send the welcome message. Plus/Pro: no popup at all —
+      // once Twilio automation is built this is where the automatic
+      // send will be triggered instead.
+      if (canUseManualWhatsApp) {
+        setConfirmingMember(savedMember);
+      } else {
+        goToMembersList();
+      }
     } catch (error) {
       alert(typeof error === "string" ? error : "Failed to add member.");
     }
@@ -126,8 +142,8 @@ Thank you for choosing us. We look forward to helping you reach your fitness goa
   };
 
   return (
-    <div className="p-2 md:p-6 max-w-7xl mx-auto bg-gray-50 min-h-screen pb-24 md:pb-6 overflow-y-hidden text-gray-900">
-      <div className="max-w-4xl mx-auto overflow-y-hidden">
+    <div className="p-2 md:p-6 max-w-7xl mx-auto bg-gray-50 min-h-screen pb-24 md:pb-6 text-gray-900">
+      <div className="max-w-4xl mx-auto">
         
         {/* 📱 MOBILE SCREEN HEADER AND BACK BUTTON BAR */}
         <div className="block md:hidden mb-4">

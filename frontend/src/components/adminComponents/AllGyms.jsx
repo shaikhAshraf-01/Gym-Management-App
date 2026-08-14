@@ -53,6 +53,34 @@ export default function AllGyms() {
   // The popup is shown only after Save Changes succeeds.
   const [renewalWhatsApp, setRenewalWhatsApp] = useState(null);
 
+  // Renewal form fields — separate from selectedGym so the drawer can
+  // show "pending renewal" values without touching the gym's live
+  // data until "Apply Renewal" is pressed.
+  const [renewPlan, setRenewPlan] = useState("Basic");
+  const [renewDurationMonths, setRenewDurationMonths] = useState(1);
+  const [renewStartDate, setRenewStartDate] = useState("");
+  const [renewEndDate, setRenewEndDate] = useState("");
+  const [renewAmount, setRenewAmount] = useState("");
+  const [renewPaymentMode, setRenewPaymentMode] = useState("UPI");
+  const [renewalPending, setRenewalPending] = useState(false);
+
+  // Auto-calculate end date from start date + duration, but the admin
+  // can still override it manually afterwards (input isn't readOnly).
+  useEffect(() => {
+    if (!renewStartDate) return;
+
+    const startDate = new Date(`${renewStartDate}T12:00:00`);
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + Number(renewDurationMonths));
+
+    const year = endDate.getFullYear();
+    const month = String(endDate.getMonth() + 1).padStart(2, "0");
+    const day = String(endDate.getDate()).padStart(2, "0");
+
+    setRenewEndDate(`${year}-${month}-${day}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renewDurationMonths, renewStartDate]);
+
   const {
     gyms: gymsData,
     loading,
@@ -114,13 +142,6 @@ export default function AllGyms() {
   // Renewal form fields — separate from selectedGym so the drawer can
   // show "pending renewal" values without touching the gym's live
   // data until "Apply Renewal" is pressed.
-  const [renewPlan, setRenewPlan] = useState("Basic");
-  const [renewDurationMonths, setRenewDurationMonths] = useState(1);
-  const [renewStartDate, setRenewStartDate] = useState("");
-  const [renewEndDate, setRenewEndDate] = useState("");
-  const [renewAmount, setRenewAmount] = useState("");
-  const [renewPaymentMode, setRenewPaymentMode] = useState("UPI");
-  const [renewalPending, setRenewalPending] = useState(false);
 
   const calculateDefaultRenewStartDate = (gym) => {
     const today = new Date();
@@ -162,19 +183,6 @@ export default function AllGyms() {
 
     setIsDrawerOpen(true);
   };
-
-  // Auto-calculate end date from start date + duration, but the admin
-  // can still override it manually afterwards (input isn't readOnly).
-  useEffect(() => {
-    if (!renewStartDate) return;
-
-    const startDate = new Date(`${renewStartDate}T12:00:00`);
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + Number(renewDurationMonths));
-
-    setRenewEndDate(formatDateInput(endDate));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renewDurationMonths, renewStartDate]);
 
   const handleDrawerSave = async (e) => {
     e.preventDefault();
