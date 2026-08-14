@@ -24,9 +24,18 @@ import WhatsAppRenewMessagePopup from "./WhatsAppRenewMessagePopup";
 export default function AllGyms() {
   const dispatch = useDispatch();
 
+  const {
+    gyms: gymsData = [], // Default to empty array if undefined
+    loading,
+    error,
+  } = useSelector((state) => state.gyms || state.gym); // Fallback standard verification
+
+  // 2. ✅ FIXED: Only hit the server if the local Redux store is completely empty!
   useEffect(() => {
-    dispatch(fetchGyms());
-  }, [dispatch]);
+    if (!gymsData || gymsData.length === 0) {
+      dispatch(fetchGyms());
+    }
+  }, [dispatch, gymsData]);
 
   // ------------------------------------------------------------------
   // 1. TOP LEVEL STATE
@@ -78,16 +87,13 @@ export default function AllGyms() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renewDurationMonths, renewStartDate]);
 
-  const {
-    gyms: gymsData,
-    loading,
-    error,
-  } = useSelector((state) => state.gyms);
-
-  if (loading) {
+   if (loading && gymsData.length === 0) {
     return (
       <div className="flex justify-center items-center h-96">
-        <h2 className="text-lg font-semibold">Loading gyms...</h2>
+        <div className="flex flex-col items-center gap-3">
+          <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin" />
+          <h2 className="text-sm font-medium text-slate-400">Loading gyms data...</h2>
+        </div>
       </div>
     );
   }
