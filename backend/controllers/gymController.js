@@ -203,9 +203,21 @@ export const getAllGyms = async (req, res) => {
 export const updateGym = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, address, owner, trainers, currentSubscription } = req.body;
+
+    const {
+      status,
+      address,
+      owner,
+      trainers,
+      currentSubscription,
+    } = req.body;
+
+    // ============================================================
+    // 1. FIND GYM
+    // ============================================================
 
     const gym = await Gym.findById(id);
+
     if (!gym) {
       return res.status(404).json({
         success: false,
@@ -213,51 +225,102 @@ export const updateGym = async (req, res) => {
       });
     }
 
-    if (status !== undefined) gym.status = status;
-    if (address !== undefined) gym.address = address;
-    await gym.save();
+    // ============================================================
+    // 2. UPDATE GYM BASIC DETAILS
+    // ============================================================
 
-    // Owner lives in a separate collection — update it there
-    if (owner) {
-      await Owner.findByIdAndUpdate(gym.owner, {
-        ...(owner.name !== undefined && { name: owner.name }),
-        ...(owner.mobile !== undefined && { mobile: owner.mobile }),
-        ...(owner.email !== undefined && { email: owner.email.toLowerCase() }),
-      });
+    if (status !== undefined) {
+      gym.status = status;
     }
 
-    // Trainers also live in a separate collection (User discriminator).
-    // The drawer sends the full desired trainers[] — diff it against
-    // what's actually in the DB: update existing ones, delete ones
-    // that were removed, create ones that are new (client-side ids
-    // like "TRN-<timestamp>" aren't valid Mongo ObjectIds, so anything
-    // that isn't a valid ObjectId is treated as "new").
+    if (address !== undefined) {
+      gym.address = address;
+    }
+
+    await gym.save();
+
+    // ============================================================
+    // 3. UPDATE OWNER
+    // ============================================================
+
+    if (owner) {
+      await Owner.findByIdAndUpdate(
+        gym.owner,
+        {
+          ...(owner.name !== undefined && {
+            name: owner.name,
+          }),
+
+          ...(owner.mobile !== undefined && {
+            mobile: owner.mobile,
+          }),
+
+          ...(owner.email !== undefined && {
+            email: owner.email.toLowerCase(),
+          }),
+        },
+        {
+          runValidators: true,
+        }
+      );
+    }
+
+    // ============================================================
+    // 4. UPDATE TRAINERS
+    // ============================================================
+
     if (trainers !== undefined && Array.isArray(trainers)) {
-      const existingTrainers = await Trainer.find({ gymId: gym._id });
+      const existingTrainers = await Trainer.find({
+        gymId: gym._id,
+      });
+
       const incomingIds = trainers
-        .map((t) => t.id)
-        .filter((tid) => mongoose.Types.ObjectId.isValid(tid));
+        .map((trainer) => trainer.id)
+        .filter((trainerId) =>
+          mongoose.Types.ObjectId.isValid(trainerId)
+        );
 
-      const toDelete = existingTrainers.filter(
-        (et) => !incomingIds.includes(et._id.toString())
-      );
-      await Promise.all(
-        toDelete.map((t) => Trainer.findByIdAndDelete(t._id))
+      // Delete trainers removed from frontend
+      const trainersToDelete = existingTrainers.filter(
+        (existingTrainer) =>
+          !incomingIds.includes(
+            existingTrainer._id.toString()
+          )
       );
 
       await Promise.all(
-        trainers.map(async (t) => {
-          if (mongoose.Types.ObjectId.isValid(t.id)) {
-            await Trainer.findByIdAndUpdate(t.id, {
-              name: t.name,
-              mobile: t.mobile,
-              email: t.email?.toLowerCase(),
-            });
-          } else {
+        trainersToDelete.map((trainer) =>
+          Trainer.findByIdAndDelete(trainer._id)
+        )
+      );
+
+      // Update existing trainers / create new trainers
+      await Promise.all(
+        trainers.map(async (trainer) => {
+          // Existing trainer
+          if (
+            trainer.id &&
+            mongoose.Types.ObjectId.isValid(trainer.id)
+          ) {
+            await Trainer.findByIdAndUpdate(
+              trainer.id,
+              {
+                name: trainer.name,
+                mobile: trainer.mobile,
+                email: trainer.email?.toLowerCase(),
+              },
+              {
+                runValidators: true,
+              }
+            );
+          }
+
+          // New trainer
+          else {
             await Trainer.create({
-              name: t.name,
-              mobile: t.mobile,
-              email: t.email?.toLowerCase(),
+              name: trainer.name,
+              mobile: trainer.mobile,
+              email: trainer.email?.toLowerCase(),
               gymId: gym._id,
             });
           }
@@ -265,32 +328,135 @@ export const updateGym = async (req, res) => {
       );
     }
 
-    // If the drawer pushed a renewed subscription (has no _id yet),
-    // save it as a new history entry instead of editing an old one.
-    if (currentSubscription && !currentSubscription._id) {
-      await GymSubscriptionHistory.create({
-        gymId: gym._id,
-        subscriptionPlan: currentSubscription.subscriptionPlan,
-        durationMonths: currentSubscription.durationMonths,
-        amount: currentSubscription.amount,
-        paymentMode: currentSubscription.paymentMode,
-        startDate: currentSubscription.startDate,
-        endDate: currentSubscription.endDate,
-      });
+    // ============================================================
+    // 5. IMPORTANT:
+    // UPDATE CURRENT SUBSCRIPTION ONLY
+    // ============================================================
+    //
+    // This does NOT create a new history entry.
+    //
+    // Frontend currentSubscription contains the existing
+    // subscription _id.
+    //
+    // We update that exact document.
+    //
+    // ============================================================
+
+    if (currentSubscription) {
+      const subscriptionId = currentSubscription._id;
+
+      // ----------------------------------------------------------
+      // EXISTING CURRENT SUBSCRIPTION
+      // ----------------------------------------------------------
+
+      if (
+        subscriptionId &&
+        mongoose.Types.ObjectId.isValid(subscriptionId)
+      ) {
+        const existingSubscription =
+          await GymSubscriptionHistory.findOne({
+            _id: subscriptionId,
+            gymId: gym._id,
+          });
+
+        if (!existingSubscription) {
+          return res.status(404).json({
+            success: false,
+            message: "Current subscription not found.",
+          });
+        }
+
+        // Update ONLY the current subscription
+        existingSubscription.subscriptionPlan =
+          currentSubscription.subscriptionPlan;
+
+        existingSubscription.durationMonths =
+          currentSubscription.durationMonths;
+
+        existingSubscription.amount =
+          currentSubscription.amount;
+
+        existingSubscription.paymentMode =
+          currentSubscription.paymentMode;
+
+        existingSubscription.startDate =
+          currentSubscription.startDate;
+
+        existingSubscription.endDate =
+          currentSubscription.endDate;
+
+        await existingSubscription.save();
+      }
+
+      // ----------------------------------------------------------
+      // NO ID
+      // ----------------------------------------------------------
+      //
+      // This case is only for an actual NEW renewal.
+      //
+      // Your "Renew / Change Subscription" button creates a new
+      // subscription without _id, so that one WILL be added to
+      // history.
+      //
+      // ----------------------------------------------------------
+
+      else {
+        await GymSubscriptionHistory.create({
+          gymId: gym._id,
+          subscriptionPlan:
+            currentSubscription.subscriptionPlan,
+
+          durationMonths:
+            currentSubscription.durationMonths,
+
+          amount:
+            currentSubscription.amount,
+
+          paymentMode:
+            currentSubscription.paymentMode,
+
+          startDate:
+            currentSubscription.startDate,
+
+          endDate:
+            currentSubscription.endDate,
+        });
+      }
     }
 
-    const populatedGym = await Gym.findById(id).populate("owner");
-    const subscriptionHistory = await GymSubscriptionHistory.find({
-      gymId: gym._id,
-    }).sort({ startDate: 1 });
-    const updatedCurrentSubscription =
-      subscriptionHistory[subscriptionHistory.length - 1] || null;
-    const updatedTrainers = await getFormattedTrainers(gym._id);
-    const totalMembers = await getMembersCount(gym._id);
+    // ============================================================
+    // 6. FETCH FRESH DATA
+    // ============================================================
 
-    res.status(200).json({
+    const populatedGym =
+      await Gym.findById(id).populate("owner");
+
+    const subscriptionHistory =
+      await GymSubscriptionHistory.find({
+        gymId: gym._id,
+      }).sort({
+        startDate: 1,
+      });
+
+    const updatedCurrentSubscription =
+      subscriptionHistory.length > 0
+        ? subscriptionHistory[subscriptionHistory.length - 1]
+        : null;
+
+    const updatedTrainers =
+      await getFormattedTrainers(gym._id);
+
+    const totalMembers =
+      await getMembersCount(gym._id);
+
+    // ============================================================
+    // 7. RETURN UPDATED GYM
+    // ============================================================
+
+    return res.status(200).json({
       success: true,
       message: "Gym updated successfully.",
+
       gym: {
         _id: populatedGym._id,
         gymCode: populatedGym.gymCode,
@@ -298,18 +464,27 @@ export const updateGym = async (req, res) => {
         location: populatedGym.location,
         gymLogo: populatedGym.gymLogo,
         status: populatedGym.status,
+
         owner: populatedGym.owner,
+
         trainers: updatedTrainers,
+
         totalMembers,
+
         enquiries: populatedGym.enquiries || 0,
+
         address: populatedGym.address || "",
+
         subscriptionHistory,
-        currentSubscription: updatedCurrentSubscription,
+
+        currentSubscription:
+          updatedCurrentSubscription,
       },
     });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
+    console.error("UPDATE GYM ERROR:", error);
+
+    return res.status(500).json({
       success: false,
       message: "Failed to update gym.",
       error: error.message,
