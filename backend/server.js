@@ -46,7 +46,7 @@ app.use("/api/owner",ownerRoutes);
 
 //for render to stay active
 app.get("/api/health", (req, res) => {
-  res.status(200).json({ status: "ok", time: new Date().toISOString() });
+  res.status(200).json({ status: "ok" });
 });
 
 const PORT = process.env.PORT || 5000;
