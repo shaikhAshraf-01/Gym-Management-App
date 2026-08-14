@@ -34,7 +34,7 @@ Renewed for: ${months} ${months === 1 ? "month" : "months"}
 Amount: ₹${Number(amount || 0).toLocaleString("en-IN")}
 New expiry date: ${newEndDate}
 
-Thank you for continuing with FitZone! 💪`;
+Thank you for continuing with GymOpsFlow 💪`;
 
     setMessage(renewalMessage);
   }, [isOpen, gymName, plan, months, amount, newEndDate, customMessage]);

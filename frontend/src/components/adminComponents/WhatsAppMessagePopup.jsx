@@ -32,7 +32,7 @@ Plan: ${plan}
 Duration: ${durationMonths} month(s)
 Amount: ₹${amount}
 
-Thank you for choosing FitZone! 💪
+Thank you for choosing GymOpsFlow 💪
 We’re happy to have you with us.`;
 
     setMessage(generatedMessage);

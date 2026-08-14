@@ -122,12 +122,13 @@ export default function Login() {
   return (
     <div className="flex h-screen w-full justify-center items-center bg-black overflow-hidden p-4">
 
-      <div className="w-full max-w-md rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center p-6 sm:p-10">
+<div className="w-full max-w-md rounded-2xl bg-white/20 backdrop-blur-2xl border border-cyan-400/40 shadow-[0_0_30px_rgba(34,211,238,0.3)] flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-md space-y-5">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-white tracking-tight">
-              GymOpsFlow
-            </h2>
+            <h2 className="text-2xl font-bold text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] tracking-tight">
+  GymOpsFlow
+</h2>
+
             <p className="mt-1 text-sm text-slate-300">
               Please select your role and sign in
             </p>

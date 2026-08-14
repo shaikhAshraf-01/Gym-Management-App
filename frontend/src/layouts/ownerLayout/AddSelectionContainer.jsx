@@ -78,24 +78,28 @@ export default function AddSelectionContainer() {
 
   // Builds the WhatsApp confirmation text for a just-added member.
   // Balance line only appears when there's actually money still owed.
-  const buildMembershipMessage = (member) => {
-    const durationLabel = (member.plan || "").replace("_", "-"); // "3_month" -> "3-month"
-    const gym = gymName || "our gym";
+  const buildMembershipMessage = (member) => { 
+  const durationLabel = (member.plan || "").replace("_", "-"); 
+  const gym = gymName || "our gym"; 
+  
+  // Base welcome message with emojis and clean formatting
+  let message = `🏋️‍♂️ *Welcome to ${gym}!* 🏋️‍♀️\n\n` +
+                `Hello *${member.name}*, 👋\n\n` +
+                `✨ Your *${durationLabel}* membership at ${gym} is now active! \n` +
+                `💳 We have successfully received your payment of *₹${member.amountPayingToday}*.\n`;
 
-    let message = `Welcome to ${gym}, 
-Hello ${member.name},  
-Your ${durationLabel} membership at ${gym} is now active. We've received your payment of ₹${member.amountPayingToday}.`;
+  // Remaining balance section (if applicable)
+  if (Number(member.balanceAmount) > 0) { 
+    message += `\n⚠️ *Pending Balance:* ₹${member.balanceAmount}\n` +
+               `📌 _Please clear this at your earliest convenience._\n`; 
+  } 
 
-    if (Number(member.balanceAmount) > 0) {
-      message += `  
-Remaining balance: ₹${member.balanceAmount} — please clear this at your earliest convenience.`;
-    }
+  // Closing message
+  message += `\nThank you for choosing us! 🙌 We look forward to helping you crush your fitness goals! 💪🔥`; 
+  
+  return message; 
+};
 
-    message += `  
-Thank you for choosing us. We look forward to helping you reach your fitness goals!`;
-
-    return message;
-  };
 
   // 💾 Save a new membership — either a fresh signup, or a converted
   // enquiry (in which case prefillData.enquiryId tells us which
