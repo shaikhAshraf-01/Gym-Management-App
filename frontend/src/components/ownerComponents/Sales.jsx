@@ -11,9 +11,9 @@ function getFiscalYearRange(isLastYear = false) {
   if (today.getMonth() < 3) {
     currentYear -= 1;
   }
-  
+
   const targetYear = isLastYear ? currentYear - 1 : currentYear;
-  
+
   const fromDate = `${targetYear}-04-01`;
   const toDate = `${targetYear + 1}-03-31`;
   return { fromDate, toDate };
@@ -61,35 +61,59 @@ export default function Sales() {
     return { fromDate: customFrom, toDate: customTo };
   }, [datePreset, customFrom, customTo]);
 
-  // Filter income payments by joiningDate
-  const incomeMembers = useMemo(() => {
-    return members.filter((m) => {
-      if (!m.joiningDate) return false;
-      // Extract standard YYYY-MM-DD substring for safe lexical comparison
-      const joinDateStr = m.joiningDate.split("T")[0];
-      
-      if (activeRange.fromDate && joinDateStr < activeRange.fromDate) return false;
-      if (activeRange.toDate && joinDateStr > activeRange.toDate) return false;
+  // ---------------------------------------------------------------
+  // Flatten every member's membershipHistory into individual sale
+  // entries. This way every original join AND every renewal counts
+  // as its own entry, instead of only the member's latest
+  // subscription (which is all the flat `members` list exposes).
+  // ---------------------------------------------------------------
+  const allSaleEntries = useMemo(() => {
+    const entries = [];
+    members.forEach((m) => {
+      (m.membershipHistory || []).forEach((h) => {
+        entries.push({
+          memberId: m.id,
+          memberName: m.name,
+          plan: h.plan,
+          amount: Number(h.amount || 0),
+          date: h.date, // already YYYY-MM-DD from backend
+          type: h.type, // "joined" | "extended"
+        });
+      });
+    });
+    return entries;
+  }, [members]);
+
+  // Filter sale entries by their event date within the active range
+  const incomeEntries = useMemo(() => {
+    return allSaleEntries.filter((entry) => {
+      if (!entry.date) return false;
+      if (activeRange.fromDate && entry.date < activeRange.fromDate) return false;
+      if (activeRange.toDate && entry.date > activeRange.toDate) return false;
       return true;
     });
-  }, [members, activeRange]);
+  }, [allSaleEntries, activeRange]);
 
   // Calculate gross monetary total
   const totalIncome = useMemo(() => {
-    return incomeMembers.reduce((sum, m) => sum + Number(m.amountPayingToday || 0), 0);
-  }, [incomeMembers]);
+    return incomeEntries.reduce((sum, entry) => sum + entry.amount, 0);
+  }, [incomeEntries]);
 
-  // Compile individual plan allocations
+  // Compile individual plan allocations (amount + number of entries)
   const planIncome = useMemo(() => {
     const totals = {};
-    incomeMembers.forEach((m) => {
-      const key = m.plan || "unknown";
-      totals[key] = (totals[key] || 0) + Number(m.amountPayingToday || 0);
+    incomeEntries.forEach((entry) => {
+      const key = entry.plan || "unknown";
+      if (!totals[key]) {
+        totals[key] = { amount: 0, count: 0 };
+      }
+      totals[key].amount += entry.amount;
+      totals[key].count += 1;
     });
     return Object.entries(totals)
-      .map(([plan, amount]) => ({ plan, amount }))
+      .map(([plan, data]) => ({ plan, amount: data.amount, count: data.count }))
       .sort((a, b) => b.amount - a.amount);
-  }, [incomeMembers]);
+  }, [incomeEntries]);
 
   const maxPlanAmount = planIncome.length > 0 ? planIncome[0].amount : 0;
 
@@ -169,7 +193,7 @@ export default function Sales() {
         </div>
 
         <p className="text-xs text-gray-500 text-center">
-          Generated from {incomeMembers.length} active collection item{incomeMembers.length !== 1 ? "s" : ""}
+          Generated from {incomeEntries.length} active collection item{incomeEntries.length !== 1 ? "s" : ""}
         </p>
       </div>
 
@@ -191,6 +215,9 @@ export default function Sales() {
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-sm font-semibold text-gray-700">
                     {PLAN_LABELS[row.plan] || row.plan}
+                    <span className="text-gray-400 font-normal ml-1.5">
+                      ({row.count} {row.count === 1 ? "entry" : "entries"})
+                    </span>
                   </span>
                   <span className="text-sm font-bold text-gray-900">
                     ₹{row.amount.toLocaleString("en-IN")}
