@@ -22,6 +22,7 @@ export default function EditMemberModal({ member, onSave, onClose }) {
   useEffect(() => {
     if (member) {
       const planAmount = Number(member.latestPlanAmount || 0);
+
       const paidAmount = Math.min(
         Number(member.latestAmountPaid || 0),
         planAmount
@@ -36,8 +37,9 @@ export default function EditMemberModal({ member, onSave, onClose }) {
         planAmount: String(planAmount),
         amountPayingToday: String(paidAmount),
 
-        // Keep balance consistent with plan - paid
-        balanceAmount: String(Math.max(0, planAmount - paidAmount)),
+        balanceAmount: String(
+          Math.max(0, planAmount - paidAmount)
+        ),
 
         balanceUpdateDate: member.balanceUpdateDate || "",
         paymentMode: member.paymentMode || "upi",
@@ -55,7 +57,9 @@ export default function EditMemberModal({ member, onSave, onClose }) {
   const calculateExpiryDate = (joiningDate, plan) => {
     if (!joiningDate) return "";
 
-    const [year, month, day] = joiningDate.split("-").map(Number);
+    const [year, month, day] = joiningDate
+      .split("-")
+      .map(Number);
 
     const date = new Date(year, month - 1, day);
 
@@ -102,26 +106,37 @@ export default function EditMemberModal({ member, onSave, onClose }) {
       // Joining date or plan changes -> recalculate expiry
       if (name === "joiningDate" || name === "plan") {
         updated.expiryDate = calculateExpiryDate(
-          name === "joiningDate" ? value : prev.joiningDate,
-          name === "plan" ? value : prev.plan
+          name === "joiningDate"
+            ? value
+            : prev.joiningDate,
+          name === "plan"
+            ? value
+            : prev.plan
         );
       }
 
       // --------------------------------------------------------
       // PLAN AMOUNT CHANGED
       // --------------------------------------------------------
-      // Paid can NEVER be greater than plan amount.
-      // Balance = Plan Amount - Paid Amount.
       if (name === "planAmount") {
-        const planAmount = Math.max(0, Number(value) || 0);
+        const planAmount = Math.max(
+          0,
+          Number(value) || 0
+        );
 
-        const currentPaid = Number(prev.amountPayingToday) || 0;
+        const currentPaid =
+          Number(prev.amountPayingToday) || 0;
 
-        const safePaid = Math.min(currentPaid, planAmount);
+        const safePaid = Math.min(
+          currentPaid,
+          planAmount
+        );
 
         updated.planAmount = String(planAmount);
         updated.amountPayingToday = String(safePaid);
-        updated.balanceAmount = String(planAmount - safePaid);
+        updated.balanceAmount = String(
+          planAmount - safePaid
+        );
       }
 
       // --------------------------------------------------------
@@ -138,16 +153,15 @@ export default function EditMemberModal({ member, onSave, onClose }) {
           Number(value) || 0
         );
 
-        // IMPORTANT:
-        // Paid cannot exceed plan amount.
         const safePaid = Math.min(
           requestedPaid,
           planAmount
         );
 
-        updated.amountPayingToday = String(safePaid);
+        updated.amountPayingToday = String(
+          safePaid
+        );
 
-        // Automatically calculate remaining balance.
         updated.balanceAmount = String(
           Math.max(0, planAmount - safePaid)
         );
@@ -159,12 +173,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
 
   // ------------------------------------------------------------
   // BALANCE HANDLER
-  // ------------------------------------------------------------
-  // Balance is also constrained by:
-  //
-  //     balance = planAmount - amountPaid
-  //
-  // So changing balance automatically changes paid amount.
   // ------------------------------------------------------------
   const handleBalanceChange = (e) => {
     const value = e.target.value;
@@ -180,7 +188,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
         Number(value) || 0
       );
 
-      // Balance cannot be greater than plan amount.
       newBalance = Math.min(
         newBalance,
         planAmount
@@ -196,14 +203,14 @@ export default function EditMemberModal({ member, onSave, onClose }) {
 
         balanceAmount: String(newBalance),
 
-        // This guarantees:
-        // paid <= planAmount
         amountPayingToday: String(
           Math.min(newPaid, planAmount)
         ),
 
         balanceUpdateDate:
-          new Date().toISOString().split("T")[0],
+          new Date()
+            .toISOString()
+            .split("T")[0],
       };
     });
   };
@@ -257,6 +264,7 @@ export default function EditMemberModal({ member, onSave, onClose }) {
           </h2>
 
           <button
+            type="button"
             onClick={onClose}
             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
           >
@@ -330,10 +338,21 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 onChange={handleChange}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
               >
-                <option value="1_month">1 Month</option>
-                <option value="3_month">3 Months</option>
-                <option value="6_month">6 Months</option>
-                <option value="1_year">1 Year</option>
+                <option value="1_month">
+                  1 Month
+                </option>
+
+                <option value="3_month">
+                  3 Months
+                </option>
+
+                <option value="6_month">
+                  6 Months
+                </option>
+
+                <option value="1_year">
+                  1 Year
+                </option>
               </select>
             </div>
 
@@ -381,7 +400,7 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 min="0"
                 value={formData.planAmount}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                className="no-spinner w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
                 required
               />
 
@@ -403,7 +422,7 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 max={formData.planAmount || 0}
                 value={formData.amountPayingToday}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-emerald-600 font-bold focus:outline-none focus:border-blue-500"
+                className="no-spinner w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-emerald-600 font-bold focus:outline-none focus:border-blue-500"
               />
 
               <p className="text-[10px] text-gray-400 mt-1">
@@ -424,7 +443,7 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 max={formData.planAmount || 0}
                 value={formData.balanceAmount}
                 onChange={handleBalanceChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold focus:outline-none focus:border-blue-500"
+                className="no-spinner w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold focus:outline-none focus:border-blue-500"
                 required
               />
 
@@ -460,8 +479,14 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 onChange={handleChange}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
               >
-                <option value="upi">UPI</option>
-                <option value="cash">Cash</option>
+                <option value="upi">
+                  UPI
+                </option>
+
+                <option value="cash">
+                  Cash
+                </option>
+
                 <option value="both">
                   Both (UPI + Cash)
                 </option>
@@ -490,6 +515,19 @@ export default function EditMemberModal({ member, onSave, onClose }) {
           </div>
         </form>
       </div>
+
+      {/* Remove number input spinner arrows */}
+      <style>{`
+        .no-spinner::-webkit-outer-spin-button,
+        .no-spinner::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+
+        .no-spinner {
+          -moz-appearance: textfield;
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,62 +1,73 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { CreditCard, FileText, ArrowLeft } from "lucide-react";
+import {
+  CreditCard,
+  FileText,
+  ArrowLeft,
+} from "lucide-react";
+
 import MembershipForm from "../../components/ownerComponents/MembershipForm";
 import EnquiryForm from "../../components/ownerComponents/EnquiryForm";
 import WhatsAppMessagePopup from "../../components/adminComponents/WhatsAppMessagePopup";
-// ^ This file physically lives in adminComponents/ (AddGyms.jsx uses it
-//   too) — reused here as-is rather than duplicated into ownerComponents/.
+
 import { addMember } from "../../redux/slices/membersSlice";
-import { addEnquiry, deleteEnquiry } from "../../redux/slices/enquiriesSlice";
+import {
+  addEnquiry,
+  deleteEnquiry,
+} from "../../redux/slices/enquiriesSlice";
+
 import { fetchOwnerProfile } from "../../redux/slices/ownerSlice";
 
 export default function AddSelectionContainer() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  // Whoever is logged in (owner or trainer) gets stamped as `addedBy`
-  // on the member record — see membersSlice's addMember.prepare.
-  const addedBy = useSelector((state) => state.auth.user?.name) || "Unknown";
-  // Owner-only field (trainers don't have this loaded via ownerSlice —
-  // GET /owner/profile is owner-only) — falls back to a generic phrase
-  // in the message builder below when undefined.
-  const gymName = useSelector((state) => state.owner.gym?.gymName);
-  const role = useSelector((state) => state.auth.role);
-  // WhatsApp reminders (manual wa.me links) are only available on the
-  // Basic plan for now — Plus/Pro will get automatic WhatsApp sending
-  // once the Twilio API integration is built, so no popup shows here
-  // for them at all.
-  const subscriptionPlan = useSelector(
-    (state) => state.owner.currentSubscription?.subscriptionPlan
+
+  const addedBy =
+    useSelector((state) => state.auth.user?.name) || "Unknown";
+
+  const gymName = useSelector(
+    (state) => state.owner.gym?.gymName
   );
-  const canUseManualWhatsApp = subscriptionPlan === "Basic";
 
-  const [selectedType, setSelectedType] = useState(null); // 'membership' | 'enquiry' | null
+  const role = useSelector(
+    (state) => state.auth.role
+  );
 
-  // ✅ Explicitly defined local state container for conversion data
-  const [prefillData, setPrefillData] = useState(null);
+  const subscriptionPlan = useSelector(
+    (state) =>
+      state.owner.currentSubscription?.subscriptionPlan
+  );
 
-  // Holds the just-saved member so the WhatsApp confirmation popup can
-  // show up right after a successful add, before navigating away.
-  const [confirmingMember, setConfirmingMember] = useState(null);
+  const canUseManualWhatsApp =
+    subscriptionPlan === "Basic";
 
-  // gymName is needed for the WhatsApp message text below — fetch it
-  // here too (not just on the Profile page) so it's populated no
-  // matter which page the owner lands on first. Trainers don't have
-  // access to GET /owner/profile, so this is owner-only.
+  const [selectedType, setSelectedType] =
+    useState(null);
+
+  const [prefillData, setPrefillData] =
+    useState(null);
+
+  const [confirmingMember, setConfirmingMember] =
+    useState(null);
+
+  // ------------------------------------------------------------
+  // FETCH OWNER PROFILE
+  // ------------------------------------------------------------
   useEffect(() => {
     if (role === "owner" && !gymName) {
       dispatch(fetchOwnerProfile());
     }
   }, [dispatch, role, gymName]);
 
-  // Capture incoming routing selection state updates from mobile or convert actions
+  // ------------------------------------------------------------
+  // ROUTE STATE
+  // ------------------------------------------------------------
   useEffect(() => {
     if (location.state && location.state.type) {
       setSelectedType(location.state.type);
 
-      // If conversion fields exist in route state, capture them cleanly
       if (location.state.prefill) {
         setPrefillData(location.state.prefill);
       } else {
@@ -65,199 +76,383 @@ export default function AddSelectionContainer() {
     }
   }, [location.state]);
 
+  // ------------------------------------------------------------
+  // BACK
+  // ------------------------------------------------------------
   const handleBack = () => {
     setSelectedType(null);
     setPrefillData(null);
-    // Clear location state history stack to prevent re-triggering on manual reloads
-    navigate(location.pathname, { replace: true, state: {} });
+
+    navigate(location.pathname, {
+      replace: true,
+      state: {},
+    });
   };
 
+  // ------------------------------------------------------------
+  // GO TO MEMBERS
+  // ------------------------------------------------------------
   const goToMembersList = () => {
-    navigate(location.pathname.startsWith("/trainer") ? "/trainer/all-members" : "/owner/all-members");
+    navigate(
+      location.pathname.startsWith("/trainer")
+        ? "/trainer/all-members"
+        : "/owner/all-members"
+    );
   };
 
-  // Builds the WhatsApp confirmation text for a just-added member.
-  // Balance line only appears when there's actually money still owed.
-  const buildMembershipMessage = (member) => { 
-  const durationLabel = (member.plan || "").replace("_", "-"); 
-  const gym = gymName || "our gym"; 
-  
-  // Base welcome message with emojis and clean formatting
-  let message = `🏋️‍♂️ *Welcome to ${gym}!* 🏋️‍♀️\n\n` +
-                `Hello *${member.name}*, 👋\n\n` +
-                `✨ Your *${durationLabel}* membership at ${gym} is now active! \n` +
-                `💳 We have successfully received your payment of *₹${member.amountPayingToday}*.\n`;
+  // ------------------------------------------------------------
+  // WHATSAPP MEMBERSHIP MESSAGE
+  // ------------------------------------------------------------
+  const buildMembershipMessage = (member) => {
+    const durationLabel = (member.plan || "")
+      .replace("_", "-");
 
-  // Remaining balance section (if applicable)
-  if (Number(member.balanceAmount) > 0) { 
-    message += `\n⚠️ *Pending Balance:* ₹${member.balanceAmount}\n` +
-               `📌 _Please clear this at your earliest convenience._\n`; 
-  } 
+    const gym = gymName || "our gym";
 
-  // Closing message
-  message += `\nThank you for choosing us! 🙌 We look forward to helping you crush your fitness goals! 💪🔥`; 
-  
-  return message; 
-};
+    let message =
+      `🏋️‍♂️ *Welcome to ${gym}!* 🏋️‍♀️\n\n` +
+      `Hello *${member.name}*, 👋\n\n` +
+      `✨ Your *${durationLabel}* membership at ${gym} is now active!\n` +
+      `💳 We have successfully received your payment of *₹${member.amountPayingToday}*.\n`;
 
+    if (Number(member.balanceAmount) > 0) {
+      message +=
+        `\n⚠️ *Pending Balance:* ₹${member.balanceAmount}\n` +
+        `📌 _Please clear this at your earliest convenience._\n`;
+    }
 
-  // 💾 Save a new membership — either a fresh signup, or a converted
-  // enquiry (in which case prefillData.enquiryId tells us which
-  // enquiry to remove once the member has been created).
-  // Navigation is deferred until the WhatsApp popup is dismissed
-  // (Cancel/Open WhatsApp) — see handleWhatsAppModalClose.
+    message +=
+      `\nThank you for choosing us! 🙌 We look forward to helping you crush your fitness goals! 💪🔥`;
+
+    return message;
+  };
+
+  // ------------------------------------------------------------
+  // SAVE MEMBERSHIP
+  // ------------------------------------------------------------
   const handleSaveMembership = async (formData) => {
     try {
-      const savedMember = await dispatch(addMember({ ...formData, addedBy })).unwrap();
+      const savedMember =
+        await dispatch(
+          addMember({
+            ...formData,
+            addedBy,
+          })
+        ).unwrap();
 
       if (prefillData?.enquiryId) {
-        dispatch(deleteEnquiry(prefillData.enquiryId));
+        dispatch(
+          deleteEnquiry(prefillData.enquiryId)
+        );
       }
 
-      // Basic plan: show the wa.me confirmation popup so the owner can
-      // manually send the welcome message. Plus/Pro: no popup at all —
-      // once Twilio automation is built this is where the automatic
-      // send will be triggered instead.
       if (canUseManualWhatsApp) {
         setConfirmingMember(savedMember);
       } else {
         goToMembersList();
       }
     } catch (error) {
-      alert(typeof error === "string" ? error : "Failed to add member.");
+      alert(
+        typeof error === "string"
+          ? error
+          : "Failed to add member."
+      );
     }
   };
 
+  // ------------------------------------------------------------
+  // WHATSAPP POPUP CLOSE
+  // ------------------------------------------------------------
   const handleWhatsAppModalClose = () => {
     setConfirmingMember(null);
     goToMembersList();
   };
 
-  // 💾 Save a new enquiry/lead — addEnquiry is a real backend call now,
-  // so this awaits it and surfaces any failure instead of navigating
-  // away optimistically.
+  // ------------------------------------------------------------
+  // SAVE ENQUIRY
+  // ------------------------------------------------------------
   const handleSaveEnquiry = async (formData) => {
     try {
-      await dispatch(addEnquiry(formData)).unwrap();
+      await dispatch(
+        addEnquiry(formData)
+      ).unwrap();
+
       goToMembersList();
     } catch (error) {
-      alert(typeof error === "string" ? error : "Failed to add enquiry.");
+      alert(
+        typeof error === "string"
+          ? error
+          : "Failed to add enquiry."
+      );
     }
   };
 
   return (
-    <div className="p-2 md:p-6 max-w-7xl mx-auto bg-gray-50 min-h-screen pb-24 md:pb-6 text-gray-900">
-      <div className="max-w-4xl mx-auto">
-        
-        {/* 📱 MOBILE SCREEN HEADER AND BACK BUTTON BAR */}
-        <div className="block md:hidden mb-4">
-          {selectedType ? (
-            <button
-              onClick={handleBack}
-              className="flex items-center gap-2 text-blue-600 font-medium text-xs tracking-wide bg-white px-4 py-2 border border-gray-200 rounded-md shadow-sm transition-all active:scale-95 cursor-pointer mb-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Options</span>
-            </button>
-          ) : (
-            <div className="border-b border-gray-200 pb-2 mb-4">
-              <h1 className="text-xl font-bold text-gray-900">
+    /*
+      IMPORTANT:
+      h-[100dvh] keeps this screen inside the device viewport.
+      overflow-hidden prevents the outer page from scrolling.
+    */
+    <div className="h-[100dvh] overflow-hidden bg-gray-50 text-gray-900">
+
+      {/* ------------------------------------------------------
+          MAIN PAGE
+      ------------------------------------------------------ */}
+      <div className="h-full max-w-7xl mx-auto px-2 md:px-6">
+
+        <div className="max-w-4xl mx-auto h-full flex flex-col">
+
+          {/* --------------------------------------------------
+              MOBILE HEADER
+          -------------------------------------------------- */}
+          <div className="shrink-0 block md:hidden pt-2">
+
+            {selectedType ? (
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-2 text-blue-600 font-medium text-xs tracking-wide bg-white px-4 py-2 border border-gray-200 rounded-md shadow-sm active:scale-95 cursor-pointer mb-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>
+                  Back to Options
+                </span>
+              </button>
+            ) : (
+              <div className="border-b border-gray-200 pb-2 mb-4">
+                <h1 className="text-xl font-bold text-gray-900">
+                  Management Entry Portal
+                </h1>
+
+                <p className="text-gray-500 text-xs mt-1">
+                  Select entry type below to open
+                  administrative data workflows.
+                </p>
+              </div>
+            )}
+
+          </div>
+
+          {/* --------------------------------------------------
+              DESKTOP HEADER
+          -------------------------------------------------- */}
+          <div className="shrink-0 hidden md:flex flex-col md:flex-row md:items-center md:justify-between border-b border-gray-200 pb-2 mb-6 pt-6 gap-4">
+
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
                 Management Entry Portal
               </h1>
-              <p className="text-gray-500 text-xs mt-1">
-                Select entry type below to open administrative data workflows.
+
+              <p className="text-gray-500 text-sm mt-0.5">
+                Select entry type below to open
+                administrative data workflows.
               </p>
             </div>
-          )}
-        </div>
 
-        {/* 💻 DESKTOP SCREEN HEADER */}
-        <div className="hidden md:flex flex-col md:flex-row md:items-center md:justify-between border-b border-gray-200 pb-2 mb-6 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Management Entry Portal
-            </h1>
-            <p className="text-gray-500 text-sm mt-0.5">
-              Select entry type below to open administrative data workflows.
-            </p>
           </div>
-        </div>
 
-        {/* 💻/📱 SELECTION TOGGLE BUTTONS (Hidden on mobile if a form option is active) */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 ${selectedType ? "hidden md:grid" : "grid"}`}>
-          <button
-            type="button"
-            onClick={() => { setSelectedType("membership"); setPrefillData(null); }}
-            className={`flex items-center gap-4 p-5 rounded-xl border transition-all text-left group cursor-pointer ${
-              selectedType === "membership"
-                ? "bg-white text-blue-600 border-blue-500 font-semibold shadow-md"
-                : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 shadow-sm"
-            }`}
+          {/* --------------------------------------------------
+              SELECTION BUTTONS
+          -------------------------------------------------- */}
+          <div
+            className={`
+              shrink-0
+              grid grid-cols-1 md:grid-cols-2
+              gap-4 mb-4 md:mb-6
+              ${
+                selectedType
+                  ? "hidden md:grid"
+                  : "grid"
+              }
+            `}
           >
-            <div className={`p-3 rounded-lg transition-colors ${
-              selectedType === "membership" ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
-            }`}>
-              <CreditCard className="h-6 w-6 flex-shrink-0" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-gray-900">Add Membership</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Establish new accounts and packages.
-              </p>
-            </div>
-          </button>
 
-          <button
-            type="button"
-            onClick={() => { setSelectedType("enquiry"); setPrefillData(null); }}
-            className={`flex items-center gap-4 p-5 rounded-xl border transition-all text-left group cursor-pointer ${
-              selectedType === "enquiry"
-                ? "bg-white text-blue-600 border-blue-500 font-semibold shadow-md"
-                : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 shadow-sm"
-            }`}
+            {/* MEMBERSHIP */}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedType("membership");
+                setPrefillData(null);
+              }}
+              className={`
+                flex items-center gap-4
+                p-5 rounded-xl border
+                transition-all text-left
+                group cursor-pointer
+
+                ${
+                  selectedType === "membership"
+                    ? "bg-white text-blue-600 border-blue-500 font-semibold shadow-md"
+                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 shadow-sm"
+                }
+              `}
+            >
+              <div
+                className={`
+                  p-3 rounded-lg
+                  transition-colors
+
+                  ${
+                    selectedType === "membership"
+                      ? "bg-blue-50 text-blue-600"
+                      : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+                  }
+                `}
+              >
+                <CreditCard className="h-6 w-6 flex-shrink-0" />
+              </div>
+
+              <div>
+                <h3 className="text-base font-bold text-gray-900">
+                  Add Membership
+                </h3>
+
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Establish new accounts and packages.
+                </p>
+              </div>
+            </button>
+
+            {/* ENQUIRY */}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedType("enquiry");
+                setPrefillData(null);
+              }}
+              className={`
+                flex items-center gap-4
+                p-5 rounded-xl border
+                transition-all text-left
+                group cursor-pointer
+
+                ${
+                  selectedType === "enquiry"
+                    ? "bg-white text-blue-600 border-blue-500 font-semibold shadow-md"
+                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 shadow-sm"
+                }
+              `}
+            >
+              <div
+                className={`
+                  p-3 rounded-lg
+                  transition-colors
+
+                  ${
+                    selectedType === "enquiry"
+                      ? "bg-blue-50 text-blue-600"
+                      : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+                  }
+                `}
+              >
+                <FileText className="h-6 w-6 flex-shrink-0" />
+              </div>
+
+              <div>
+                <h3 className="text-base font-bold text-gray-900">
+                  Add Enquiry
+                </h3>
+
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Log potential client prospect interests.
+                </p>
+              </div>
+            </button>
+
+          </div>
+
+          {/* --------------------------------------------------
+              FORM CONTAINER
+
+              THIS IS THE IMPORTANT PART.
+
+              Parent:
+                overflow-hidden
+
+              Form wrapper:
+                flex-1
+                min-h-0
+                overflow-hidden
+
+              Form itself:
+                overflow-y-auto
+
+              Therefore ONLY FORM SCROLLS.
+          -------------------------------------------------- */}
+          <div
+            className={`
+              ${
+                selectedType
+                  ? "flex"
+                  : "hidden md:flex"
+              }
+
+              flex-1
+              min-h-0
+              w-full
+
+              bg-white
+              rounded-xl
+              shadow-sm
+              border border-gray-100
+
+              overflow-hidden
+
+              mb-2 md:mb-6
+            `}
           >
-            <div className={`p-3 rounded-lg transition-colors ${
-              selectedType === "enquiry" ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
-            }`}>
-              <FileText className="h-6 w-6 flex-shrink-0" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-gray-900">Add Enquiry</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Log potential client prospect interests.
-              </p>
-            </div>
-          </button>
+
+            {selectedType === "membership" && (
+              <div className="w-full h-full min-h-0 overflow-hidden">
+                <MembershipForm
+                  prefill={prefillData || null}
+                  onSave={handleSaveMembership}
+                />
+              </div>
+            )}
+
+            {selectedType === "enquiry" && (
+              <div className="w-full h-full min-h-0 overflow-hidden">
+                <EnquiryForm
+                  onSave={handleSaveEnquiry}
+                />
+              </div>
+            )}
+
+            {!selectedType && (
+              <div className="w-full h-full items-center justify-center text-center p-8 text-gray-400 hidden md:flex">
+                <div>
+                  <p className="text-sm font-medium">
+                    No system form entry channel selected.
+                  </p>
+
+                  <p className="text-xs max-w-xs mx-auto mt-1">
+                    Choose option blocks above to display
+                    creation dashboard fields.
+                  </p>
+                </div>
+              </div>
+            )}
+
+          </div>
+
         </div>
 
-        {/* DYNAMIC FORM AREA CONTAINER */}
-        <div className={`bg-white rounded-xl shadow-sm border border-gray-100 p-2 md:p-6 min-h-[250px] flex items-center justify-center ${selectedType ? "block" : "hidden md:flex"}`}>
-          
-          {selectedType === "membership" && (
-            <MembershipForm prefill={prefillData || null} onSave={handleSaveMembership} />
-          )}
-
-          {selectedType === "enquiry" && (
-            <EnquiryForm onSave={handleSaveEnquiry} />
-          )}
-          
-          {!selectedType && (
-            <div className="text-center p-8 text-gray-400 hidden md:block">
-              <p className="text-sm font-medium">No system form entry channel selected.</p>
-              <p className="text-xs max-w-xs mx-auto mt-1">
-                Choose option blocks above to display creation dashboard fields.
-              </p>
-            </div>
-          )}
-        </div>
       </div>
 
+      {/* ------------------------------------------------------
+          WHATSAPP POPUP
+      ------------------------------------------------------ */}
       <WhatsAppMessagePopup
         isOpen={!!confirmingMember}
         onClose={handleWhatsAppModalClose}
         phone={confirmingMember?.mobile}
-        customMessage={confirmingMember ? buildMembershipMessage(confirmingMember) : ""}
+        customMessage={
+          confirmingMember
+            ? buildMembershipMessage(confirmingMember)
+            : ""
+        }
       />
+
     </div>
   );
 }

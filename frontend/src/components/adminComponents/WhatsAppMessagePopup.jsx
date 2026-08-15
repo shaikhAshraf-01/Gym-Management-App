@@ -51,8 +51,11 @@ We’re happy to have you with us.`;
     // ✅ APK support ke liye internal application scheme set kiya
     const nativeAppUrl = `whatsapp://send?phone=${finalPhone}&text=${encodedText}`;
     
-    // ✅ Fallback official URL endpoints jo emojis ko barbad nahi karega
-    const browserFallbackUrl = `https://whatsapp.com{finalPhone}&text=${encodedText}`;
+    // ✅ Fallback — WhatsApp ka official click-to-chat endpoint
+    // (api.whatsapp.com). wa.me isi pe redirect karta hai, lekin yeh
+    // direct hone ki wajah se Capacitor/webview me zyada reliably
+    // WhatsApp app link ke through intercept hota hai.
+    const browserFallbackUrl = `https://api.whatsapp.com/send?phone=${finalPhone}&text=${encodedText}`;
 
     // Detect if running inside Capacitor shell or typical mobile browser wrapper
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.Capacitor;

@@ -86,26 +86,34 @@ export default function ExtendMembershipModal({
       ...prev,
       newExpiryDate: formatDate(expiryDate),
     }));
-  }, [formData.plan, formData.newStartDate, member]);
+  }, [
+    formData.plan,
+    formData.newStartDate,
+    member,
+  ]);
 
   // ---------------------------------------------------------------
   // Auto-calculate Balance Amount
   //
-  // Balance = New Membership Fee − Amount Paying Today, floored at 0.
-  // No manual entry — this stays in sync automatically whenever
-  // either of those two fields changes, so it can't drift out of
-  // sync the way a manually-typed balance could.
+  // Balance = Membership Fee - Amount Paying Today
   // ---------------------------------------------------------------
   useEffect(() => {
-    const fee = Number(formData.extensionAmount) || 0;
-    const paid = Number(formData.amountPayingToday) || 0;
+    const fee =
+      Number(formData.extensionAmount) || 0;
+
+    const paid =
+      Number(formData.amountPayingToday) || 0;
+
     const balance = Math.max(0, fee - paid);
 
     setFormData((prev) => ({
       ...prev,
       balanceAmount: String(balance),
     }));
-  }, [formData.extensionAmount, formData.amountPayingToday]);
+  }, [
+    formData.extensionAmount,
+    formData.amountPayingToday,
+  ]);
 
   // ---------------------------------------------------------------
   // Reset modal when member changes
@@ -129,27 +137,32 @@ export default function ExtendMembershipModal({
   // ---------------------------------------------------------------
   // Input change
   // ---------------------------------------------------------------
- const handleChange = (e) => {
-  const { name, value } = e.target;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-  setFormData((prev) => {
-    // Amount Paying Today can never exceed the membership fee
-    if (name === "amountPayingToday") {
-      const fee = Number(prev.extensionAmount) || 0;
-      const paid = Number(value) || 0;
+    setFormData((prev) => {
+      // Amount Paying Today cannot exceed membership fee
+      if (name === "amountPayingToday") {
+        const fee =
+          Number(prev.extensionAmount) || 0;
+
+        const paid =
+          Number(value) || 0;
+
+        return {
+          ...prev,
+          amountPayingToday: String(
+            Math.min(paid, fee)
+          ),
+        };
+      }
 
       return {
         ...prev,
-        amountPayingToday: String(Math.min(paid, fee)),
+        [name]: value,
       };
-    }
-
-    return {
-      ...prev,
-      [name]: value,
-    };
-  });
-};
+    });
+  };
 
   // ---------------------------------------------------------------
   // Submit
@@ -160,22 +173,26 @@ export default function ExtendMembershipModal({
     onSave(member.id, {
       plan: formData.plan,
       extensionAmount: formData.extensionAmount,
-      amountPayingToday: formData.amountPayingToday,
+      amountPayingToday:
+        formData.amountPayingToday,
       balanceAmount: formData.balanceAmount,
       paymentMode: formData.paymentMode,
 
-      // IMPORTANT:
-      // Send the selected start date to backend.
+      // Send selected start date to backend
       newStartDate: formData.newStartDate,
     });
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
 
-        {/* Header */}
+        {/* -------------------------------------------------------
+            Header
+        ------------------------------------------------------- */}
         <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+
           <div>
             <h2 className="text-base font-bold text-gray-900 uppercase tracking-wider">
               Renew Membership
@@ -187,6 +204,7 @@ export default function ExtendMembershipModal({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
           >
@@ -194,13 +212,18 @@ export default function ExtendMembershipModal({
           </button>
         </div>
 
+        {/* -------------------------------------------------------
+            Form
+        ------------------------------------------------------- */}
         <form
           onSubmit={handleSubmit}
           className="p-4 md:p-6"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            {/* Plan */}
+            {/* ---------------------------------------------------
+                Plan
+            --------------------------------------------------- */}
             <div>
               <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
                 Renew For
@@ -230,7 +253,9 @@ export default function ExtendMembershipModal({
               </select>
             </div>
 
-            {/* New Start Date */}
+            {/* ---------------------------------------------------
+                New Start Date
+            --------------------------------------------------- */}
             <div>
               <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
                 New Start Date
@@ -250,7 +275,9 @@ export default function ExtendMembershipModal({
               </p>
             </div>
 
-            {/* New Expiry Date */}
+            {/* ---------------------------------------------------
+                New Expiry Date
+            --------------------------------------------------- */}
             <div>
               <label className="block text-xs uppercase font-bold text-gray-400 mb-1">
                 New Expiry Date
@@ -265,7 +292,9 @@ export default function ExtendMembershipModal({
               />
             </div>
 
-            {/* Extension Fee */}
+            {/* ---------------------------------------------------
+                New Membership Fee
+            --------------------------------------------------- */}
             <div>
               <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
                 New Membership Fee
@@ -279,11 +308,13 @@ export default function ExtendMembershipModal({
                 min="0"
                 required
                 placeholder="Enter new membership fee"
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                className="no-spinner w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
               />
             </div>
 
-            {/* Amount Paid */}
+            {/* ---------------------------------------------------
+                Amount Paying Today
+            --------------------------------------------------- */}
             <div>
               <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
                 Amount Paying Today
@@ -295,14 +326,18 @@ export default function ExtendMembershipModal({
                 value={formData.amountPayingToday}
                 onChange={handleChange}
                 min="0"
-                max={formData.extensionAmount||0}
+                max={
+                  formData.extensionAmount || 0
+                }
                 required
                 placeholder="Enter collected payment"
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-emerald-600 font-bold focus:outline-none focus:border-blue-500"
+                className="no-spinner w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-emerald-600 font-bold focus:outline-none focus:border-blue-500"
               />
             </div>
 
-            {/* Balance */}
+            {/* ---------------------------------------------------
+                Balance Amount
+            --------------------------------------------------- */}
             <div>
               <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
                 Balance Amount
@@ -313,7 +348,7 @@ export default function ExtendMembershipModal({
                 name="balanceAmount"
                 value={formData.balanceAmount}
                 readOnly
-                className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold cursor-not-allowed outline-none"
+                className="no-spinner w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold cursor-not-allowed outline-none"
               />
 
               <p className="text-[10px] text-gray-400 mt-1">
@@ -321,7 +356,9 @@ export default function ExtendMembershipModal({
               </p>
             </div>
 
-            {/* Payment Mode */}
+            {/* ---------------------------------------------------
+                Payment Mode
+            --------------------------------------------------- */}
             <div className="md:col-span-2">
               <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
                 Payment Mode
@@ -346,9 +383,12 @@ export default function ExtendMembershipModal({
                 </option>
               </select>
             </div>
+
           </div>
 
-          {/* Buttons */}
+          {/* -----------------------------------------------------
+              Buttons
+          ----------------------------------------------------- */}
           <div className="flex gap-3 mt-6">
 
             <button
@@ -367,6 +407,22 @@ export default function ExtendMembershipModal({
             </button>
 
           </div>
+
+          {/* -----------------------------------------------------
+              Remove Number Input Spinner
+          ----------------------------------------------------- */}
+          <style>{`
+            .no-spinner::-webkit-outer-spin-button,
+            .no-spinner::-webkit-inner-spin-button {
+              -webkit-appearance: none;
+              margin: 0;
+            }
+
+            .no-spinner {
+              -moz-appearance: textfield;
+            }
+          `}</style>
+
         </form>
       </div>
     </div>
