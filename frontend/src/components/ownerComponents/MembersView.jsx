@@ -18,6 +18,13 @@ export default function MembersView() {
   // generic phrase in the message builder below.
   const gymName = useSelector((state) => state.owner.gym?.gymName);
   const role = useSelector((state) => state.auth.role);
+  // WhatsApp reminders (manual wa.me links) are only available on the
+  // Basic plan for now — Plus/Pro will get automatic WhatsApp sending
+  // once the Cloud API integration is built.
+  const subscriptionPlan = useSelector(
+    (state) => state.owner.currentSubscription?.subscriptionPlan
+  );
+  const canUseManualWhatsApp = subscriptionPlan === "Basic";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [editingMember, setEditingMember] = useState(null); 
@@ -30,10 +37,13 @@ export default function MembersView() {
   // extend, so the renewal popup can show the right numbers.
   const [confirmingRenewalMember, setConfirmingRenewalMember] = useState(null);
 
-  // Members now come from the backend — fetch them on mount instead
-  // of relying on a hardcoded initialState.
+  // Members now come from the backend — only fetch if not already
+  // loaded, so navigating back to this page doesn't reload every time.
   useEffect(() => {
-    dispatch(fetchMembers());
+    if (members.length === 0) {
+      dispatch(fetchMembers());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
   // gymName is needed for the WhatsApp reminder text below — fetch it
@@ -70,7 +80,12 @@ ${gym} Team 💪`;
     try {
       const updatedMember = await dispatch(extendMembership({ id, ...extensionPayload })).unwrap();
       setExtendingMember(null);
-      setConfirmingRenewalMember({ ...updatedMember, _extensionPayload: extensionPayload });
+      // wa.me renewal confirmation is a Basic-plan-only feature for now —
+      // Plus/Pro gyms will get automatic WhatsApp sending once the Cloud
+      // API integration is built, so skip the manual popup for them.
+      if (canUseManualWhatsApp) {
+        setConfirmingRenewalMember({ ...updatedMember, _extensionPayload: extensionPayload });
+      }
     } catch (error) {
       alert(typeof error === "string" ? error : "Failed to extend membership.");
     }
@@ -185,7 +200,7 @@ Thank you for continuing with us! 💪🙌`;
                       <span className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-500" : "text-emerald-600"}`}>
                         ₹{member.balanceAmount}
                       </span>
-                      {Number(member.balanceAmount) > 0 && (
+                      {Number(member.balanceAmount) > 0 && canUseManualWhatsApp && (
                         <button
                           onClick={() => setRemindingBalanceMember(member)}
                           className="p-1 bg-green-50 hover:bg-green-100 text-green-600 rounded-md border border-green-200 cursor-pointer"
@@ -306,7 +321,7 @@ Thank you for continuing with us! 💪🙌`;
                     <p className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-500" : "text-emerald-600"}`}>
                       ₹{member.balanceAmount}
                     </p>
-                    {Number(member.balanceAmount) > 0 && (
+                    {Number(member.balanceAmount) > 0 && canUseManualWhatsApp && (
                       <button
                         onClick={() => setRemindingBalanceMember(member)}
                         className="flex items-center gap-1 px-2 py-1 bg-green-50 active:bg-green-100 text-green-600 rounded-md border border-green-200 cursor-pointer text-[10px] font-bold"

@@ -19,6 +19,7 @@ import {
   fetchOwnerProfile,
   uploadGymLogo,
   removeGymLogo,
+  clearUploadError,
 } from "../../redux/slices/ownerSlice";
 
 export default function OwnerProfile() {
@@ -27,11 +28,17 @@ export default function OwnerProfile() {
 
   const photoInputRef = useRef(null);
 
-  const { owner, gym, currentSubscription, loading, uploading, error } =
+  const { owner, gym, currentSubscription, loading, uploading, error, uploadError } =
     useSelector((state) => state.owner);
 
+  // Only fetch when the profile hasn't been loaded yet — previously
+  // this re-ran on every mount, causing the page to reload every time
+  // the owner navigated back to it even though nothing had changed.
   useEffect(() => {
-    dispatch(fetchOwnerProfile());
+    if (!gym || !owner) {
+      dispatch(fetchOwnerProfile());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
   const handleLogout = () => {
@@ -48,7 +55,8 @@ export default function OwnerProfile() {
     try {
       await dispatch(uploadGymLogo(formData)).unwrap();
     } catch (err) {
-      alert(err);
+      // uploadError banner (below) already shows this — no need for
+      // a blocking alert() as well.
     }
 
     e.target.value = "";
@@ -57,7 +65,7 @@ export default function OwnerProfile() {
     try {
       await dispatch(removeGymLogo()).unwrap();
     } catch (error) {
-      alert(error);
+      // uploadError banner (below) already shows this.
     }
   };
 
@@ -69,7 +77,7 @@ export default function OwnerProfile() {
     );
   }
 
-  if (error) {
+  if (error && (!gym || !owner)) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-gray-50">
         <p className="text-red-500 font-medium">{error}</p>
@@ -91,6 +99,19 @@ export default function OwnerProfile() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 pb-20">
       <div className="max-w-xl mx-auto">
+        {/* ===================== UPLOAD ERROR BANNER ===================== */}
+        {uploadError && (
+          <div className="mb-4 flex items-start justify-between gap-3 bg-red-50 border border-red-200 rounded-xl p-3">
+            <p className="text-sm text-red-600 font-medium">{uploadError}</p>
+            <button
+              onClick={() => dispatch(clearUploadError())}
+              className="text-red-400 hover:text-red-600 text-xs font-bold shrink-0"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* ===================== LOGO ===================== */}
 
         <div className="flex flex-col items-center text-center">

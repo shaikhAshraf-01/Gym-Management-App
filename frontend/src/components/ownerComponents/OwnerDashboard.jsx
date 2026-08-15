@@ -27,6 +27,13 @@ export default function OwnerDashboard() {
   // generic phrase in the message builder below.
   const gymName = useSelector((state) => state.owner.gym?.gymName);
   const role = useSelector((state) => state.auth.role);
+  // WhatsApp reminders (manual wa.me links) are only available on the
+  // Basic plan for now — Plus/Pro will get automatic WhatsApp sending
+  // once the Cloud API integration is built.
+  const subscriptionPlan = useSelector(
+    (state) => state.owner.currentSubscription?.subscriptionPlan
+  );
+  const canUseManualWhatsApp = subscriptionPlan === "Basic";
 
   const [extendingMember, setExtendingMember] = useState(null);
   // Track specific member ID for local inline confirmation state
@@ -37,10 +44,13 @@ export default function OwnerDashboard() {
   // extend, so the renewal popup can show the right numbers.
   const [confirmingRenewalMember, setConfirmingRenewalMember] = useState(null);
 
-  // Members now come from the backend — fetch them on mount instead
-  // of relying on a hardcoded initialState.
+  // Members now come from the backend — only fetch if not already
+  // loaded, so navigating back to this page doesn't reload every time.
   useEffect(() => {
-    dispatch(fetchMembers());
+    if (members.length === 0) {
+      dispatch(fetchMembers());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
   // gymName is needed for the WhatsApp reminder text below — fetch it
@@ -64,7 +74,12 @@ export default function OwnerDashboard() {
     try {
       const updatedMember = await dispatch(extendMembership({ id, ...extensionPayload })).unwrap();
       setExtendingMember(null);
-      setConfirmingRenewalMember({ ...updatedMember, _extensionPayload: extensionPayload });
+      // wa.me renewal confirmation is a Basic-plan-only feature for now —
+      // Plus/Pro gyms will get automatic WhatsApp sending once the Cloud
+      // API integration is built, so skip the manual popup for them.
+      if (canUseManualWhatsApp) {
+        setConfirmingRenewalMember({ ...updatedMember, _extensionPayload: extensionPayload });
+      }
     } catch (error) {
       alert(typeof error === "string" ? error : "Failed to extend membership.");
     }
@@ -210,14 +225,27 @@ ${gym} Team 💪`;
                       <span>Call</span>
                     </a>
 
-                    {/* Column 5: WhatsApp Expiry Reminder */}
-                    <button
-                      onClick={() => setRemindingMember(member)}
-                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 text-xs font-medium hover:bg-green-100 transition-colors cursor-pointer"
-                    >
-                      <MessageCircle className="h-3.5 w-3.5" />
-                      <span>WhatsApp</span>
-                    </button>
+                    {/* Column 5: WhatsApp Expiry Reminder — manual wa.me
+                        send is a Basic-plan feature for now. Plus/Pro show
+                        a disabled placeholder until Cloud API automation
+                        is built, keeping the 4-column grid intact. */}
+                    {canUseManualWhatsApp ? (
+                      <button
+                        onClick={() => setRemindingMember(member)}
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 text-xs font-medium hover:bg-green-100 transition-colors cursor-pointer"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        <span>WhatsApp</span>
+                      </button>
+                    ) : (
+                      <div
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-gray-50 text-gray-400 border border-gray-200 text-xs font-medium cursor-not-allowed"
+                        title="Automatic WhatsApp is coming soon for Plus/Pro plans"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        <span>Auto Soon</span>
+                      </div>
+                    )}
 
                     {/* Column 6: Extend Plan Action */}
                     <button

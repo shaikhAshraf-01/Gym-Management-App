@@ -92,6 +92,12 @@ const initialState = {
   loading: false,
   uploading: false,
   error: null,
+  // Kept separate from `error` on purpose — `error` blocks the whole
+  // profile page (used only when the initial fetch fails and there's
+  // no data to show at all). uploadError is a non-blocking banner for
+  // logo/photo upload failures, shown alongside the already-loaded
+  // profile instead of hiding it.
+  uploadError: null,
 };
 
 const ownerSlice = createSlice({
@@ -100,6 +106,9 @@ const ownerSlice = createSlice({
   reducers: {
     clearOwnerError: (state) => {
       state.error = null;
+    },
+    clearUploadError: (state) => {
+      state.uploadError = null;
     },
   },
   extraReducers: (builder) => {
@@ -129,7 +138,7 @@ const ownerSlice = createSlice({
       })
       .addCase(uploadGymLogo.rejected, (state, action) => {
         state.uploading = false;
-        state.error = action.payload;
+        state.uploadError = action.payload;
       })
       .addCase(removeGymLogo.pending, (state) => {
         state.uploading = true;
@@ -143,7 +152,7 @@ const ownerSlice = createSlice({
       })
       .addCase(removeGymLogo.rejected, (state, action) => {
         state.uploading = false;
-        state.error = action.payload;
+        state.uploadError = action.payload;
       })
       // ---------------- Trainer Photo ----------------
       .addCase(uploadTrainerPhoto.pending, (state) => {
@@ -157,7 +166,7 @@ const ownerSlice = createSlice({
       })
       .addCase(uploadTrainerPhoto.rejected, (state, action) => {
         state.uploading = false;
-        state.error = action.payload;
+        state.uploadError = action.payload;
       })
       .addCase(removeTrainerPhoto.pending, (state) => {
         state.uploading = true;
@@ -170,11 +179,11 @@ const ownerSlice = createSlice({
       })
       .addCase(removeTrainerPhoto.rejected, (state, action) => {
         state.uploading = false;
-        state.error = action.payload;
+        state.uploadError = action.payload;
       });
   },
 });
 
-export const { clearOwnerError } = ownerSlice.actions;
+export const { clearOwnerError, clearUploadError } = ownerSlice.actions;
 
 export default ownerSlice.reducer;

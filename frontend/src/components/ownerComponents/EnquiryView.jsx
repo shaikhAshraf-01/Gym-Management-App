@@ -16,15 +16,17 @@ export default function EnquiryView() {
   // Localized track for current inline delete row/card confirmation
   const [deletingId, setDeletingId] = useState(null);
 
-  // Enquiries now come from the backend — fetch them on mount instead
-  // of relying on a hardcoded initialState.
+  // Enquiries now come from the backend — only fetch if not already
+  // loaded, so navigating back to this page doesn't reload every time.
   useEffect(() => {
-    dispatch(fetchEnquiries());
+    if (enquiries.length === 0) {
+      dispatch(fetchEnquiries());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
   const handleConvert = (enquiry) => {
-    const addPath= location.pathname.startsWith("/trainer")? "/trainer/add": "/owner/add";
-    navigate(addPath, {
+    navigate("/owner/add", {
       state: {
         type: "membership",
         prefill: { name: enquiry.name, mobile: enquiry.mobile, enquiryId: enquiry.id },

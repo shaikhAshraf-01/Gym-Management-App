@@ -8,6 +8,7 @@ import {
   fetchOwnerProfile,
   uploadTrainerPhoto,
   removeTrainerPhoto,
+  clearUploadError,
 } from "../../redux/slices/ownerSlice";
 
 export default function TrainerProfile() {
@@ -18,10 +19,16 @@ export default function TrainerProfile() {
   // Same backend endpoint + slice OwnerProfile.jsx uses — the "owner"
   // key here actually holds whoever is logged in (trainer, in this
   // case), see ownerController's updated getOwnerProfile.
-  const { owner: trainer, gym, loading, uploading, error } = useSelector((state) => state.owner);
+  const { owner: trainer, gym, loading, uploading, error, uploadError } = useSelector((state) => state.owner);
 
+  // Only fetch when the profile hasn't been loaded yet — previously
+  // this re-ran on every mount, reloading the page every time the
+  // trainer navigated back to it even though nothing had changed.
   useEffect(() => {
-    dispatch(fetchOwnerProfile());
+    if (!trainer || !gym) {
+      dispatch(fetchOwnerProfile());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
   const handleLogout = () => {
@@ -39,7 +46,7 @@ export default function TrainerProfile() {
     try {
       await dispatch(uploadTrainerPhoto(formData)).unwrap();
     } catch (err) {
-      alert(err);
+      // uploadError banner (below) already shows this.
     }
 
     e.target.value = "";
@@ -49,7 +56,7 @@ export default function TrainerProfile() {
     try {
       await dispatch(removeTrainerPhoto()).unwrap();
     } catch (err) {
-      alert(err);
+      // uploadError banner (below) already shows this.
     }
   };
 
@@ -61,7 +68,7 @@ export default function TrainerProfile() {
     );
   }
 
-  if (error) {
+  if (error && (!trainer || !gym)) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-gray-50">
         <p className="text-red-500 font-medium">{error}</p>
@@ -79,6 +86,19 @@ export default function TrainerProfile() {
 
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto bg-gray-50 min-h-screen pb-16">
+
+      {/* Upload error banner — non-blocking */}
+      {uploadError && (
+        <div className="mb-4 flex items-start justify-between gap-3 bg-red-50 border border-red-200 rounded-xl p-3">
+          <p className="text-sm text-red-600 font-medium">{uploadError}</p>
+          <button
+            onClick={() => dispatch(clearUploadError())}
+            className="text-red-400 hover:text-red-600 text-xs font-bold shrink-0"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Header — photo upload */}
       <div className="flex flex-col items-center text-center border-b border-gray-200 pb-6 mb-6">
