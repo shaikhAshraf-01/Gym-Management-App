@@ -4,6 +4,7 @@ import GymSubscriptionHistory from "../models/GymSubscriptionHistory.js";
 
 import cloudinary from "../config/cloudinary.js"
 import streamifier from "streamifier"
+import { compressImageBuffer } from "../utils/compressImage.js";
 // ================= GET OWNER / TRAINER PROFILE =================
 // Originally owner-only. Now also serves Trainers (used by
 // TrainerProfile.jsx) — a trainer has no gym logo/subscription
@@ -88,7 +89,8 @@ export const uploadGymLogo = async (req, res) => {
         message: "Gym not found.",
       });
     }
-
+const compressedBuffer = await compressImageBuffer(req.file.buffer);
+// ...
     const uploadFromBuffer = () =>
       new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
@@ -111,7 +113,7 @@ export const uploadGymLogo = async (req, res) => {
           }
         );
 
-        streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+streamifier.createReadStream(compressedBuffer).pipe(uploadStream); // req.file.buffer ki jagah
       });
 
       if(gym.gymLogoPublicId){
@@ -185,10 +187,7 @@ export const removeGymLogo = async (req, res) => {
 };
 
 // ================= TRAINER PROFILE PHOTO =================
-// Trainer's own headshot — separate from the gym logo (which stays
-// owner-only). Same Cloudinary upload/replace/remove pattern as
-// uploadGymLogo/removeGymLogo above, just scoped to the trainer's own
-// User document instead of a Gym document.
+
 
 export const uploadTrainerPhoto = async (req, res) => {
   try {
@@ -207,14 +206,15 @@ export const uploadTrainerPhoto = async (req, res) => {
         message: "Trainer not found.",
       });
     }
-
-    const uploadFromBuffer = () =>
-      new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
+const compressedBuffer = await compressImageBuffer(req.file.buffer);
+// ...
+const uploadFromBuffer = () =>
+  new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: "GymOpsFlow/trainer-photos",
+        transformation: [
           {
-            folder: "GymOpsFlow/trainer-photos",
-            transformation: [
-              {
                 width: 500,
                 height: 500,
                 crop: "fill",
@@ -229,8 +229,8 @@ export const uploadTrainerPhoto = async (req, res) => {
             else resolve(result);
           }
         );
-
-        streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+        
+        streamifier.createReadStream(compressedBuffer).pipe(uploadStream); // req.file.buffer ki jagah
       });
 
     if (trainer.photoPublicId) {

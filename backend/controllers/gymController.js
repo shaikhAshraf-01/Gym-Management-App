@@ -1,11 +1,12 @@
-// Add these to your existing gymController.js (same file as createGym /
-// getAllGyms). Also fixes the "seccess" typo in getAllGyms below.
-
 import mongoose from "mongoose";
 import Gym from "../models/Gym.js";
 import User, { Owner, Trainer } from "../models/User.js";
 import GymSubscriptionHistory from "../models/GymSubscriptionHistory.js";
 import Member from "../models/Member.js";
+import MemberSubscriptionHistory from "../models/MemberSubscriptionHistory.js";
+import MemberPaymentHistory from "../models/MemberPaymentHistory.js";
+import Inquiry from "../models/Inquiry.js";
+import WhatsAppMessageLog from "../models/WhatsAppMessageLog.js";
 
 // Gym model has no totalMembers field — count comes live from the
 // Member collection instead of relying on a stale/undefined property.
@@ -645,7 +646,9 @@ export const deleteTrainer = async (req, res) => {
 
 // -------------------------------------------------------------------
 // deleteGym — DELETE /api/gyms/:id
-// Removes the gym, its owner account, and its subscription history.
+// Removes the gym and cascades the delete across every piece of data
+// tied to it (members, their subscription/payment history, inquiries,
+// WhatsApp logs, trainers, owner, and gym subscription history).
 // -------------------------------------------------------------------
 export const deleteGym = async (req, res) => {
   try {
@@ -658,6 +661,31 @@ export const deleteGym = async (req, res) => {
         message: "Gym not found.",
       });
     }
+
+    // Members go first — MemberSubscriptionHistory and
+    // MemberPaymentHistory are keyed off individual member IDs, not
+    // the gym directly.
+    const members = await Member.find({ gym: gym._id }, "_id");
+    const memberIds = members.map((m) => m._id);
+
+    if (memberIds.length > 0) {
+      const subscriptions = await MemberSubscriptionHistory.find(
+        { member: { $in: memberIds } },
+        "_id"
+      );
+      const subscriptionIds = subscriptions.map((s) => s._id);
+
+      await MemberPaymentHistory.deleteMany({
+        memberSubscription: { $in: subscriptionIds },
+      });
+      await MemberSubscriptionHistory.deleteMany({
+        member: { $in: memberIds },
+      });
+      await Member.deleteMany({ gym: gym._id });
+    }
+
+    await Inquiry.deleteMany({ gym: gym._id });
+    await WhatsAppMessageLog.deleteMany({ gym: gym._id });
 
     await Owner.findByIdAndDelete(gym.owner);
     await Trainer.deleteMany({ gymId: gym._id });
