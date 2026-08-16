@@ -843,11 +843,11 @@ export default function AllGyms() {
 
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <span className="text-[11px] text-slate-500">
-                      Enquiries
+                      Active Members
                     </span>
 
                     <p className="mt-1 font-bold text-slate-800 text-lg">
-                      {selectedGym.enquiries}
+                      {selectedGym.activeMembers}
                     </p>
                   </div>
 
