@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
+import { closeDrawer } from "../redux/slices/uiSlice";
+import { consumeBackPress } from "../utils/backHandlerStack";
 
 // Screens jahan se "back" dabane par app exit honi chahiye
 // (yani yeh har role ki "home" screen hai, yaha se piche jaane ki koi jagah nahi)
@@ -16,15 +19,23 @@ function isExitScreen(pathname) {
 
 export default function BackButtonHandler() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const location = useLocation();
+  const isDrawerOpen = useSelector((state) => state.ui.isDrawerOpen);
   const locationRef = useRef(location);
+  const isDrawerOpenRef = useRef(isDrawerOpen);
   const lastBackPressRef = useRef(0);
   const [showExitToast, setShowExitToast] = useState(false);
 
-  // location ko ref me rakho taaki listener ke andar hamesha latest path mile
+  // location aur drawer state ko ref me rakho taaki listener ke andar
+  // hamesha latest value mile (listener sirf ek baar register hota hai)
   useEffect(() => {
     locationRef.current = location;
   }, [location]);
+
+  useEffect(() => {
+    isDrawerOpenRef.current = isDrawerOpen;
+  }, [isDrawerOpen]);
 
   useEffect(() => {
     // Sirf native Android/iOS app ke andar hi yeh listener chalana hai,
@@ -34,6 +45,18 @@ export default function BackButtonHandler() {
     let listenerHandle;
 
     CapacitorApp.addListener("backButton", () => {
+      // 1) Koi bhi registered modal/overlay (Edit, View, Delete confirm,
+      //    WhatsApp popup, etc.) khula ho to sirf usko close karo
+      if (consumeBackPress()) {
+        return;
+      }
+
+      // 2) Mobile "Add" bottom-sheet khula ho to usko close karo
+      if (isDrawerOpenRef.current) {
+        dispatch(closeDrawer());
+        return;
+      }
+
       const currentPath = locationRef.current.pathname;
 
       if (isExitScreen(currentPath)) {
@@ -58,7 +81,7 @@ export default function BackButtonHandler() {
     return () => {
       listenerHandle?.remove();
     };
-  }, [navigate]);
+  }, [navigate, dispatch]);
 
   if (!showExitToast) return null;
 

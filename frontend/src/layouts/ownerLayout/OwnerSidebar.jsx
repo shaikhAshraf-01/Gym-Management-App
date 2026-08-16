@@ -1,10 +1,14 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { LayoutDashboard, Dumbbell, Plus, User, FileText, CreditCard, X } from "lucide-react";
+import { openDrawer, closeDrawer, toggleDrawer } from "../../redux/slices/uiSlice";
 
 export default function OwnerSidebar() {
   const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const dispatch = useDispatch();
+  // Redux se drawer state, taaki hardware back button pehle isko close kar sake
+  const isMobileMenuOpen = useSelector((state) => state.ui.isDrawerOpen);
   const [activeForm, setActiveForm] = useState(null); // 'membership' | 'enquiry' | null
 
   const navItems = [
@@ -26,7 +30,7 @@ export default function OwnerSidebar() {
           <div className="absolute bottom-16 left-0 right-0 bg-slate-950 border-t border-slate-900 rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-white">Create New Entry</h3>
-              <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => dispatch(closeDrawer())} className="text-slate-400 hover:text-white">
                 <X className="h-6 w-6" />
               </button>
             </div>
@@ -34,7 +38,7 @@ export default function OwnerSidebar() {
               <button
                 onClick={() => { 
                   setActiveForm("membership"); 
-                  setIsMobileMenuOpen(false); 
+                  dispatch(closeDrawer()); 
                   navigate("/owner/add", { state: { type: "membership" } }); 
                 }}
                 className="flex items-center gap-4 w-full p-4 bg-slate-900 border border-slate-800 rounded-2xl text-left text-white hover:border-lime-400/50 transition-all cursor-pointer"
@@ -49,7 +53,7 @@ export default function OwnerSidebar() {
               <button
                 onClick={() => { 
                   setActiveForm("enquiry"); 
-                  setIsMobileMenuOpen(false); 
+                  dispatch(closeDrawer()); 
                   navigate("/owner/add", { state: { type: "enquiry" } }); 
                 }}
                 className="flex items-center gap-4 w-full p-4 bg-slate-900 border border-slate-800 rounded-2xl text-left text-white hover:border-lime-400/50 transition-all cursor-pointer"
@@ -74,7 +78,7 @@ export default function OwnerSidebar() {
               return (
                 <div key={index} className="w-full h-full flex items-center justify-center relative">
                   <button
-                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    onClick={() => dispatch(toggleDrawer())}
                     className={`flex flex-col items-center justify-center rounded-full text-xs transition-all duration-200 select-none absolute top-0 -translate-y-1/2 h-14 w-14 shadow-lg border-4 border-slate-950 flex-shrink-0 cursor-pointer ${
                       isMobileMenuOpen ? "bg-lime-400 text-black font-bold shadow-lime-500/30" : "bg-slate-900 text-slate-300"
                     }`}

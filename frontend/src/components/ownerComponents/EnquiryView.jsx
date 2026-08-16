@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { Edit2, Phone, User, Search, X, Calendar, CalendarClock, UserCheck, Trash2, Check, AlertCircle } from "lucide-react";
 import { fetchEnquiries, updateEnquiry, deleteEnquiry } from "../../redux/slices/enquiriesSlice";
+import { useBackHandler } from "../../hooks/useBackHandler";
 
 export default function EnquiryView() {
   const navigate = useNavigate();
@@ -15,6 +16,10 @@ export default function EnquiryView() {
   const [editWillingToJoin, setEditWillingToJoin] = useState("");
   // Localized track for current inline delete row/card confirmation
   const [deletingId, setDeletingId] = useState(null);
+
+  // Hardware back button pehle inline edit/delete-confirm ko cancel kare
+  useBackHandler(!!editingId, () => setEditingId(null));
+  useBackHandler(!!deletingId, () => setDeletingId(null));
 
   // Enquiries now come from the backend — only fetch if not already
   // loaded, so navigating back to this page doesn't reload every time.

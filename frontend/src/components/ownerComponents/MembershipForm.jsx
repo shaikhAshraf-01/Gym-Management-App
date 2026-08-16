@@ -79,10 +79,44 @@ export default function MembershipForm({ onSave, prefill }) {
       value,
     } = e.target;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => {
+      // Amount Paying Today can never exceed the Plan Amount.
+      // Clamp live as the user types, not just on submit.
+      if (name === "amountPayingToday") {
+        const plan = parseFloat(prev.planAmount) || 0;
+        const paidValue = parseFloat(value) || 0;
+
+        // Don't force-clamp to 0 before a plan amount has been
+        // entered yet — only clamp once a real plan amount exists.
+        return {
+          ...prev,
+          amountPayingToday:
+            plan > 0 ? String(Math.min(paidValue, plan)) : value,
+        };
+      }
+
+      // If the Plan Amount itself is lowered after a payment was
+      // already entered, re-clamp the paid amount so it can never
+      // sit above the new plan amount.
+      if (name === "planAmount") {
+        const newPlan = parseFloat(value) || 0;
+        const currentPaid = parseFloat(prev.amountPayingToday) || 0;
+
+        return {
+          ...prev,
+          planAmount: value,
+          amountPayingToday:
+            currentPaid > newPlan
+              ? String(newPlan)
+              : prev.amountPayingToday,
+        };
+      }
+
+      return {
+        ...prev,
+        [name]: value,
+      };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -169,6 +203,8 @@ export default function MembershipForm({ onSave, prefill }) {
             name="mobile"
             value={formData.mobile}
             onChange={handleChange}
+            maxLength={10}
+            minLength={10}
             className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
             placeholder="e.g. 9876543210"
             required

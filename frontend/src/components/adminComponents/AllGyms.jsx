@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useBackHandler } from "../../hooks/useBackHandler";
 import {
   Search,
   Phone,
@@ -58,6 +59,12 @@ export default function AllGyms() {
   // This is only populated after a renewal has been selected.
   // The popup is shown only after Save Changes succeeds.
   const [renewalWhatsApp, setRenewalWhatsApp] = useState(null);
+
+  // Hardware back button pehle in overlays ko close kare, page navigate na kare
+  useBackHandler(isDrawerOpen, () => setIsDrawerOpen(false));
+  useBackHandler(isTimelineOpen, () => setIsTimelineOpen(false));
+  useBackHandler(!!confirmDelete, () => setConfirmDelete(null));
+  useBackHandler(!!renewalWhatsApp, () => setRenewalWhatsApp(null));
 
   // Renewal form fields — separate from selectedGym so the drawer can
   // show "pending renewal" values without touching the gym's live

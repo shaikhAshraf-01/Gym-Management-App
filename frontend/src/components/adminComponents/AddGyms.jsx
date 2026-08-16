@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { createGymApi } from "../../api/adminApi";
 import WhatsAppMessagePopup from "./WhatsAppMessagePopup";
+import { useBackHandler } from "../../hooks/useBackHandler";
 
 // ^ Switched from ../../api/gymApi — that version didn't accept auth
 //   headers at all, which would 401 if /admin/createGyms is protected.
@@ -51,6 +52,9 @@ export default function AddGyms() {
 
   // ---------------- WHATSAPP POPUP ----------------
   const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
+
+  // Hardware back button pehle is popup ko close kare
+  useBackHandler(showWhatsAppPopup, () => setShowWhatsAppPopup(false));
 
   const handleCancel = () => navigate("/admin/all-gyms");
 

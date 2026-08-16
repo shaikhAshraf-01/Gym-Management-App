@@ -8,6 +8,7 @@ import ExtendMembershipModal from "./ExtendMembershipModal";
 import MemberHistoryModal from "./MemberHistoryModal";
 import WhatsAppMessagePopup from "../adminComponents/WhatsAppMessagePopup";
 import WhatsAppRenewMessagePopup from "../adminComponents/WhatsAppRenewMessagePopup";
+import { useBackHandler } from "../../hooks/useBackHandler";
 
 export default function MembersView() {
   const dispatch = useDispatch();
@@ -36,6 +37,14 @@ export default function MembersView() {
   // Holds { ...updatedMember, _extensionPayload } after a successful
   // extend, so the renewal popup can show the right numbers.
   const [confirmingRenewalMember, setConfirmingRenewalMember] = useState(null);
+
+  // Hardware back button pehle in modals ko close kare, page navigate na kare
+  useBackHandler(!!editingMember, () => setEditingMember(null));
+  useBackHandler(!!extendingMember, () => setExtendingMember(null));
+  useBackHandler(!!viewingMember, () => setViewingMember(null));
+  useBackHandler(!!deletingMemberId, () => setDeletingMemberId(null));
+  useBackHandler(!!remindingBalanceMember, () => setRemindingBalanceMember(null));
+  useBackHandler(!!confirmingRenewalMember, () => setConfirmingRenewalMember(null));
 
   // Members now come from the backend — only fetch if not already
   // loaded, so navigating back to this page doesn't reload every time.

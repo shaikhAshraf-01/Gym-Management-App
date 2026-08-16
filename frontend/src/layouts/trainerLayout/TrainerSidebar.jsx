@@ -1,10 +1,14 @@
-import React, { useState } from "react";
+import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { LayoutDashboard, Dumbbell, Plus, User, FileText, CreditCard, X } from "lucide-react";
+import { toggleDrawer, closeDrawer } from "../../redux/slices/uiSlice";
 
 export default function TrainerSidebar() {
   const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const dispatch = useDispatch();
+  // Redux se drawer state, taaki hardware back button pehle isko close kar sake
+  const isMobileMenuOpen = useSelector((state) => state.ui.isDrawerOpen);
 
   const navItems = [
     { label: "Dashboard", path: "/trainer", icon: LayoutDashboard, end: true },
@@ -23,14 +27,14 @@ export default function TrainerSidebar() {
           <div className="absolute bottom-16 left-0 right-0 bg-slate-950 border-t border-slate-900 rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-white">Create New Entry</h3>
-              <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => dispatch(closeDrawer())} className="text-slate-400 hover:text-white">
                 <X className="h-6 w-6" />
               </button>
             </div>
             <div className="flex flex-col gap-4">
               <button
                 onClick={() => { 
-                  setIsMobileMenuOpen(false); 
+                  dispatch(closeDrawer()); 
                   navigate("/trainer/add", { state: { type: "membership" } }); 
                 }}
                 className="flex items-center gap-4 w-full p-4 bg-slate-900 border border-slate-800 rounded-2xl text-left text-white hover:border-lime-400/50 transition-all cursor-pointer"
@@ -44,7 +48,7 @@ export default function TrainerSidebar() {
 
               <button
                 onClick={() => { 
-                  setIsMobileMenuOpen(false); 
+                  dispatch(closeDrawer()); 
                   navigate("/trainer/add", { state: { type: "enquiry" } }); 
                 }}
                 className="flex items-center gap-4 w-full p-4 bg-slate-900 border border-slate-800 rounded-2xl text-left text-white hover:border-lime-400/50 transition-all cursor-pointer"
@@ -69,7 +73,7 @@ export default function TrainerSidebar() {
               return (
                 <button
                   key={item.path}
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  onClick={() => dispatch(toggleDrawer())}
                   className={`flex flex-col items-center justify-center gap-1 w-full h-full p-2 rounded-xl text-[10px] sm:text-xs transition-all duration-200 select-none text-center cursor-pointer ${
                     isMobileMenuOpen ? "text-lime-400 font-bold" : "text-slate-400 hover:text-white"
                   }`}
