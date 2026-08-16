@@ -5,6 +5,7 @@ import { restoreSession } from "./redux/slices/authSlice";
 
 // 🚀 ADDED: The missing Protected Route file import statement
 import ProtectedRoute from "./pages/protectedRoute"; 
+import BackButtonHandler from "./pages/BackButtonHandler";
 
 import Login from "./pages/Login";
 //admin routes
@@ -34,6 +35,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <BackButtonHandler />
       <Routes>
         {/* Public Path */}
         <Route path="/login" element={<Login />} />
