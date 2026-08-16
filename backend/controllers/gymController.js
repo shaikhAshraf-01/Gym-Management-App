@@ -6,7 +6,6 @@ import Member from "../models/Member.js";
 import MemberSubscriptionHistory from "../models/MemberSubscriptionHistory.js";
 import MemberPaymentHistory from "../models/MemberPaymentHistory.js";
 import Inquiry from "../models/Inquiry.js";
-import WhatsAppMessageLog from "../models/WhatsAppMessageLog.js";
 
 // Gym model has no totalMembers field — count comes live from the
 // Member collection instead of relying on a stale/undefined property.
@@ -685,7 +684,6 @@ export const deleteGym = async (req, res) => {
     }
 
     await Inquiry.deleteMany({ gym: gym._id });
-    await WhatsAppMessageLog.deleteMany({ gym: gym._id });
 
     await Owner.findByIdAndDelete(gym.owner);
     await Trainer.deleteMany({ gymId: gym._id });
