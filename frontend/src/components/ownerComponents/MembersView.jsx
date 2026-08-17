@@ -120,7 +120,7 @@ ${gym} Team 💪`;
     }
 
     message += `
-📅 Your new expiry date is ${member.expiryDate}.
+📅 Your plan is valid from ${member.joiningDate} to ${member.expiryDate}.
 
 Thank you for continuing with us! 💪🙌`;
 

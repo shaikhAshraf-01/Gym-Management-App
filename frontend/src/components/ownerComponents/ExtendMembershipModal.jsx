@@ -134,27 +134,45 @@ export default function ExtendMembershipModal({
   // ---------------------------------------------------------------
   // Input change
   // ---------------------------------------------------------------
- const handleChange = (e) => {
-  const { name, value } = e.target;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-  setFormData((prev) => {
-    // Amount Paying Today can never exceed the membership fee
-    if (name === "amountPayingToday") {
-      const fee = Number(prev.extensionAmount) || 0;
-      const paid = Number(value) || 0;
+    setFormData((prev) => {
+      // Amount Paying Today can never exceed the membership fee.
+      // Clamp live as the user types.
+      if (name === "amountPayingToday") {
+        const fee = Number(prev.extensionAmount) || 0;
+        const paid = Number(value) || 0;
+
+        // Don't force-clamp to 0 before a fee has been entered yet —
+        // only clamp once a real fee exists.
+        return {
+          ...prev,
+          amountPayingToday: fee > 0 ? String(Math.min(paid, fee)) : value,
+        };
+      }
+
+      // If the membership fee itself is lowered (or changed) after an
+      // amount was already entered, re-clamp the paid amount so it
+      // can never sit above the new fee.
+      if (name === "extensionAmount") {
+        const newFee = Number(value) || 0;
+        const currentPaid = Number(prev.amountPayingToday) || 0;
+
+        return {
+          ...prev,
+          extensionAmount: value,
+          amountPayingToday:
+            currentPaid > newFee ? String(newFee) : prev.amountPayingToday,
+        };
+      }
 
       return {
         ...prev,
-        amountPayingToday: String(Math.min(paid, fee)),
+        [name]: value,
       };
-    }
-
-    return {
-      ...prev,
-      [name]: value,
-    };
-  });
-};
+    });
+  };
 
   // ---------------------------------------------------------------
   // Submit

@@ -317,7 +317,7 @@ export default function OwnerDashboard() {
     }
 
     message += `
-📅 Your new expiry date is ${member.expiryDate}.
+📅 Your plan is valid from ${member.joiningDate} to ${member.expiryDate}.
 
 Thank you for continuing with us! 💪🙌`;
 

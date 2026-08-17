@@ -113,6 +113,7 @@ export default function AddSelectionContainer() {
       `🏋️‍♂️ *Welcome to ${gym}!* 🏋️‍♀️\n\n` +
       `Hello *${member.name}*, 👋\n\n` +
       `✨ Your *${durationLabel}* membership at ${gym} is now active!\n` +
+      `📅 Plan valid from *${member.joiningDate}* to *${member.expiryDate}*.\n` +
       `💳 We have successfully received your payment of *₹${member.amountPayingToday}*.\n`;
 
     if (Number(member.balanceAmount) > 0) {

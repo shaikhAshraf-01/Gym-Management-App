@@ -829,28 +829,14 @@ export default function AllGyms() {
                   Facility Metrics
                 </label>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <span className="text-[11px] text-slate-500">
+                    Members
+                  </span>
 
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-[11px] text-slate-500">
-                      Members
-                    </span>
-
-                    <p className="mt-1 font-bold text-slate-800 text-lg">
-                      {selectedGym.totalMembers}
-                    </p>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-[11px] text-slate-500">
-                      Active Members
-                    </span>
-
-                    <p className="mt-1 font-bold text-slate-800 text-lg">
-                      {selectedGym.activeMembers}
-                    </p>
-                  </div>
-
+                  <p className="mt-1 font-bold text-slate-800 text-lg">
+                    {selectedGym.totalMembers}
+                  </p>
                 </div>
               </div>
 
