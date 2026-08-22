@@ -8,7 +8,9 @@ import { consumeBackPress } from "../utils/backHandlerStack";
 
 // Screens jahan se "back" dabane par app exit honi chahiye
 // (yani yeh har role ki "home" screen hai, yaha se piche jaane ki koi jagah nahi)
-const EXIT_SCREENS = ["/login", "/admin", "/owner", "/trainer"];
+// "/" bhi shaamil hai kyunki native app root path par seedha Login dikhata hai
+// (web par yahi path Home/marketing page dikhata hai, jaha back button relevant nahi).
+const EXIT_SCREENS = ["/", "/login", "/admin", "/owner", "/trainer"];
 
 function isExitScreen(pathname) {
   // exact home path OR role root jaise "/owner", "/owner/" dono match ho jaye

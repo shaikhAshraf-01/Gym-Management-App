@@ -8,11 +8,12 @@ import sendOTPEmails from "../utils/sendOTPEmails.js";
 // what was killing sessions mid-use. Actual logout is what clears the
 // session client-side now (see axios.js's 401 interceptor + authSlice's
 // logout action), not token expiry.
-const generateToken = (userId, role) => {
+const generateToken = (userId, role, tokenVersion) => {
   return jwt.sign(
     {
       id: userId,
       role,
+      tokenVersion,
     },
     process.env.JWT_SECRET,
     {
@@ -46,7 +47,7 @@ export const adminLogin = async (req, res) => {
         message: "Invalid mobile or password",
       });
     }
-    const token = generateToken(admin._id, admin.role);
+    const token = generateToken(admin._id, admin.role, admin.tokenVersion);
     return res.status(200).json({
       success: true,
       message: "Admin logged in successfully",
@@ -161,7 +162,7 @@ export const verifyOTP = async (req, res) => {
     await user.save();
 
     // 6. Generate access token
-    const token = generateToken(user._id, user.role);
+    const token = generateToken(user._id, user.role, user.tokenVersion);
 
     return res.status(200).json({
       success: true,

@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { Capacitor } from "@capacitor/core";
 import { restoreSession } from "./redux/slices/authSlice";
 
 // 🚀 ADDED: The missing Protected Route file import statement
@@ -8,6 +9,7 @@ import ProtectedRoute from "./pages/protectedRoute";
 import BackButtonHandler from "./pages/BackButtonHandler";
 
 import Login from "./pages/Login";
+import Home from "./pages/Home";
 //admin routes
 import AdminLayout from "./layouts/adminLayout/AdminLayout";
 import AdminDashboard from "./components/adminComponents/AdminDashboard";
@@ -35,12 +37,19 @@ function App() {
 
   return (
     <BrowserRouter>
-    <div className="app">
       <BackButtonHandler />
       <Routes>
         {/* Public Path */}
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route
+          path="/"
+          element={
+            // Installed app users want to log in immediately — the
+            // marketing homepage is only useful for website visitors
+            // who haven't downloaded the app yet.
+            Capacitor.isNativePlatform() ? <Login /> : <Home />
+          }
+        />
 
         {/* 🔒 Nested Admin Routing Layer */}
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
@@ -79,7 +88,6 @@ function App() {
         {/* Fallback Redirection */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-      </div>
     </BrowserRouter>
   );
 }

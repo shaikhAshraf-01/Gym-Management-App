@@ -52,12 +52,15 @@ export const changeAdminPassword = async (req, res) => {
 
     await User.updateOne(
       { _id: req.user._id },
-      { $set: { password: hashedPassword } }
+      { $set: { password: hashedPassword }, $inc: { tokenVersion: 1 } }
     );
 
     return res.status(200).json({
       success: true,
-      message: "Password updated successfully."
+      // Their current token is now invalid too (by design) — the
+      // frontend's 401 handling will bounce them to login on the next
+      // request, same as any other revoked session.
+      message: "Password updated successfully. Please log in again.",
     });
 
   } catch (error) {

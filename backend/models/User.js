@@ -52,6 +52,16 @@ const userSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
+
+    // Bumped whenever this user's issued tokens should stop working
+    // (password change, admin-forced logout, account compromise, etc).
+    // A JWT's own tokenVersion must match this value or it's rejected —
+    // this is what makes "logout everywhere" actually possible, since
+    // JWTs otherwise stay valid until they naturally expire.
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
   },
   baseOptions
 );

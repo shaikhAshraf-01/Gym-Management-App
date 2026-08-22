@@ -25,6 +25,17 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
+    // Tokens issued before this feature won't have a tokenVersion claim —
+    // treat that as version 0 so existing sessions keep working until
+    // the next revocation bumps the counter.
+    const tokenVersion = decoded.tokenVersion ?? 0;
+    if (tokenVersion !== user.tokenVersion) {
+      return res.status(401).json({
+        success: false,
+        message: "Session expired. Please log in again.",
+      });
+    }
+
     req.user = user;
 
     next();
