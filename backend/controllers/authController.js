@@ -61,11 +61,10 @@ export const adminLogin = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error",
-      error: error.message,
-    });
+      message: "Internal server error",    });
   }
 };
 
@@ -83,29 +82,33 @@ export const sendOTP = async (req, res) => {
     }
 
     const user = await User.findOne({ email, role }).select("+otp +otpExpires");
-    if (!user) {
-      return res.status(404).json({ success: false, message: `${role} not found` });
+
+    // Same response whether the account exists or not — otherwise an
+    // attacker can mass-try emails and use the 404-vs-200 difference to
+    // build a list of real, registered gym-owner/trainer emails (a
+    // classic user-enumeration bug, and a ready-made target list for
+    // phishing). Only an existing user actually gets an email sent.
+    if (user) {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.otp = otp;
+      user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+      await user.save();
+
+      const isSent = await sendOTPEmails(email, otp);
+      if (!isSent) {
+        // Log server-side for ops visibility; client response stays
+        // generic either way, so this never becomes an enumeration signal.
+        console.error(`sendOTP: email dispatch failed for ${role} ${email}`);
+      }
     }
 
-    // 1. Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    user.otp = otp;
-    user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
-    await user.save();
-
-    // 2. Dispatch OTP via Resend (Ensure this variable name matches your import)
-    const isSent = await sendOTPEmails(email, otp);
-
-    if (!isSent) {
-      return res.status(500).json({ success: false, message: "Failed to send OTP" });
-    }
-
-    return res.status(200).json({ success: true, message: "OTP sent successfully" });
+    return res.status(200).json({
+      success: true,
+      message: "If this account exists, an OTP has been sent.",
+    });
 
   } catch (error) {
-    // CRITICAL: Always return error.message here during testing so your frontend 
-    // can tell you exactly what crashed instead of just saying "500"
-    return res.status(500).json({ success: false, message: "Internal server error", error: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -126,10 +129,13 @@ export const verifyOTP = async (req, res) => {
 
     // 2. Find user with OTP fields
     const user = await User.findOne({ email, role }).select("+otp +otpExpires");
+
+    // Same message as a wrong OTP — an attacker shouldn't be able to
+    // tell "no such account" apart from "you typed the wrong code".
     if (!user) {
-      return res.status(404).json({
+      return res.status(401).json({
         success: false,
-        message: `${role} not found`,
+        message: "Invalid or expired OTP",
       });
     }
 
@@ -137,7 +143,7 @@ export const verifyOTP = async (req, res) => {
     if (user.otp !== otp) {
       return res.status(401).json({
         success: false,
-        message: "Invalid OTP",
+        message: "Invalid or expired OTP",
       });
     }
 
@@ -145,7 +151,7 @@ export const verifyOTP = async (req, res) => {
     if (new Date() > user.otpExpires) {
       return res.status(401).json({
         success: false,
-        message: "OTP has expired",
+        message: "Invalid or expired OTP",
       });
     }
 

@@ -13,34 +13,6 @@ const getMembersCount = async (gymId) => {
   return await Member.countDocuments({ gym: gymId });
 };
 
-// "Active" = member's latest MemberSubscriptionHistory.expiryDate
-// hasn't passed yet. A member can have several subscription rows
-// (renewals), so we take each member's most recent one (by
-// joiningDate) and check only that.
-const getActiveMembersCount = async (gymId) => {
-  const memberIds = await Member.find({ gym: gymId }).distinct("_id");
-
-  if (memberIds.length === 0) return 0;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const result = await MemberSubscriptionHistory.aggregate([
-    { $match: { member: { $in: memberIds } } },
-    { $sort: { joiningDate: -1 } },
-    {
-      $group: {
-        _id: "$member",
-        latestExpiryDate: { $first: "$expiryDate" },
-      },
-    },
-    { $match: { latestExpiryDate: { $gte: today } } },
-    { $count: "activeCount" },
-  ]);
-
-  return result[0]?.activeCount || 0;
-};
-
 // Trainers are separate User documents (role: "trainer"), not an
 // embedded array on Gym. Frontend code keys off `trainer.id`, so we
 // map Mongo's `_id` -> `id` here once and reuse everywhere, instead
@@ -140,7 +112,6 @@ export const createGym = async (req, res) => {
     subscriptionHistory[subscriptionHistory.length - 1] || null;
   const trainers = await getFormattedTrainers(gym._id);
   const totalMembers = await getMembersCount(gym._id);
-  const activeMembers = await getActiveMembersCount(gym._id);
 
   res.status(201).json({
     success: true,
@@ -155,7 +126,6 @@ export const createGym = async (req, res) => {
       owner: populatedGym.owner,
       trainers,
       totalMembers,
-      activeMembers,
       address: populatedGym.address || "",
       subscriptionHistory,
       currentSubscription,
@@ -163,12 +133,10 @@ export const createGym = async (req, res) => {
   });
 }
 catch(error){
-  console.log(error);
+  console.error(error);
   res.status(500).json({
     success:false,
     message:"Internal server error",
-    error: error.message,
-    stack:error.stack,
   })
 }
 }
@@ -191,7 +159,6 @@ export const getAllGyms = async (req, res) => {
             : null;
         const trainers = await getFormattedTrainers(gym._id);
         const totalMembers = await getMembersCount(gym._id);
-        const activeMembers = await getActiveMembersCount(gym._id);
         return {
           _id: gym._id,
           gymCode: gym.gymCode,
@@ -202,7 +169,6 @@ export const getAllGyms = async (req, res) => {
           owner: gym.owner,
           trainers,
           totalMembers,
-          activeMembers,
           address: gym.address || "",
           subscriptionHistory: subscription,
           currentSubscription,
@@ -215,11 +181,10 @@ export const getAllGyms = async (req, res) => {
       gyms: data,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch gyms",
-      error: error.message,
-    });
+      message: "Failed to fetch gyms",    });
   }
 };
 
@@ -479,8 +444,6 @@ export const updateGym = async (req, res) => {
     const totalMembers =
       await getMembersCount(gym._id);
 
-    const activeMembers =
-      await getActiveMembersCount(gym._id);
 
     // ============================================================
     // 7. RETURN UPDATED GYM
@@ -504,7 +467,6 @@ export const updateGym = async (req, res) => {
 
         totalMembers,
 
-        activeMembers,
 
         address: populatedGym.address || "",
 
@@ -519,9 +481,7 @@ export const updateGym = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to update gym.",
-      error: error.message,
-    });
+      message: "Failed to update gym.",    });
   }
 };
 
@@ -576,7 +536,6 @@ export const addTrainer = async (req, res) => {
     const populatedGym = await Gym.findById(id).populate("owner");
     const trainers = await getFormattedTrainers(gym._id);
     const totalMembers = await getMembersCount(gym._id);
-    const activeMembers = await getActiveMembersCount(gym._id);
     const subscriptionHistory = await GymSubscriptionHistory.find({
       gymId: gym._id,
     }).sort({ startDate: 1 });
@@ -596,7 +555,6 @@ export const addTrainer = async (req, res) => {
         owner: populatedGym.owner,
         trainers,
         totalMembers,
-        activeMembers,
         address: populatedGym.address || "",
         subscriptionHistory,
         currentSubscription,
@@ -606,9 +564,7 @@ export const addTrainer = async (req, res) => {
     console.log(error);
     res.status(500).json({
       success: false,
-      message: "Failed to add trainer.",
-      error: error.message,
-    });
+      message: "Failed to add trainer.",    });
   }
 };
 
@@ -642,7 +598,6 @@ export const deleteTrainer = async (req, res) => {
     const populatedGym = await Gym.findById(id).populate("owner");
     const trainers = await getFormattedTrainers(gym._id);
     const totalMembers = await getMembersCount(gym._id);
-    const activeMembers = await getActiveMembersCount(gym._id);
     const subscriptionHistory = await GymSubscriptionHistory.find({
       gymId: gym._id,
     }).sort({ startDate: 1 });
@@ -662,7 +617,6 @@ export const deleteTrainer = async (req, res) => {
         owner: populatedGym.owner,
         trainers,
         totalMembers,
-        activeMembers,
         address: populatedGym.address || "",
         subscriptionHistory,
         currentSubscription,
@@ -672,9 +626,7 @@ export const deleteTrainer = async (req, res) => {
     console.log(error);
     res.status(500).json({
       success: false,
-      message: "Failed to remove trainer.",
-      error: error.message,
-    });
+      message: "Failed to remove trainer.",    });
   }
 };
 
@@ -733,8 +685,6 @@ export const deleteGym = async (req, res) => {
     console.log(error);
     res.status(500).json({
       success: false,
-      message: "Failed to delete gym.",
-      error: error.message,
-    });
+      message: "Failed to delete gym.",    });
   }
 };

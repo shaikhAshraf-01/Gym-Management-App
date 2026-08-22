@@ -231,11 +231,10 @@ export const getMembers = async (req, res) => {
       members: formatted,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch members.",
-      error: error.message,
-    });
+      message: "Failed to fetch members.",    });
   }
 };
 
@@ -330,12 +329,11 @@ export const addMember = async (req, res) => {
       member: formatted,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
 
       message: "Failed to add member.",
-
-      error: error.message,
     });
   }
 };
@@ -472,12 +470,11 @@ export const updateMember = async (req, res) => {
       member: formatted,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
 
       message: "Failed to update member.",
-
-      error: error.message,
     });
   }
 };
@@ -531,12 +528,11 @@ export const deleteMember = async (req, res) => {
       message: "Member deleted successfully.",
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
 
       message: "Failed to delete member.",
-
-      error: error.message,
     });
   }
 };
@@ -766,8 +762,6 @@ export const extendMembership = async (req, res) => {
 
       message:
         "Failed to renew membership.",
-
-      error: error.message,
     });
   }
 };

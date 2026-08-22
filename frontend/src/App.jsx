@@ -35,6 +35,7 @@ function App() {
 
   return (
     <BrowserRouter>
+    <div className="app">
       <BackButtonHandler />
       <Routes>
         {/* Public Path */}
@@ -78,6 +79,7 @@ function App() {
         {/* Fallback Redirection */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      </div>
     </BrowserRouter>
   );
 }

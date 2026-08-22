@@ -1,1 +1,9 @@
 @import "tailwindcss";
+.app{
+    user-select:none;
+    -webkit-user-select: none;
+}
+.app input, .apptextarea{
+    user-select:text;
+    -webkit-user-select: text;
+}
