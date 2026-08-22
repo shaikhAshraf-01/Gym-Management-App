@@ -5,12 +5,12 @@ import { PLAN_LABELS } from "../../redux/slices/membersSlice";
 export default function MemberHistoryModal({ member, onClose }) {
   if (!member) return null;
 
-  // Most recent first, capped to the last 2 events.
-  const history = [...(member.membershipHistory || [])].reverse().slice(0, 2);
+  // Most recent first, capped to the last 6 events (current + last 5).
+  const history = [...(member.membershipHistory || [])].reverse().slice(0, 6);
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-auto my-8">
         <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
           <div>
             <h2 className="text-base font-bold text-gray-900 uppercase tracking-wider">
