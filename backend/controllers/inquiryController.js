@@ -19,11 +19,10 @@ export const getInquiries = async (req, res) => {
     const inquiries = await Inquiry.find({ gym: req.user.gymId }).sort({ createdAt: -1 });
     res.status(200).json({ success: true, enquiries: inquiries.map(formatInquiry) });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch enquiries.",
-      error: error.message,
-    });
+      message: "Failed to fetch enquiries.",    });
   }
 };
 
@@ -53,11 +52,10 @@ export const addInquiry = async (req, res) => {
       enquiry: formatInquiry(inquiry),
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
-      message: "Failed to add enquiry.",
-      error: error.message,
-    });
+      message: "Failed to add enquiry.",    });
   }
 };
 
@@ -85,11 +83,10 @@ export const updateInquiry = async (req, res) => {
       enquiry: formatInquiry(inquiry),
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
-      message: "Failed to update enquiry.",
-      error: error.message,
-    });
+      message: "Failed to update enquiry.",    });
   }
 };
 
@@ -106,10 +103,9 @@ export const deleteInquiry = async (req, res) => {
     await Inquiry.findByIdAndDelete(id);
     res.status(200).json({ success: true, message: "Enquiry deleted successfully." });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
-      message: "Failed to delete enquiry.",
-      error: error.message,
-    });
+      message: "Failed to delete enquiry.",    });
   }
 };

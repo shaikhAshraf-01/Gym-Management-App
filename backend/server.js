@@ -5,6 +5,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import mongoSanitize from "@exortek/express-mongo-sanitize";
 import connectDB from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
@@ -44,6 +45,11 @@ app.use(cors({
 
 
 app.use(express.json());
+
+// Strips MongoDB operator keys ($ne, $gt, etc.) out of req.body/query/params
+// so a crafted field (e.g. { "mobile": { "$ne": null } }) can't be used to
+// bypass a findOne() filter — a classic NoSQL injection technique.
+app.use(mongoSanitize());
 
 // Login/OTP endpoints are the most attractive brute-force target — cap
 // attempts per IP so a script can't hammer passwords/OTPs indefinitely.

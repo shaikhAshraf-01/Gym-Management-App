@@ -19,11 +19,10 @@ export const getAdminProfile = async (req, res) => {
       data: admin,
     });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error.",
-      error: error.message,
-    });
+      message: "Internal server error.",    });
   }
 };
 
@@ -62,12 +61,10 @@ export const changeAdminPassword = async (req, res) => {
     });
 
   } catch (error) {
+    console.error(error);
     // Standardize error formats for the frontend tracking layer
     return res.status(500).json({ 
       success: false, 
-      message: "Internal server error.",
-      error: error.message 
-    });
+      message: "Internal server error.",    });
   }
 };
-

@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@exortek/express-mongo-sanitize": "^1.1.0",
     "@getbrevo/brevo": "^6.0.3",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.10.0",

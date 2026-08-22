@@ -55,11 +55,10 @@ export const getOwnerProfile = async (req, res) => {
       currentSubscription,
     });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error",
-      error: error.message,
-    });
+      message: "Internal server error",    });
   }
 };
 
@@ -134,11 +133,10 @@ streamifier.createReadStream(compressedBuffer).pipe(uploadStream); // req.file.b
     });
 
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error.",
-      error: error.message,
-    });
+      message: "Internal server error.",    });
   }
 };
 
@@ -179,9 +177,10 @@ export const removeGymLogo = async (req, res) => {
     });
 
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -253,9 +252,7 @@ const uploadFromBuffer = () =>
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Internal server error.",
-      error: error.message,
-    });
+      message: "Internal server error.",    });
   }
 };
 
@@ -283,9 +280,10 @@ export const removeTrainerPhoto = async (req, res) => {
       message: "Photo removed successfully.",
     });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
