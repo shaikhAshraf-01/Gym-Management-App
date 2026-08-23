@@ -22,6 +22,52 @@ const generateToken = (userId, role, tokenVersion) => {
   );
 };
 
+// Turns "90d" / "12h" / "45m" (the same format used for JWT_EXPIRE) into
+// milliseconds for the cookie's maxAge. Falls back to 90 days if
+// JWT_EXPIRE is missing or in a shape this doesn't understand.
+const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+const parseExpiryToMs = (value) => {
+  const match = /^(\d+)([smhd])$/.exec(String(value || "").trim());
+  if (!match) return NINETY_DAYS_MS;
+
+  const amount = Number(match[1]);
+  const unitMs = { s: 1000, m: 60 * 1000, h: 60 * 60 * 1000, d: 24 * 60 * 60 * 1000 };
+  return amount * unitMs[match[2]];
+};
+
+// Sets the httpOnly auth cookie used by the WEBSITE. The Capacitor app
+// keeps using the JSON `token` field + native secure storage instead
+// (cross-origin cookies inside a WebView are unreliable) — this cookie
+// is purely for browser sessions, where it protects the token from
+// being readable by any injected/XSS'd JavaScript.
+const setAuthCookie = (res, token) => {
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    maxAge: parseExpiryToMs(process.env.JWT_EXPIRE),
+    path: "/",
+  });
+};
+
+const clearAuthCookie = (res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/",
+  });
+};
+
+const publicUser = (user) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  mobile: user.mobile,
+  role: user.role,
+  photo: user.photo,
+});
+
 //====== Admin Login ======
 
 export const adminLogin = async (req, res) => {
@@ -48,18 +94,16 @@ export const adminLogin = async (req, res) => {
       });
     }
     const token = generateToken(admin._id, admin.role, admin.tokenVersion);
+
+    // Website: httpOnly cookie (JS can't touch it, XSS-proof).
+    // APK: keeps using the `token` field below via native secure storage.
+    setAuthCookie(res, token);
+
     return res.status(200).json({
       success: true,
       message: "Admin logged in successfully",
       token,
-      user: {
-        _id: admin._id,
-        name: admin.name,
-        email: admin.email,
-        mobile: admin.mobile,
-        role: admin.role,
-        photo: admin.photo,
-      },
+      user: publicUser(admin),
     });
   } catch (error) {
     console.error(error);
@@ -164,18 +208,14 @@ export const verifyOTP = async (req, res) => {
     // 6. Generate access token
     const token = generateToken(user._id, user.role, user.tokenVersion);
 
+    // Website: httpOnly cookie. APK: `token` field + native secure storage.
+    setAuthCookie(res, token);
+
     return res.status(200).json({
       success: true,
       message: `${role} logged in successfully`,
       token,
-      user:{
-        _id:user._id,
-        name:user.name,
-        email:user.email,
-        mobile:user.mobile,
-        role:user.role,
-        photo:user.photo,
-      }
+      user: publicUser(user),
     });
   } catch  {
     return res.status(500).json({
@@ -183,4 +223,31 @@ export const verifyOTP = async (req, res) => {
       message: "Internal server error",
     });
   }
+};
+
+//====== Get Current Session (used for session-restore on the website) ======
+//
+// The website has no client-readable way to check "am I logged in?" since
+// the auth cookie is httpOnly by design — so it asks the backend instead.
+// `protect` (authMiddleware) already validated the cookie/token and set
+// req.user before this runs.
+export const getMe = async (req, res) => {
+  return res.status(200).json({
+    success: true,
+    user: publicUser(req.user),
+  });
+};
+
+//====== Logout ======
+//
+// Clearing localStorage/secure-storage on the client only handles the
+// APK/token side — the website's httpOnly cookie can't be cleared by
+// client JS at all, so the browser needs the server to explicitly tell
+// it (via Set-Cookie) to drop the cookie.
+export const logoutUser = async (req, res) => {
+  clearAuthCookie(res);
+  return res.status(200).json({
+    success: true,
+    message: "Logged out successfully",
+  });
 };

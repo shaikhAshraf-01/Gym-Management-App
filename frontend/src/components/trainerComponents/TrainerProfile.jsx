@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { User, Phone, Mail, Building2, LogOut, Camera, Trash2 } from "lucide-react";
 
-import { logout } from "../../redux/slices/authSlice";
+import { performLogout } from "../../redux/slices/authSlice";
 import {
   fetchOwnerProfile,
   uploadTrainerPhoto,
@@ -32,7 +32,7 @@ export default function TrainerProfile() {
   }, [dispatch]);
 
   const handleLogout = () => {
-    dispatch(logout());
+    dispatch(performLogout());
     navigate("/login");
   };
 

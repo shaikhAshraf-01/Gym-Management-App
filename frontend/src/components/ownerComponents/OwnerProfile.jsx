@@ -14,7 +14,7 @@ import {
   LogOut,
 } from "lucide-react";
 
-import { logout } from "../../redux/slices/authSlice";
+import { performLogout } from "../../redux/slices/authSlice";
 import {
   fetchOwnerProfile,
   uploadGymLogo,
@@ -42,7 +42,7 @@ export default function OwnerProfile() {
   }, [dispatch]);
 
   const handleLogout = () => {
-    dispatch(logout());
+    dispatch(performLogout());
     navigate("/login");
   };
   const handleLogoChange = async (e) => {

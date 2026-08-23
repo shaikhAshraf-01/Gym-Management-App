@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { logout } from "../../redux/slices/authSlice";
+import { performLogout } from "../../redux/slices/authSlice";
 import { LayoutDashboard, Dumbbell, User, LogOut } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -9,7 +9,7 @@ export default function AdminSidebar() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    dispatch(logout());
+    dispatch(performLogout());
     navigate("/login");
   };
 

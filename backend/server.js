@@ -4,6 +4,7 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "@exortek/express-mongo-sanitize";
 import connectDB from "./config/db.js";
@@ -45,26 +46,16 @@ app.use(cors({
 
 
 app.use(express.json());
+app.use(cookieParser());
 
 // Strips MongoDB operator keys ($ne, $gt, etc.) out of req.body/query/params
 // so a crafted field (e.g. { "mobile": { "$ne": null } }) can't be used to
 // bypass a findOne() filter — a classic NoSQL injection technique.
 app.use(mongoSanitize());
 
-// Login/OTP endpoints are the most attractive brute-force target — cap
-// attempts per IP so a script can't hammer passwords/OTPs indefinitely.
-// General API routes get a looser limit just to blunt abusive traffic.
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: "Too many attempts. Please try again after 15 minutes.",
-  },
-});
-
+// Login/OTP endpoints get their own stricter limiter, applied at the
+// route level in authRoutes.js (so /me and /logout — called far more
+// often during normal use — aren't caught by that stricter cap).
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
@@ -72,7 +63,7 @@ const generalLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/auth", generalLimiter, authRoutes);
 app.use("/api/admin", generalLimiter, adminRoutes);
 app.use("/api/owner", generalLimiter, ownerRoutes);
 

@@ -12,6 +12,35 @@ const PLAN_MONTHS = {
 const toDateStr = (d) => new Date(d).toISOString().split("T")[0];
 
 // ---------------------------------------------------------------------
+// pruneOldSubscriptionHistory
+//
+// Every extend/renewal creates a new MemberSubscriptionHistory row and
+// keeps the old ones forever — for a long-running gym that's an
+// unbounded number of rows per member. This keeps only the most recent
+// `keep` subscriptions (current + the last few renewals) and deletes
+// anything older, along with their linked MemberPaymentHistory rows so
+// nothing orphaned is left behind pointing at a deleted subscription.
+// ---------------------------------------------------------------------
+const pruneOldSubscriptionHistory = async (memberId, keep = 6) => {
+  const oldSubscriptionIds = await MemberSubscriptionHistory.find({
+    member: memberId,
+  })
+    .sort({ joiningDate: -1 })
+    .skip(keep)
+    .distinct("_id");
+
+  if (oldSubscriptionIds.length === 0) return;
+
+  await MemberPaymentHistory.deleteMany({
+    memberSubscription: { $in: oldSubscriptionIds },
+  });
+
+  await MemberSubscriptionHistory.deleteMany({
+    _id: { $in: oldSubscriptionIds },
+  });
+};
+
+// ---------------------------------------------------------------------
 // formatMember
 //
 // Returns the CURRENT/LATEST membership in the main Members table.
@@ -736,6 +765,13 @@ export const extendMembership = async (req, res) => {
           "Membership renewal payment",
       });
     }
+
+    // ---------------------------------------------------------------
+    // Keep only the current + last 5 subscriptions for this member —
+    // older ones (and their payment rows) get deleted so history
+    // doesn't grow unbounded over years of renewals.
+    // ---------------------------------------------------------------
+    await pruneOldSubscriptionHistory(member._id);
 
     // ---------------------------------------------------------------
     // Return current member

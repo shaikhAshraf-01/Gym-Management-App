@@ -3,16 +3,26 @@ import User from "../models/User.js";
 
 const authMiddleware = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    // Website sends the httpOnly cookie automatically. The APK has no
+    // cookie to rely on (cross-origin cookies inside a WebView are
+    // unreliable) — it sends the token via the Authorization header
+    // instead, read from native secure storage. Cookie is checked first
+    // since it's the safer of the two when both happen to be present.
+    let token = req.cookies?.token;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.split(" ")[1];
+      }
+    }
+
+    if (!token) {
       return res.status(401).json({
         success: false,
         message: "Access denied. No token provided.",
       });
     }
-
-    const token = authHeader.split(" ")[1];
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 

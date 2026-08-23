@@ -9,6 +9,7 @@ import {
 } from "../redux/slices/authSlice";
 import { adminLogin, sendOtp, verifyOtp } from "../api/authApi";
 import { fetchGyms } from "../redux/slices/gymSlice";
+import { setStoredToken } from "../utils/secureStorage";
 
 // Same login logic that used to live directly in Login.jsx — pulled out
 // so it can be rendered either as its own full page (/login) or inside
@@ -71,6 +72,11 @@ export default function LoginForm({ onClose }) {
       } else {
         response = await verifyOtp({ email, otp, role, rememberMe });
       }
+
+      // APK: save token to native secure storage for future requests.
+      // Web: no-op — the browser already has the httpOnly cookie the
+      // backend just set via Set-Cookie on this same login response.
+      await setStoredToken(response.data.token);
 
       dispatch(
         loginSuccess({

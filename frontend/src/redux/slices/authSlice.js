@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { adminLogin } from "../../api/authApi"; 
+import { adminLogin, getMeApi, logoutApi } from "../../api/authApi";
 import { getAdminProfileApi, changeAdminPasswordApi } from "../../api/adminApi";
+import { removeStoredToken } from "../../utils/secureStorage";
 
 // ==========================================
 // ====== ASYNC THUNKS (API LIFECYCLES) ======
@@ -20,23 +21,15 @@ export const loginAdminThunk = createAsyncThunk(
   }
 );
 
-// 2. Fetch Fresh Admin Profile Thunk (Corrected and Bulletproof)
+// 2. Fetch Fresh Admin Profile Thunk
 export const fetchAdminProfile = createAsyncThunk(
   "auth/fetchAdminProfile",
   async (_, { rejectWithValue }) => {
     try {
-      const stored = localStorage.getItem("fitzone_auth");
-      let customHeaders = {};
-      
-      if (stored) {
-        const { token } = JSON.parse(stored);
-        if (token) {
-          customHeaders = { Authorization: `Bearer ${token}` };
-        }
-      }
-
-      // ✅ FIX: Use getAdminProfileApi and pass our freshly read fallback headers
-      const response = await getAdminProfileApi(customHeaders);
+      // No manual header needed anymore — the website sends its
+      // httpOnly cookie automatically, and the APK's axios interceptor
+      // already attaches its token from secure storage.
+      const response = await getAdminProfileApi();
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -46,24 +39,12 @@ export const fetchAdminProfile = createAsyncThunk(
   }
 );
 
-// 3. Update Security Password Thunk (Corrected and Bulletproof)
+// 3. Update Security Password Thunk
 export const changeAdminPassword = createAsyncThunk(
   "auth/changeAdminPassword",
   async (passwordData, { rejectWithValue }) => {
     try {
-      // 🚀 THE FIX: Read the fresh token directly from localStorage right at this millisecond
-      const stored = localStorage.getItem("fitzone_auth");
-      let customHeaders = {};
-      
-      if (stored) {
-        const { token } = JSON.parse(stored);
-        if (token) {
-          customHeaders = { Authorization: `Bearer ${token}` };
-        }
-      }
-
-      // Pass the data payload and manually attach the fallback authorization headers
-      const response = await changeAdminPasswordApi(passwordData, customHeaders);
+      const response = await changeAdminPasswordApi(passwordData);
       return response.data; 
     } catch (error) {
       return rejectWithValue(
@@ -72,6 +53,47 @@ export const changeAdminPassword = createAsyncThunk(
     }
   }
 );
+
+// 4. Restore session on app boot.
+//
+// Neither platform can just read local data and trust it anymore:
+// the website's cookie is httpOnly (JS literally cannot read it), and
+// even the APK's token is worth re-validating against the server
+// (tokenVersion may have been bumped, account may be gone, etc). So
+// both platforms ask the backend "am I still logged in?" — the
+// website via the auto-sent cookie, the APK via the axios
+// interceptor's Authorization header (read from secure storage).
+export const restoreSession = createAsyncThunk(
+  "auth/restoreSession",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await getMeApi();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Not logged in."
+      );
+    }
+  }
+);
+
+// 5. Logout.
+//
+// A plain `dispatch(logout())` only clears in-memory Redux state — it
+// can't touch the website's httpOnly cookie (by design, client JS
+// can't) or the APK's secure storage (needs its own async call). This
+// does all three: tell the backend to clear the cookie, clear the
+// APK's stored token, then clear local state.
+export const performLogout = () => async (dispatch) => {
+  try {
+    await logoutApi();
+  } catch {
+    // Even if this fails (e.g. already logged out, network hiccup),
+    // still clear everything client-side below.
+  }
+  await removeStoredToken();
+  dispatch(logout());
+};
 
 
 // ==========================================
@@ -98,6 +120,12 @@ const authSlice = createSlice({
       state.error = null;
     },
 
+    // NOTE: this only sets in-memory state. The httpOnly cookie is
+    // already set by the backend's Set-Cookie header on the login
+    // response (website), and the APK is responsible for saving
+    // `token` into secure storage itself right after this dispatch
+    // (see LoginForm.jsx) — this reducer stays a plain, synchronous,
+    // side-effect-free state update on purpose.
     loginSuccess: (state, action) => {
       state.loading = false;
       state.isAuthenticated = true;
@@ -105,15 +133,6 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.role = action.payload.role;
       state.error = null;
-
-      localStorage.setItem(
-        "fitzone_auth",
-        JSON.stringify({
-          user: action.payload.user,
-          token: action.payload.token,
-          role: action.payload.role,
-        })
-      );
     },
 
     loginFailure: (state, action) => {
@@ -121,6 +140,11 @@ const authSlice = createSlice({
       state.error = action.payload;
     },
 
+    // Plain, synchronous, local-only reset. Use `performLogout()`
+    // instead when you actually want to log the user out — this alone
+    // does NOT clear the website's httpOnly cookie or the APK's
+    // secure storage. (store.js resets the rest of the Redux state
+    // whenever this exact action type fires — see its rootReducer.)
     logout: (state) => {
       state.user = null;
       state.token = null;
@@ -128,42 +152,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.loading = false;
       state.error = null;
-
-      localStorage.removeItem("fitzone_auth");
     },
-
-       restoreSession: (state) => {
-      const stored = localStorage.getItem("fitzone_auth");
-
-      // 1. If nothing is in local storage, initialize immediately and stop
-      if (!stored) {
-        state.isInitialized = true; // 🔓 Unlocks the loading spinner!
-        state.isAuthenticated = false;
-        return;
-      }
-
-      try {
-        const { user, token, role } = JSON.parse(stored);
-
-        if (user && token && role) {
-          state.user = user;
-          state.token = token;
-          state.role = role;
-          state.isAuthenticated = true;
-        } else {
-          // If the data structure is corrupt or incomplete, clean it up
-          localStorage.removeItem("fitzone_auth");
-          state.isAuthenticated = false;
-        }
-      } catch (error) {
-        localStorage.removeItem("fitzone_auth");
-        state.isAuthenticated = false;
-      } finally {
-        // 2. This guarantees the initialization completes no matter what!
-        state.isInitialized = true;
-      }
-    },
-
   },
 
   extraReducers: (builder) => {
@@ -180,19 +169,31 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.role = action.payload.role;
         state.error = null;
-
-        localStorage.setItem(
-          "fitzone_auth",
-          JSON.stringify({
-            user: action.payload.user,
-            token: action.payload.token,
-            role: action.payload.role,
-          })
-        );
       })
       .addCase(loginAdminThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+
+      // --- Session Restore Lifecycle ---
+      .addCase(restoreSession.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(restoreSession.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = true;
+        state.user = action.payload.user;
+        state.role = action.payload.user.role;
+        state.isInitialized = true;
+      })
+      .addCase(restoreSession.rejected, (state) => {
+        // No valid cookie/token — just means "not logged in", not an
+        // error worth surfacing anywhere.
+        state.loading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.role = null;
+        state.isInitialized = true;
       })
 
       // --- Profile Fetching Lifecycle ---
@@ -203,12 +204,6 @@ const authSlice = createSlice({
       .addCase(fetchAdminProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.data; 
-        
-        const stored = JSON.parse(localStorage.getItem("fitzone_auth") || "{}");
-        localStorage.setItem(
-          "fitzone_auth",
-          JSON.stringify({ ...stored, user: action.payload.data })
-        );
       })
       .addCase(fetchAdminProfile.rejected, (state, action) => {
         state.loading = false;
@@ -236,7 +231,6 @@ export const {
   loginSuccess,
   loginFailure,
   logout,
-  restoreSession,
 } = authSlice.actions;
 
 export default authSlice.reducer;

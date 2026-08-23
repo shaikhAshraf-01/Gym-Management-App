@@ -1,7 +1,7 @@
 import React, { useState,useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { logout,fetchAdminProfile, changeAdminPassword } from "../../redux/slices/authSlice";
+import { performLogout, fetchAdminProfile, changeAdminPassword } from "../../redux/slices/authSlice";
 import { User, Phone, Mail, Shield, LogOut, KeyRound } from "lucide-react";
 
 export default function AdminProfile() {
@@ -30,7 +30,7 @@ export default function AdminProfile() {
   const adminEmail = user?.email || "";
 
   const handleLogout = () => {
-    dispatch(logout());
+    dispatch(performLogout());
     navigate("/login");
   };
 
