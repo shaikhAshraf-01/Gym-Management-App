@@ -22,12 +22,14 @@ const toDateStr = (d) => new Date(d).toISOString().split("T")[0];
 // nothing orphaned is left behind pointing at a deleted subscription.
 // ---------------------------------------------------------------------
 const pruneOldSubscriptionHistory = async (memberId, keep = 6) => {
-  const oldSubscriptionIds = await MemberSubscriptionHistory.find({
+  const oldSubscriptions = await MemberSubscriptionHistory.find({
     member: memberId,
   })
     .sort({ joiningDate: -1 })
     .skip(keep)
-    .distinct("_id");
+    .select("_id");
+
+  const oldSubscriptionIds = oldSubscriptions.map((s) => s._id);
 
   if (oldSubscriptionIds.length === 0) return;
 
