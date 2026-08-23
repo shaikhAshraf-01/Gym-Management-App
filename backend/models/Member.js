@@ -23,6 +23,8 @@ const memberSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Gym",
       required: true,
+        index: true,   // 👈 add karo
+
     },
 
     trainer: {

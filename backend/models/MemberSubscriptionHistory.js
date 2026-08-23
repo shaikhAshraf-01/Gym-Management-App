@@ -6,6 +6,8 @@ const memberSubscriptionHistorySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Member",
       required: true,
+        index: true,   // 👈 add karo
+
     },
 
     plan: {

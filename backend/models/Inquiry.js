@@ -4,6 +4,8 @@ const inquirySchema=new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:"Gym",
         required:true,
+          index: true,   // 👈 add karo
+
     },
     name:{
         type:String,

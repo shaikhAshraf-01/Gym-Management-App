@@ -14,6 +14,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import ownerRoutes from "./routes/ownerRoutes.js"
 connectDB();
 const app=express();
+app.set("trust proxy", 1);
 
 // Basic HTTP security headers (clickjacking, MIME-sniffing, etc.)
 app.use(helmet());
@@ -71,7 +72,33 @@ app.use("/api/owner", generalLimiter, ownerRoutes);
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
+// Any route that isn't matched above (typo'd endpoint, old frontend
+// build hitting a removed route, etc.)
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found.",
+  });
+});
 
+// Last-resort safety net for anything that slips past a controller's
+// own try/catch.
+app.use((error, req, res, next) => {
+  console.error("Unhandled error:", error);
+  res.status(500).json({
+    success: false,
+    message: "Internal server error.",
+  });
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Promise Rejection:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
+  process.exit(1);
+});
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

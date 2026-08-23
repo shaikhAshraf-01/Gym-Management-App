@@ -6,6 +6,8 @@ const memberPaymentHistorySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "MemberSubscriptionHistory",
       required: true,
+        index: true,   // 👈 add karo
+
     },
 
     amountPaid: {
