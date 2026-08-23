@@ -42,11 +42,18 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            removeStoredToken(); // no-ops on web
-            store.dispatch(logout());
+            // /auth/me sirf "kya main logged in hoon" check karta hai app
+            // load hote hi — anon visitor ke liye 401 aana normal hai,
+            // isko forced logout/redirect nahi maanna chahiye.
+            const isSessionProbe = error.config?.url?.includes("/auth/me");
 
-            if (window.location.pathname !== "/login") {
-                window.location.href = "/login";
+            if (!isSessionProbe) {
+                removeStoredToken();
+                store.dispatch(logout());
+
+                if (window.location.pathname !== "/login") {
+                    window.location.href = "/login";
+                }
             }
         }
 
