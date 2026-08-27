@@ -43,7 +43,7 @@ export default function OwnerProfile() {
 
   const handleLogout = () => {
     dispatch(performLogout());
-    navigate("/login");
+    navigate("/");
   };
   const handleLogoChange = async (e) => {
     const file = e.target.files?.[0];

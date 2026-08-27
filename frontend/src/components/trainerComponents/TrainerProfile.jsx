@@ -33,7 +33,7 @@ export default function TrainerProfile() {
 
   const handleLogout = () => {
     dispatch(performLogout());
-    navigate("/login");
+    navigate("/");
   };
 
   const handlePhotoChange = async (e) => {

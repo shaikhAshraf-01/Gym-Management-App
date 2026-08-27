@@ -31,7 +31,7 @@ export default function AdminProfile() {
 
   const handleLogout = () => {
     dispatch(performLogout());
-    navigate("/login");
+    navigate("/");
   };
 
   const resetForm = () => {

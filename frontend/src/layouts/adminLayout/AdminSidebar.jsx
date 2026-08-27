@@ -10,7 +10,7 @@ export default function AdminSidebar() {
 
   const handleLogout = () => {
     dispatch(performLogout());
-    navigate("/login");
+    navigate("/");
   };
 
   const navItems = [
