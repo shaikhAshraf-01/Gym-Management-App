@@ -96,7 +96,7 @@ We’re happy to have you with us.`;
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="rounded-lg p-2 bg-red-50 text-red-600 border border-red-200 transition hover:bg-red-100"
           >
             <X className="h-5 w-5" />
           </button>

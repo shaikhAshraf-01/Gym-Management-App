@@ -56,7 +56,7 @@ export default function MemberHistoryModal({ member, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
+            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg cursor-pointer transition-colors"
           >
             <X className="h-5 w-5" />
           </button>

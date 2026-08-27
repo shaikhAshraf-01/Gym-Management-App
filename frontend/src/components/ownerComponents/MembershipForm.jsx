@@ -16,6 +16,19 @@ export default function MembershipForm({ onSave, prefill }) {
     remainingPayingDate: "",
   });
 
+  // ---------------------------------------------------------------
+  // Earliest allowed Joining Date — capped to 6 months back from
+  // today (no upper cap, so future-dated joining is still allowed).
+  // ---------------------------------------------------------------
+  const getMinJoiningDate = () => {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    return sixMonthsAgo.toISOString().split("T")[0];
+  };
+
+  const todayStr = new Date().toISOString().split("T")[0];
+
   // Prefill listener
   useEffect(() => {
     if (prefill) {
@@ -51,6 +64,24 @@ export default function MembershipForm({ onSave, prefill }) {
 
     calculatedExpiry = `${year}-${month}-${day}`;
   }
+
+  // Remaining Paying Date must stay within [today, expiry] — if a
+  // previously-picked date falls outside that window (e.g. plan or
+  // joining date changed), clear it so a stale/out-of-range date
+  // can't silently be submitted.
+  useEffect(() => {
+    setFormData((prev) => {
+      if (
+        prev.remainingPayingDate &&
+        (prev.remainingPayingDate < todayStr ||
+          (calculatedExpiry && prev.remainingPayingDate > calculatedExpiry))
+      ) {
+        return { ...prev, remainingPayingDate: "" };
+      }
+      return prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calculatedExpiry]);
 
   // Amount calculations
   const total = parseFloat(formData.planAmount) || 0;
@@ -266,9 +297,14 @@ export default function MembershipForm({ onSave, prefill }) {
               name="joiningDate"
               value={formData.joiningDate}
               onChange={handleChange}
+              min={getMinJoiningDate()}
               className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
               required
             />
+
+            <p className="text-[10px] text-gray-400 mt-1">
+              Up to 6 months back, or any date onwards
+            </p>
           </div>
 
           {/* Plan Amount */}
@@ -362,9 +398,15 @@ export default function MembershipForm({ onSave, prefill }) {
                 name="remainingPayingDate"
                 value={formData.remainingPayingDate}
                 onChange={handleChange}
+                min={todayStr}
+                max={calculatedExpiry || undefined}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
                 required
               />
+
+              <p className="text-[10px] text-gray-400 mt-1">
+                Must fall between today and the plan expiry date
+              </p>
             </div>
           )}
 

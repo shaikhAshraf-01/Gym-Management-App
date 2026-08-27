@@ -55,6 +55,19 @@ export default function EditMemberModal({ member, onSave, onClose }) {
 
   if (!member) return null;
 
+  // ---------------------------------------------------------------
+  // Earliest allowed Joining Date — capped to 6 months back from
+  // today (no upper cap, so future-dated joining is still allowed).
+  // ---------------------------------------------------------------
+  const getMinJoiningDate = () => {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    return sixMonthsAgo.toISOString().split("T")[0];
+  };
+
+  const todayStr = new Date().toISOString().split("T")[0];
+
   // ------------------------------------------------------------
   // CALCULATE EXPIRY DATE
   // ------------------------------------------------------------
@@ -271,7 +284,7 @@ export default function EditMemberModal({ member, onSave, onClose }) {
 
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
+            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg cursor-pointer transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -361,9 +374,14 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 name="joiningDate"
                 value={formData.joiningDate}
                 onChange={handleChange}
+                min={getMinJoiningDate()}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
                 required
               />
+
+              <p className="text-[10px] text-gray-400 mt-1">
+                Up to 6 months back, or any date onwards
+              </p>
             </div>
 
             {/* EXPIRY DATE */}
@@ -457,8 +475,17 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 name="balanceUpdateDate"
                 value={formData.balanceUpdateDate}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                min={todayStr}
+                max={formData.expiryDate || undefined}
+                disabled={Number(formData.balanceAmount) === 0}
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
               />
+
+              <p className="text-[10px] text-gray-400 mt-1">
+                {Number(formData.balanceAmount) === 0
+                  ? "No balance pending — nothing to collect"
+                  : "Must fall between today and the expiry date"}
+              </p>
             </div>
 
             {/* PAYMENT MODE */}

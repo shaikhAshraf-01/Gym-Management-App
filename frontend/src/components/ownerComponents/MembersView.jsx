@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Edit2, CalendarPlus, Phone, User, Search, X, Calendar, CalendarX, Trash2, Eye, Check, MessageCircle } from "lucide-react";
+import { Edit2, CalendarPlus, Phone, User, Search, X, Calendar, CalendarX, Trash2, Eye, Check, MessageCircle, MoreVertical } from "lucide-react";
 import { fetchMembers, updateMember, deleteMember, extendMembership, PLAN_LABELS } from "../../redux/slices/membersSlice";
 import { fetchOwnerProfile } from "../../redux/slices/ownerSlice";
 import EditMemberModal from "./EditMemberModal";
@@ -33,6 +33,8 @@ export default function MembersView() {
   const [extendingMember, setExtendingMember] = useState(null); 
   const [viewingMember, setViewingMember] = useState(null); 
   const [deletingMemberId, setDeletingMemberId] = useState(null);
+  // Row/card whose "⋮" (Edit/Delete) dropdown is currently open
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
   // Member currently being sent a balance-due reminder WhatsApp message
   const [remindingBalanceMember, setRemindingBalanceMember] = useState(null);
   // Holds { ...updatedMember, _extensionPayload } after a successful
@@ -44,6 +46,7 @@ export default function MembersView() {
   useBackHandler(!!extendingMember, () => setExtendingMember(null));
   useBackHandler(!!viewingMember, () => setViewingMember(null));
   useBackHandler(!!deletingMemberId, () => setDeletingMemberId(null));
+  useBackHandler(!!openActionMenuId, () => setOpenActionMenuId(null));
   useBackHandler(!!remindingBalanceMember, () => setRemindingBalanceMember(null));
   useBackHandler(!!confirmingRenewalMember, () => setConfirmingRenewalMember(null));
 
@@ -77,6 +80,17 @@ Thank you! 🙏
 ${gym} Team 💪`;
   };
 
+  // "Fees khatam" check — membership already expired (expiryDate is in
+  // the past) → show Renew, otherwise the plan is still active → Extend.
+  const isMemberExpired = (member) => {
+    if (!member.expiryDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = new Date(member.expiryDate);
+    expiry.setHours(0, 0, 0, 0);
+    return expiry < today;
+  };
+
   const handleEdit = (member) => setEditingMember(member);
   const handleView = (member) => setViewingMember(member);
   const handleExtend = (member) => setExtendingMember(member);
@@ -101,11 +115,12 @@ ${gym} Team 💪`;
     }
   };
 
-  // Builds the renewal confirmation text — uses what was actually
-  // submitted in the extend form (this transaction's amount/plan),
-  // not the member's cumulative totals, plus the freshly-computed
-  // new expiry date from the backend response.
-  const buildRenewalMessage = (member) => {
+  // Builds the EXTENSION confirmation text (Extend button — active
+  // members). Uses what was actually submitted in the extend form
+  // (this transaction's amount/plan), not the member's cumulative
+  // totals, plus the freshly-computed new expiry date from the
+  // backend response.
+  const buildExtensionMessage = (member) => {
     const gym = gymName || "our gym";
     const payload = member._extensionPayload || {};
     const durationLabel = (payload.plan || member.plan || "").replace("_", "-");
@@ -113,7 +128,7 @@ ${gym} Team 💪`;
 
     let message = `Hello ${member.name}! 🎉
 
-✅ Your membership at ${gym} has been renewed for ${durationLabel}. We've received your payment of ₹${payload.amountPayingToday || 0}.`;
+✅ Your membership at ${gym} has been extended for ${durationLabel}. We've received your payment of ₹${payload.amountPayingToday || 0}.`;
 
     if (balance > 0) {
       message += `
@@ -230,21 +245,21 @@ Thank you for continuing with us! 💪🙌`;
                         <Eye className="h-3.5 w-3.5" />
                         <span>View</span>
                       </button>
-                      <button onClick={() => handleExtend(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200 transition-colors cursor-pointer">
-                        <CalendarPlus className="h-3.5 w-3.5" />
-                        <span>Extend</span>
-                      </button>
-                      <RenewMembershipAction
-                        member={member}
-                        addedBy={addedBy}
-                        gymName={gymName}
-                        canUseManualWhatsApp={canUseManualWhatsApp}
-                        variant="desktop"
-                      />
-                      <button onClick={() => handleEdit(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-md border border-gray-200 transition-colors cursor-pointer">
-                        <Edit2 className="h-3.5 w-3.5" />
-                        <span>Edit</span>
-                      </button>
+                      {isMemberExpired(member) ? (
+                        <RenewMembershipAction
+                          member={member}
+                          addedBy={addedBy}
+                          gymName={gymName}
+                          canUseManualWhatsApp={canUseManualWhatsApp}
+                          variant="desktop"
+                        />
+                      ) : (
+                        <button onClick={() => handleExtend(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200 transition-colors cursor-pointer">
+                          <CalendarPlus className="h-3.5 w-3.5" />
+                          <span>Extend</span>
+                        </button>
+                      )}
+
                       {deletingMemberId === member.id ? (
                         <div className="flex items-center gap-1 animate-in fade-in slide-in-from-right-2 duration-150">
                           <button onClick={() => handleConfirmDelete(member.id)} className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-md cursor-pointer" title="Confirm Delete">
@@ -255,9 +270,34 @@ Thank you for continuing with us! 💪🙌`;
                           </button>
                         </div>
                       ) : (
-                        <button onClick={() => setDeletingMemberId(member.id)} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-md border border-red-200 cursor-pointer transition-colors" title="Delete Member">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenActionMenuId(openActionMenuId === member.id ? null : member.id)}
+                            className="p-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-md border border-gray-200 cursor-pointer transition-colors"
+                            title="More actions"
+                          >
+                            <MoreVertical className="h-3.5 w-3.5" />
+                          </button>
+                          {openActionMenuId === member.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setOpenActionMenuId(null)} />
+                              <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden animate-in fade-in duration-100">
+                                <button
+                                  onClick={() => { setOpenActionMenuId(null); handleEdit(member); }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" /> Edit
+                                </button>
+                                <button
+                                  onClick={() => { setOpenActionMenuId(null); setDeletingMemberId(member.id); }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                   </td>
@@ -303,9 +343,34 @@ Thank you for continuing with us! 💪🙌`;
                         </button>
                       </div>
                     ) : (
-                      <button onClick={() => setDeletingMemberId(member.id)} aria-label="Delete member" className="p-2 bg-red-50 active:bg-red-100 text-red-600 border border-red-100 rounded-lg cursor-pointer shrink-0">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="relative shrink-0">
+                        <button
+                          onClick={() => setOpenActionMenuId(openActionMenuId === member.id ? null : member.id)}
+                          aria-label="More actions"
+                          className="p-2 bg-gray-100 active:bg-gray-200 text-gray-700 border border-gray-200 rounded-lg cursor-pointer"
+                        >
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </button>
+                        {openActionMenuId === member.id && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setOpenActionMenuId(null)} />
+                            <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden animate-in fade-in duration-100">
+                              <button
+                                onClick={() => { setOpenActionMenuId(null); handleEdit(member); }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 active:bg-gray-50 cursor-pointer"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" /> Edit
+                              </button>
+                              <button
+                                onClick={() => { setOpenActionMenuId(null); setDeletingMemberId(member.id); }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 active:bg-red-50 cursor-pointer"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" /> Delete
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -356,21 +421,20 @@ Thank you for continuing with us! 💪🙌`;
                   <Eye className="h-3.5 w-3.5" />
                   <span>View</span>
                 </button>
-                <button onClick={() => handleExtend(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm cursor-pointer">
-                  <CalendarPlus className="h-3.5 w-3.5" />
-                  <span>Extend</span>
-                </button>
-                <RenewMembershipAction
-                  member={member}
-                  addedBy={addedBy}
-                  gymName={gymName}
-                  canUseManualWhatsApp={canUseManualWhatsApp}
-                  variant="mobile"
-                />
-                <button onClick={() => handleEdit(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-gray-200 cursor-pointer">
-                  <Edit2 className="h-3.5 w-3.5" />
-                  <span>Edit</span>
-                </button>
+                {isMemberExpired(member) ? (
+                  <RenewMembershipAction
+                    member={member}
+                    addedBy={addedBy}
+                    gymName={gymName}
+                    canUseManualWhatsApp={canUseManualWhatsApp}
+                    variant="mobile"
+                  />
+                ) : (
+                  <button onClick={() => handleExtend(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm cursor-pointer">
+                    <CalendarPlus className="h-3.5 w-3.5" />
+                    <span>Extend</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -395,7 +459,7 @@ Thank you for continuing with us! 💪🙌`;
         isOpen={!!confirmingRenewalMember}
         onClose={() => setConfirmingRenewalMember(null)}
         phone={confirmingRenewalMember?.mobile}
-        customMessage={confirmingRenewalMember ? buildRenewalMessage(confirmingRenewalMember) : ""}
+        customMessage={confirmingRenewalMember ? buildExtensionMessage(confirmingRenewalMember) : ""}
       />
 
     </div>
