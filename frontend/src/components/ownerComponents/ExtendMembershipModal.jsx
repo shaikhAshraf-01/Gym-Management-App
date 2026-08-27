@@ -262,7 +262,7 @@ export default function ExtendMembershipModal({
             {/* Plan */}
             <div>
               <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Renew For
+                Plan
               </label>
 
               <select
@@ -442,7 +442,7 @@ export default function ExtendMembershipModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold uppercase tracking-wider p-3 rounded-lg transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold uppercase tracking-wider p-2.5 rounded-lg transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
@@ -450,7 +450,7 @@ export default function ExtendMembershipModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold uppercase tracking-wider p-3 rounded-lg transition-colors cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold uppercase tracking-wider p-2.5 rounded-lg transition-colors cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -458,7 +458,7 @@ export default function ExtendMembershipModal({
                   Renewing...
                 </>
               ) : (
-                "Confirm Extension"
+                "Confirm"
               )}
             </button>
 
