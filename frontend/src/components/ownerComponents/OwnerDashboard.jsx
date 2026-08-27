@@ -42,14 +42,6 @@ function daysUntil(expiryDate) {
   );
 }
 
-// ---------------------------------------------------------
-// Determine expiry category
-//
-// active = membership is still active
-// today  = expires today
-// warm   = expired within last 3 months
-// cold   = expired more than 3 months ago
-// ---------------------------------------------------------
 function getExpiryStatus(expiryDate) {
   const days = daysUntil(expiryDate);
 
@@ -73,7 +65,6 @@ function getExpiryStatus(expiryDate) {
   const expiredDays = Math.abs(days);
 
   // More than 3 months
-  // Using 90 days as the 3-month threshold
   if (expiredDays > 90) {
     return {
       type: "cold",
@@ -90,10 +81,6 @@ function getExpiryStatus(expiryDate) {
 
 export default function OwnerDashboard() {
   const dispatch = useDispatch();
-
-  // ---------------------------------------------------------
-  // Redux
-  // ---------------------------------------------------------
 
   const members = useSelector(
     (state) => state.members.members
@@ -249,6 +236,17 @@ export default function OwnerDashboard() {
     .sort((a, b) => a.daysLeft - b.daysLeft);
 
   // ---------------------------------------------------------
+  // Filter dropdown options (used to build the <select>)
+  // ---------------------------------------------------------
+
+  const filterOptions = [
+    { value: "all", label: "All", count: allCount },
+    { value: "days", label: "Days Left", count: daysLeftCount },
+    { value: "warm", label: "Warm Expired", count: warmExpiredCount },
+    { value: "cold", label: "Cold Expired", count: coldExpiredCount },
+  ];
+
+  // ---------------------------------------------------------
   // Extend Membership
   // ---------------------------------------------------------
 
@@ -373,80 +371,54 @@ ${gym} Team 💪`;
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
 
         {/* -------------------------------------------------
-            Header
+            Header (title left, filter dropdown fixed right)
         ------------------------------------------------- */}
-        <div className="flex items-center gap-3 mb-5">
-          <CalendarClock className="h-6 w-6 text-blue-600" />
+        <div className="sticky top-0 z-20 bg-white flex items-center justify-between gap-3 mb-6 py-2 -mx-4 px-4 md:-mx-6 md:px-6 border-b border-gray-100">
 
-          <h3 className="text-lg font-bold text-gray-900 tracking-tight">
-            Membership Status
-          </h3>
-        </div>
+          <div className="flex items-center gap-3">
+            <CalendarClock className="h-6 w-6 text-blue-600" />
 
-        {/* -------------------------------------------------
-            FILTER BUTTONS
-        ------------------------------------------------- */}
-        <div className="flex flex-wrap gap-2 mb-6">
+            <h3 className="text-lg font-bold text-gray-900 tracking-tight">
+              Membership Status
+            </h3>
+          </div>
 
-          {/* All */}
-          <button
-            onClick={() => setExpiryFilter("all")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium border transition ${
-              expiryFilter === "all"
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            All
-            <span className="ml-1.5 opacity-80">
-              ({allCount})
-            </span>
-          </button>
+          {/* -----------------------------------------------
+              FILTER DROPDOWN (replaces the button row)
+          ----------------------------------------------- */}
+          <div className="relative">
+            <select
+              value={expiryFilter}
+              onChange={(e) =>
+                setExpiryFilter(e.target.value)
+              }
+              className="appearance-none pl-3 pr-8 py-2 rounded-lg text-sm font-medium border border-gray-200 bg-white text-gray-700 cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {filterOptions.map((option) => (
+                <option
+                  key={option.value}
+                  value={option.value}
+                >
+                  {option.label} ({option.count})
+                </option>
+              ))}
+            </select>
 
-          {/* Days Left */}
-          <button
-            onClick={() => setExpiryFilter("days")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium border transition ${
-              expiryFilter === "days"
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            Days Left
-            <span className="ml-1.5 opacity-80">
-              ({daysLeftCount})
-            </span>
-          </button>
-
-          {/* Warm Expired */}
-          <button
-            onClick={() => setExpiryFilter("warm")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium border transition ${
-              expiryFilter === "warm"
-                ? "bg-orange-500 text-white border-orange-500"
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            Warm Expired
-            <span className="ml-1.5 opacity-80">
-              ({warmExpiredCount})
-            </span>
-          </button>
-
-          {/* Cold Expired */}
-          <button
-            onClick={() => setExpiryFilter("cold")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium border transition ${
-              expiryFilter === "cold"
-                ? "bg-gray-600 text-white border-gray-600"
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            Cold Expired
-            <span className="ml-1.5 opacity-80">
-              ({coldExpiredCount})
-            </span>
-          </button>
+            {/* Dropdown chevron */}
+            <svg
+              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </div>
 
         </div>
 

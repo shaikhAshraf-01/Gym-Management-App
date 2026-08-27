@@ -5,6 +5,7 @@ import { fetchMembers, updateMember, deleteMember, extendMembership, PLAN_LABELS
 import { fetchOwnerProfile } from "../../redux/slices/ownerSlice";
 import EditMemberModal from "./EditMemberModal";
 import ExtendMembershipModal from "./ExtendMembershipModal";
+import RenewMembershipAction from "./RenewMembershipAction";
 import MemberHistoryModal from "./MemberHistoryModal";
 import WhatsAppMessagePopup from "../adminComponents/WhatsAppMessagePopup";
 import WhatsAppRenewMessagePopup from "../adminComponents/WhatsAppRenewMessagePopup";
@@ -233,6 +234,13 @@ Thank you for continuing with us! 💪🙌`;
                         <CalendarPlus className="h-3.5 w-3.5" />
                         <span>Extend</span>
                       </button>
+                      <RenewMembershipAction
+                        member={member}
+                        addedBy={addedBy}
+                        gymName={gymName}
+                        canUseManualWhatsApp={canUseManualWhatsApp}
+                        variant="desktop"
+                      />
                       <button onClick={() => handleEdit(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-md border border-gray-200 transition-colors cursor-pointer">
                         <Edit2 className="h-3.5 w-3.5" />
                         <span>Edit</span>
@@ -343,7 +351,7 @@ Thank you for continuing with us! 💪🙌`;
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-2 pt-1">
                 <button onClick={() => handleView(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 active:bg-blue-100 text-blue-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-blue-200 cursor-pointer">
                   <Eye className="h-3.5 w-3.5" />
                   <span>View</span>
@@ -352,6 +360,13 @@ Thank you for continuing with us! 💪🙌`;
                   <CalendarPlus className="h-3.5 w-3.5" />
                   <span>Extend</span>
                 </button>
+                <RenewMembershipAction
+                  member={member}
+                  addedBy={addedBy}
+                  gymName={gymName}
+                  canUseManualWhatsApp={canUseManualWhatsApp}
+                  variant="mobile"
+                />
                 <button onClick={() => handleEdit(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-gray-200 cursor-pointer">
                   <Edit2 className="h-3.5 w-3.5" />
                   <span>Edit</span>
@@ -375,7 +390,7 @@ Thank you for continuing with us! 💪🙌`;
         customMessage={remindingBalanceMember ? buildBalanceMessage(remindingBalanceMember) : ""}
       />
 
-      {/* 💬 RENEWAL CONFIRMATION WHATSAPP POPUP */}
+      {/* 💬 RENEWAL CONFIRMATION WHATSAPP POPUP (for the Extend button's own flow) */}
       <WhatsAppRenewMessagePopup
         isOpen={!!confirmingRenewalMember}
         onClose={() => setConfirmingRenewalMember(null)}

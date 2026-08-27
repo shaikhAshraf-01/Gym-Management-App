@@ -76,11 +76,11 @@ export default function OwnerSidebar() {
             const isCenterItem = index === 2;
             if (isCenterItem) {
               return (
-                <div key={index} className="w-full h-full flex items-center justify-center relative">
+                <div key={index} className="w-full h-full flex  items-center justify-center relative">
                   <button
                     onClick={() => dispatch(toggleDrawer())}
-                    className={`flex flex-col items-center justify-center rounded-full text-xs transition-all duration-200 select-none absolute top-0 -translate-y-1/2 h-14 w-14 shadow-lg border-4 border-slate-950 flex-shrink-0 cursor-pointer ${
-                      isMobileMenuOpen ? "bg-lime-400 text-black font-bold shadow-lime-500/30" : "bg-slate-900 text-slate-300"
+                    className={`flex flex-col items-center justify-center  rounded-full text-xs transition-all duration-200 select-none absolute top-0 -translate-y-1/2 h-14 w-14 shadow-lg border-4 border-slate-950 flex-shrink-0 cursor-pointer ${
+                      isMobileMenuOpen ? "bg-lime-400 text-black font-bold shadow-lime-500/30" : "  bg-lime-400 text-slate-900"
                     }`}
                   >
                     <item.icon className="h-6 w-6 flex-shrink-0" />

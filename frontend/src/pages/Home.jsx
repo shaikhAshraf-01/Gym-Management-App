@@ -10,9 +10,21 @@ import {
   Mail,
   Phone,
   ArrowRight,
+  Download,
 } from "lucide-react";
 import LoginForm from "./LoginForm";
 import { useBackHandler } from "../hooks/useBackHandler";
+
+// APK only installs on Android, so the download button should only
+// show to Android-phone visitors — not desktop, not iPhone (where it's
+// useless since iOS can't install a .apk at all).
+const isAndroid = () =>
+  typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+
+// Place your built .apk at frontend/public/downloads/GymOpsFlow.apk —
+// anything in /public is served as-is at this same path in production
+// (Cloudflare Pages, Vercel, etc.), no extra hosting/config needed.
+const APK_DOWNLOAD_URL = "/downloads/gymopsflow.apk";
 
 const features = [
   {
@@ -40,6 +52,7 @@ const features = [
 export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const showApkDownload = isAndroid();
 
   useBackHandler(showLogin, () => setShowLogin(false));
 
@@ -67,6 +80,16 @@ export default function Home() {
           </nav>
 
           <div className="hidden sm:flex items-center gap-4">
+            {showApkDownload && (
+              <a
+                href={APK_DOWNLOAD_URL}
+                download
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-sm font-bold transition-all"
+              >
+                <Download className="h-4 w-4" />
+                Download App
+              </a>
+            )}
             <button
               onClick={() => setShowLogin(true)}
               className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-bold transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-indigo-900/30 text-white"
@@ -87,6 +110,17 @@ export default function Home() {
             <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-400 font-medium">Features</a>
             <a href="#about" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-400 font-medium">About Us</a>
             <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-400 font-medium">Contact Us</a>
+            {showApkDownload && (
+              <a
+                href={APK_DOWNLOAD_URL}
+                download
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-center gap-2 mt-2 px-5 py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-sm font-bold"
+              >
+                <Download className="h-4 w-4" />
+                Download App (APK)
+              </a>
+            )}
             <button
               onClick={() => { setMobileMenuOpen(false); setShowLogin(true); }}
               className="w-full text-center mt-2 px-5 py-3 rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-lg"
@@ -124,6 +158,15 @@ export default function Home() {
             >
               Login to your account <ArrowRight className="h-4 w-4" />
             </button>
+            {showApkDownload && (
+              <a
+                href={APK_DOWNLOAD_URL}
+                download
+                className="w-full sm:w-auto px-8 py-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 font-bold transition-all text-emerald-300 flex items-center justify-center gap-2"
+              >
+                <Download className="h-4 w-4" /> Download App
+              </a>
+            )}
           </div>
         </div>
       </section>

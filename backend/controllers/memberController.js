@@ -13,14 +13,7 @@ const toDateStr = (d) => new Date(d).toISOString().split("T")[0];
 
 // ---------------------------------------------------------------------
 // pruneOldSubscriptionHistory
-//
-// Every extend/renewal creates a new MemberSubscriptionHistory row and
-// keeps the old ones forever — for a long-running gym that's an
-// unbounded number of rows per member. This keeps only the most recent
-// `keep` subscriptions (current + the last few renewals) and deletes
-// anything older, along with their linked MemberPaymentHistory rows so
-// nothing orphaned is left behind pointing at a deleted subscription.
-// ---------------------------------------------------------------------
+
 const pruneOldSubscriptionHistory = async (memberId, keep = 6) => {
   const oldSubscriptions = await MemberSubscriptionHistory.find({
     member: memberId,

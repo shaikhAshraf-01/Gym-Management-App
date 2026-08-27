@@ -1,6 +1,42 @@
 import React from "react";
-import { X, UserPlus, RefreshCw, User as UserIcon } from "lucide-react";
+import { X, UserPlus, RefreshCw, User as UserIcon, Hourglass } from "lucide-react";
 import { PLAN_LABELS } from "../../redux/slices/membersSlice";
+
+// ---------------------------------------------------------------
+// Turn a day-count gap into a short human label.
+// e.g. 62 -> "2 months 2 days", 5 -> "5 days", 1 -> "1 day"
+// ---------------------------------------------------------------
+function formatGap(days) {
+  if (!days || days <= 0) return null;
+
+  if (days < 30) {
+    return `${days} day${days === 1 ? "" : "s"}`;
+  }
+
+  const months = Math.floor(days / 30);
+  const remDays = days % 30;
+
+  const monthLabel = `${months} month${months === 1 ? "" : "s"}`;
+
+  if (remDays === 0) return monthLabel;
+
+  return `${monthLabel} ${remDays} day${remDays === 1 ? "" : "s"}`;
+}
+
+// ---------------------------------------------------------------
+// Days between two YYYY-MM-DD (or ISO) date strings.
+// ---------------------------------------------------------------
+function daysBetween(fromDateStr, toDateStr) {
+  if (!fromDateStr || !toDateStr) return 0;
+
+  const from = new Date(fromDateStr);
+  const to = new Date(toDateStr);
+
+  from.setHours(0, 0, 0, 0);
+  to.setHours(0, 0, 0, 0);
+
+  return Math.round((to - from) / (1000 * 60 * 60 * 24));
+}
 
 export default function MemberHistoryModal({ member, onClose }) {
   if (!member) return null;
@@ -39,33 +75,63 @@ export default function MemberHistoryModal({ member, onClose }) {
           {history.length === 0 ? (
             <p className="text-center text-xs text-gray-400 py-6">No membership history recorded yet.</p>
           ) : (
-            <div className="space-y-3">
-              {history.map((entry) => (
-                <div key={entry.id} className="border border-gray-200 rounded-xl p-3.5">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      entry.type === "joined" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"
-                    }`}>
-                      {entry.type === "joined" ? <UserPlus className="h-3 w-3" /> : <RefreshCw className="h-3 w-3" />}
-                      {entry.type === "joined" ? "Joined" : "Extended"}
-                    </span>
-                    <span className="text-xs font-bold text-gray-900">
-                      ₹{Number(entry.amount || 0).toLocaleString("en-IN")}
-                    </span>
-                  </div>
+            <div className="space-y-0">
+              {history.map((entry, idx) => {
+                // history is newest -> oldest, so the "previous"
+                // membership chronologically is the NEXT item in
+                // this array (the older one).
+                const olderEntry = history[idx + 1];
 
-                  <p className="text-sm font-semibold text-gray-800">
-                    {PLAN_LABELS[entry.plan] || entry.plan}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {entry.startDate} → {entry.endDate}
-                  </p>
-                  <p className="text-[11px] text-gray-400 mt-1.5 flex items-center gap-1">
-                    <UserIcon className="h-3 w-3" />
-                    Added by <span className="font-medium text-gray-600">{entry.by}</span> on {entry.date}
-                  </p>
-                </div>
-              ))}
+                const gapDays = olderEntry
+                  ? daysBetween(olderEntry.endDate, entry.startDate)
+                  : 0;
+
+                // Only flag a real gap — same-day / next-day renewals
+                // aren't worth calling out.
+                const gapLabel = gapDays > 1 ? formatGap(gapDays) : null;
+
+                return (
+                  <React.Fragment key={entry.id}>
+                    <div className="border border-gray-200 rounded-xl p-3.5 mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          entry.type === "joined" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"
+                        }`}>
+                          {entry.type === "joined" ? <UserPlus className="h-3 w-3" /> : <RefreshCw className="h-3 w-3" />}
+                          {entry.type === "joined" ? "Joined" : "Extended"}
+                        </span>
+                        <span className="text-xs font-bold text-gray-900">
+                          ₹{Number(entry.amount || 0).toLocaleString("en-IN")}
+                        </span>
+                      </div>
+
+                      <p className="text-sm font-semibold text-gray-800">
+                        {PLAN_LABELS[entry.plan] || entry.plan}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {entry.startDate} → {entry.endDate}
+                      </p>
+                      <p className="text-[11px] text-gray-400 mt-1.5 flex items-center gap-1">
+                        <UserIcon className="h-3 w-3" />
+                        Added by <span className="font-medium text-gray-600">{entry.by}</span> on {entry.date}
+                      </p>
+                    </div>
+
+                    {/* Gap indicator between this entry and the older
+                        one right below it — e.g. member renewed
+                        2 months after their previous membership expired. */}
+                    {gapLabel && (
+                      <div className="flex items-center gap-2 pl-1 mb-3 -mt-1">
+                        <div className="w-px h-4 bg-amber-200 ml-3" />
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                          <Hourglass className="h-2.5 w-2.5" />
+                          {gapLabel} gap before renewing
+                        </span>
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </div>
           )}
         </div>

@@ -16,6 +16,7 @@ export default function ExtendMembershipModal({
     extensionAmount: "",
     amountPayingToday: "",
     balanceAmount: "0",
+    balanceDueDate: "",
     paymentMode: "upi",
     newStartDate: "",
     newExpiryDate: "",
@@ -61,6 +62,19 @@ export default function ExtendMembershipModal({
   };
 
   // ---------------------------------------------------------------
+  // Earliest allowed New Start Date — capped to 6 months back from
+  // today, so owners can't accidentally backdate a renewal further
+  // than that.
+  // ---------------------------------------------------------------
+  const getMinStartDate = () => {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    return formatDate(sixMonthsAgo);
+  };
+
+  // ---------------------------------------------------------------
   // Calculate Expiry Date from selected Start Date + Plan
   // ---------------------------------------------------------------
   useEffect(() => {
@@ -90,6 +104,14 @@ export default function ExtendMembershipModal({
     setFormData((prev) => ({
       ...prev,
       newExpiryDate: formatDate(expiryDate),
+      // If a previously-picked balance due date now falls outside the
+      // new [today, expiry] window, clear it so a stale/out-of-range
+      // date can't silently be submitted.
+      balanceDueDate:
+        prev.balanceDueDate &&
+        prev.balanceDueDate > formatDate(expiryDate)
+          ? ""
+          : prev.balanceDueDate,
     }));
   }, [formData.plan, formData.newStartDate, member]);
 
@@ -109,6 +131,8 @@ export default function ExtendMembershipModal({
     setFormData((prev) => ({
       ...prev,
       balanceAmount: String(balance),
+      // No balance left to collect -> no due date needed.
+      balanceDueDate: balance === 0 ? "" : prev.balanceDueDate,
     }));
   }, [formData.extensionAmount, formData.amountPayingToday]);
 
@@ -123,6 +147,7 @@ export default function ExtendMembershipModal({
       extensionAmount: "",
       amountPayingToday: "",
       balanceAmount: "0",
+      balanceDueDate: "",
       paymentMode: member.paymentMode || "upi",
       newStartDate: calculateDefaultStartDate(),
       newExpiryDate: "",
@@ -189,6 +214,7 @@ export default function ExtendMembershipModal({
         extensionAmount: formData.extensionAmount,
         amountPayingToday: formData.amountPayingToday,
         balanceAmount: formData.balanceAmount,
+        balanceDueDate: formData.balanceDueDate,
         paymentMode: formData.paymentMode,
 
         // IMPORTANT:
@@ -199,6 +225,9 @@ export default function ExtendMembershipModal({
       setIsSubmitting(false);
     }
   };
+
+  const hasBalance = Number(formData.balanceAmount) > 0;
+  const todayStr = formatDate(new Date());
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -271,12 +300,13 @@ export default function ExtendMembershipModal({
                 name="newStartDate"
                 value={formData.newStartDate}
                 onChange={handleChange}
+                min={getMinStartDate()}
                 required
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-blue-600 font-semibold focus:outline-none focus:border-blue-500"
               />
 
               <p className="text-[10px] text-gray-400 mt-1">
-                Expired: today · Active: day after current expiry
+                Expired: today · Active: day after current expiry · up to 6 months back
               </p>
             </div>
 
@@ -351,6 +381,33 @@ export default function ExtendMembershipModal({
               </p>
             </div>
 
+            {/* Balance Due Date — only meaningful while a balance is
+                actually outstanding, and must fall somewhere between
+                today and the new expiry date. */}
+            <div>
+              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+                Balance Due Date
+              </label>
+
+              <input
+                type="date"
+                name="balanceDueDate"
+                value={formData.balanceDueDate}
+                onChange={handleChange}
+                min={todayStr}
+                max={formData.newExpiryDate || undefined}
+                disabled={!hasBalance}
+                required={hasBalance}
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-semibold focus:outline-none focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+              />
+
+              <p className="text-[10px] text-gray-400 mt-1">
+                {hasBalance
+                  ? "Must fall between today and the new expiry date"
+                  : "No balance pending — nothing to collect"}
+              </p>
+            </div>
+
             {/* Payment Mode */}
             <div className="md:col-span-2">
               <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
@@ -401,7 +458,7 @@ export default function ExtendMembershipModal({
                   Renewing...
                 </>
               ) : (
-                "Confirm Renewal"
+                "Confirm Extension"
               )}
             </button>
 
