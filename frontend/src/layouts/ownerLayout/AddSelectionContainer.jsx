@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   CreditCard,
   FileText,
-  ArrowLeft,
+  X,
 } from "lucide-react";
 
 import MembershipForm from "../../components/ownerComponents/MembershipForm";
@@ -18,6 +18,8 @@ import {
 } from "../../redux/slices/enquiriesSlice";
 
 import { fetchOwnerProfile } from "../../redux/slices/ownerSlice";
+import { openDrawer } from "../../redux/slices/uiSlice";
+import { useBackHandler } from "../../hooks/useBackHandler";
 
 export default function AddSelectionContainer() {
   const location = useLocation();
@@ -77,9 +79,10 @@ export default function AddSelectionContainer() {
   }, [location.state]);
 
   // ------------------------------------------------------------
-  // BACK
+  // CLOSE FORM -> REOPEN THE "CREATE NEW ENTRY" POPUP
+  // (instead of dropping the user on the inline options page)
   // ------------------------------------------------------------
-  const handleBack = () => {
+  const handleClose = () => {
     setSelectedType(null);
     setPrefillData(null);
 
@@ -87,7 +90,15 @@ export default function AddSelectionContainer() {
       replace: true,
       state: {},
     });
+
+    // Mobile bottom-sheet ("Create New Entry") wapas khol do,
+    // taaki X dabane par popup dikhe, na ki options wala page.
+    dispatch(openDrawer());
   };
+
+  // Hardware back button (native app) pe bhi same close behaviour
+  // -> form open ho to back se popup khule, page navigate na ho.
+  useBackHandler(!!selectedType, handleClose);
 
   // ------------------------------------------------------------
   // GO TO MEMBERS
@@ -209,15 +220,21 @@ export default function AddSelectionContainer() {
           <div className="shrink-0 block md:hidden pt-2">
 
             {selectedType ? (
-              <button
-                onClick={handleBack}
-                className="flex items-center gap-2 text-blue-600 font-medium text-xs tracking-wide bg-white px-4 py-2 border border-gray-200 rounded-md shadow-sm active:scale-95 cursor-pointer mb-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>
-                  Back to Options
-                </span>
-              </button>
+              <div className="flex items-center justify-between mb-2">
+                <h1 className="text-base font-bold text-gray-900">
+                  {selectedType === "membership"
+                    ? "Add Membership"
+                    : "Add Enquiry"}
+                </h1>
+
+                <button
+                  onClick={handleClose}
+                  aria-label="Close"
+                  className="flex items-center justify-center h-9 w-9 rounded-full bg-white border border-gray-200 shadow-sm text-gray-600 active:scale-95 cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             ) : (
               <div className="border-b border-gray-200 pb-2 mb-4">
                 <h1 className="text-xl font-bold text-gray-900">
