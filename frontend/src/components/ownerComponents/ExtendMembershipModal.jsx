@@ -115,14 +115,7 @@ export default function ExtendMembershipModal({
     }));
   }, [formData.plan, formData.newStartDate, member]);
 
-  // ---------------------------------------------------------------
-  // Auto-calculate Balance Amount
-  //
-  // Balance = New Membership Fee − Amount Paying Today, floored at 0.
-  // No manual entry — this stays in sync automatically whenever
-  // either of those two fields changes, so it can't drift out of
-  // sync the way a manually-typed balance could.
-  // ---------------------------------------------------------------
+
   useEffect(() => {
     const fee = Number(formData.extensionAmount) || 0;
     const paid = Number(formData.amountPayingToday) || 0;
@@ -237,7 +230,7 @@ export default function ExtendMembershipModal({
         <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
           <div>
             <h2 className="text-base font-bold text-gray-900 uppercase tracking-wider">
-              Renew Membership
+              Membership detail
             </h2>
 
             <p className="text-xs text-gray-500 mt-0.5">

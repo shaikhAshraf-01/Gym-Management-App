@@ -279,7 +279,7 @@ export default function AddSelectionContainer() {
               ${
                 selectedType
                   ? "hidden md:grid"
-                  : "grid"
+                  : " hidden md:grid"
               }
             `}
           >
