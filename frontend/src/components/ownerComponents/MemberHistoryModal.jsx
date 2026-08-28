@@ -4,7 +4,8 @@ import { PLAN_LABELS } from "../../redux/slices/membersSlice";
 
 // ---------------------------------------------------------------
 // Turn a day-count gap into a short human label.
-// e.g. 62 -> "2 months 2 days", 5 -> "5 days", 1 -> "1 day"
+// e.g. 20 -> "20 days", 62 -> "2 months 2 days",
+// 700 -> "1 year 11 months 3 days"
 // ---------------------------------------------------------------
 function formatGap(days) {
   if (!days || days <= 0) return null;
@@ -13,14 +14,27 @@ function formatGap(days) {
     return `${days} day${days === 1 ? "" : "s"}`;
   }
 
-  const months = Math.floor(days / 30);
+  const totalMonths = Math.floor(days / 30);
   const remDays = days % 30;
 
-  const monthLabel = `${months} month${months === 1 ? "" : "s"}`;
+  const years = Math.floor(totalMonths / 12);
+  const remMonths = totalMonths % 12;
 
-  if (remDays === 0) return monthLabel;
+  const parts = [];
 
-  return `${monthLabel} ${remDays} day${remDays === 1 ? "" : "s"}`;
+  if (years > 0) {
+    parts.push(`${years} year${years === 1 ? "" : "s"}`);
+  }
+
+  if (remMonths > 0) {
+    parts.push(`${remMonths} month${remMonths === 1 ? "" : "s"}`);
+  }
+
+  if (remDays > 0) {
+    parts.push(`${remDays} day${remDays === 1 ? "" : "s"}`);
+  }
+
+  return parts.join(" ");
 }
 
 // ---------------------------------------------------------------
@@ -95,10 +109,14 @@ export default function MemberHistoryModal({ member, onClose }) {
                     <div className="border border-gray-200 rounded-xl p-3.5 mb-3">
                       <div className="flex items-center justify-between mb-2">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          entry.type === "joined" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"
+                          entry.type === "joined"
+                            ? "bg-blue-50 text-blue-700"
+                            : entry.type === "renewed"
+                            ? "bg-purple-50 text-purple-700"
+                            : "bg-emerald-50 text-emerald-700"
                         }`}>
                           {entry.type === "joined" ? <UserPlus className="h-3 w-3" /> : <RefreshCw className="h-3 w-3" />}
-                          {entry.type === "joined" ? "Joined" : "Extended"}
+                          {entry.type === "joined" ? "Joined" : entry.type === "renewed" ? "Renewed" : "Extended"}
                         </span>
                         <span className="text-xs font-bold text-gray-900">
                           ₹{Number(entry.amount || 0).toLocaleString("en-IN")}

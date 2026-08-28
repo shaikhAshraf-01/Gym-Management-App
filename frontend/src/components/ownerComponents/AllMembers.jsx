@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import EnquiryView from './EnquiryView';
 import MembersView from './MembersView';
 
 export default function AllMembers() {
-  const [activeTab, setActiveTab] = useState('members');
+  const location = useLocation();
+  // Arriving here after "Add Enquiry" passes state:{tab:"enquiry"} so
+  // we land on the Enquiries tab instead of always defaulting to Members.
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'members');
 
   const totalMembers = useSelector((state) => state.members.members.length);
   const totalEnquiries = useSelector((state) => state.enquiries.enquiries.length);

@@ -164,12 +164,36 @@ const formatMember = async (memberDoc) => {
       ? subPayments[subPayments.length - 1].paymentDate
       : sub.joiningDate;
 
+    // First subscription = joined.
+    // Later ones: prefer the wasActive flag saved at renewal time
+    // (accurate). Only fall back to guessing from the date gap for
+    // old records created before this field existed.
+    let type = "joined";
+
+    if (idx > 0) {
+      if (sub.wasActive === true) {
+        type = "extended";
+      } else if (sub.wasActive === false) {
+        type = "renewed";
+      } else {
+        const prevExpiry = new Date(subscriptions[idx - 1].expiryDate);
+        const thisStart = new Date(sub.joiningDate);
+
+        prevExpiry.setHours(0, 0, 0, 0);
+        thisStart.setHours(0, 0, 0, 0);
+
+        const gapDays = Math.round(
+          (thisStart - prevExpiry) / (1000 * 60 * 60 * 24)
+        );
+
+        type = gapDays > 1 ? "renewed" : "extended";
+      }
+    }
+
     return {
       id: sub._id.toString(),
 
-      // First subscription = joined
-      // All following subscriptions = extended/renewed
-      type: idx === 0 ? "joined" : "extended",
+      type,
 
       plan: sub.plan,
 
@@ -661,6 +685,11 @@ export const extendMembership = async (req, res) => {
     // ---------------------------------------------------------------
     let defaultStartDate = new Date(today);
 
+    // Was the membership still active (not expired) right before this
+    // renewal? Recorded on the new subscription so history can show
+    // "Extended" vs "Renewed" accurately later, instead of guessing.
+    let wasActive = false;
+
     if (latestSub?.expiryDate) {
       const currentExpiry =
         new Date(latestSub.expiryDate);
@@ -668,6 +697,8 @@ export const extendMembership = async (req, res) => {
       currentExpiry.setHours(0, 0, 0, 0);
 
       if (currentExpiry >= today) {
+        wasActive = true;
+
         defaultStartDate =
           new Date(currentExpiry);
 
@@ -736,6 +767,8 @@ export const extendMembership = async (req, res) => {
         balance: Number(
           balanceAmount || 0
         ),
+
+        wasActive,
 
         createdBy: req.user._id,
       });

@@ -36,6 +36,16 @@ const memberSubscriptionHistorySchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+
+    // Was the PREVIOUS membership still active (not expired) at the
+    // moment this subscription was created? true = "Extended",
+    // false = "Renewed" (member had already expired). null/undefined
+    // for the very first subscription (= "Joined") or legacy records
+    // created before this field existed.
+    wasActive: {
+      type: Boolean,
+      default: null,
+    },
  
   createdBy:{
     type: mongoose.Schema.Types.ObjectId,

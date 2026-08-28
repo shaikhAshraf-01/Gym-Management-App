@@ -101,14 +101,14 @@ export default function AddSelectionContainer() {
   useBackHandler(!!selectedType, handleClose);
 
   // ------------------------------------------------------------
-  // GO TO MEMBERS
+  // GO TO MEMBERS / ENQUIRIES
   // ------------------------------------------------------------
-  const goToMembersList = () => {
-    navigate(
-      location.pathname.startsWith("/trainer")
-        ? "/trainer/all-members"
-        : "/owner/all-members"
-    );
+  const goToMembersList = (tab) => {
+    const path = location.pathname.startsWith("/trainer")
+      ? "/trainer/all-members"
+      : "/owner/all-members";
+
+    navigate(path, tab ? { state: { tab } } : undefined);
   };
 
   // ------------------------------------------------------------
@@ -189,7 +189,7 @@ export default function AddSelectionContainer() {
         addEnquiry(formData)
       ).unwrap();
 
-      goToMembersList();
+      goToMembersList("enquiry");
     } catch (error) {
       alert(
         typeof error === "string"
@@ -279,7 +279,7 @@ export default function AddSelectionContainer() {
               ${
                 selectedType
                   ? "hidden md:grid"
-                  : " hidden md:grid"
+                  : "grid"
               }
             `}
           >
