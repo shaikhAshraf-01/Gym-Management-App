@@ -3,84 +3,77 @@ import { useDispatch } from "react-redux";
 import { RefreshCw } from "lucide-react";
 import { extendMembership } from "../../redux/slices/membersSlice";
 import ExtendMembershipModal from "./ExtendMembershipModal";
-import WhatsAppRenewMessagePopup from "../adminComponents/WhatsAppRenewMessagePopup";
 import { useBackHandler } from "../../hooks/useBackHandler";
 
-// ---------------------------------------------------------------
-// Self-contained "Renew" action: renders its own button (desktop
-// table cell or mobile card, via `variant`), owns the renew modal,
-// dispatches extendMembership itself, and — for Basic-plan gyms —
-// shows the WhatsApp renewal-confirmation popup afterwards.
-//
-// Kept deliberately separate from MembersView so the parent list
-// doesn't need to carry any renew-specific state/handlers at all;
-// drop <RenewMembershipAction member={member} addedBy={addedBy} .../>
-// in wherever a Renew button should appear.
-// ---------------------------------------------------------------
 export default function RenewMembershipAction({
   member,
   addedBy,
   gymName,
   canUseManualWhatsApp,
+  onRenewSuccess,
   variant = "desktop", // "desktop" | "mobile"
 }) {
   const dispatch = useDispatch();
 
   const [renewingMember, setRenewingMember] = useState(null);
-  const [confirmingRenewalMember, setConfirmingRenewalMember] = useState(null);
 
-  useBackHandler(!!renewingMember, () => setRenewingMember(null));
-  useBackHandler(!!confirmingRenewalMember, () => setConfirmingRenewalMember(null));
+  // Hardware back button -> close renew modal
+  useBackHandler(!!renewingMember, () => {
+    setRenewingMember(null);
+  });
 
-  // Same message shape as the rest of the app's renewal confirmations —
-  // uses what was actually submitted in this transaction (amount/plan),
-  // not the member's cumulative totals, plus the fresh expiry date
-  // that comes back from the backend.
-  const buildRenewalMessage = (m) => {
-    const gym = gymName || "our gym";
-    const payload = m._extensionPayload || {};
-    const durationLabel = (payload.plan || m.plan || "").replace("_", "-");
-    const balance = Number(payload.balanceAmount ?? m.balanceAmount ?? 0);
-
-    let message = `Hello ${m.name}! 🎉
-
-✅ Your membership at ${gym} has been renewed for ${durationLabel}. We've received your payment of ₹${payload.amountPayingToday || 0}.`;
-
-    if (balance > 0) {
-      message += `
-💰 Remaining balance: ₹${balance} — please clear this at your earliest convenience.`;
-    }
-
-    message += `
-📅 Your plan is valid from ${m.joiningDate} to ${m.expiryDate}.
-
-Thank you for continuing with us! 💪🙌`;
-
-    return message;
-  };
-
+  // ---------------------------------------------------------------
+  // Renew Membership
+  // ---------------------------------------------------------------
   const handleSaveRenew = async (id, extensionPayload) => {
     try {
+      console.log("1. Renew started", {
+        id,
+        extensionPayload,
+        canUseManualWhatsApp,
+      });
+
       const updatedMember = await dispatch(
-        extendMembership({ id, ...extensionPayload })
+        extendMembership({
+          id,
+          ...extensionPayload,
+        })
       ).unwrap();
 
+      console.log("2. Renew API successful", updatedMember);
+
+      // IMPORTANT:
+      // WhatsApp popup state is handled by MembersView.
+      // This component can unmount after Redux updates the member
+      // from expired -> active, so popup state must NOT live here.
+      if (canUseManualWhatsApp && onRenewSuccess) {
+        console.log("3. Sending data to parent for WhatsApp popup");
+
+        onRenewSuccess(
+          updatedMember,
+          extensionPayload
+        );
+      }
+
+      // Close renewal modal
       setRenewingMember(null);
 
-      // wa.me renewal confirmation is a Basic-plan-only feature for now —
-      // Plus/Pro gyms will get automatic WhatsApp sending once the Cloud
-      // API integration is built.
-      if (canUseManualWhatsApp) {
-        setConfirmingRenewalMember({
-          ...updatedMember,
-          _extensionPayload: extensionPayload,
-        });
-      }
+      console.log("4. Renew flow completed");
+
     } catch (error) {
-      alert(typeof error === "string" ? error : "Failed to renew membership.");
+      console.error("Renewal Error:", error);
+
+      alert(
+        typeof error === "string"
+          ? error
+          : "Failed to renew membership."
+      );
     }
   };
 
+  // ---------------------------------------------------------------
+  // Button
+  // ---------------------------------------------------------------
   return (
     <>
       {variant === "mobile" ? (
@@ -101,20 +94,14 @@ Thank you for continuing with us! 💪🙌`;
         </button>
       )}
 
+      {/* -----------------------------------------------------------
+          RENEW / MEMBERSHIP DETAIL MODAL
+      ----------------------------------------------------------- */}
       <ExtendMembershipModal
         member={renewingMember}
         addedBy={addedBy}
         onSave={handleSaveRenew}
         onClose={() => setRenewingMember(null)}
-      />
-
-      <WhatsAppRenewMessagePopup
-        isOpen={!!confirmingRenewalMember}
-        onClose={() => setConfirmingRenewalMember(null)}
-        phone={confirmingRenewalMember?.mobile}
-        customMessage={
-          confirmingRenewalMember ? buildRenewalMessage(confirmingRenewalMember) : ""
-        }
       />
     </>
   );

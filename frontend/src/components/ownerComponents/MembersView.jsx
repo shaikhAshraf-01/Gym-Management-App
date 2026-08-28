@@ -100,48 +100,41 @@ ${gym} Team 💪`;
     setEditingMember(null);
   };
 
-  const handleSaveExtend = async (id, extensionPayload) => {
-    try {
-      const updatedMember = await dispatch(extendMembership({ id, ...extensionPayload })).unwrap();
-      setExtendingMember(null);
-      // wa.me renewal confirmation is a Basic-plan-only feature for now —
-      // Plus/Pro gyms will get automatic WhatsApp sending once the Cloud
-      // API integration is built, so skip the manual popup for them.
-      if (canUseManualWhatsApp) {
-        setConfirmingRenewalMember({ ...updatedMember, _extensionPayload: extensionPayload });
-      }
-    } catch (error) {
-      alert(typeof error === "string" ? error : "Failed to extend membership.");
+const handleSaveExtend = async (id, extensionPayload) => {
+  try {
+    const updatedMember = await dispatch(extendMembership({ id, ...extensionPayload })).unwrap();
+    
+    if (canUseManualWhatsApp) {
+      // Sahi tarah se updated data aur input payload inject karein
+      setConfirmingRenewalMember({ ...updatedMember, _extensionPayload: extensionPayload });
     }
-  };
+    setExtendingMember(null); // Modal end me close karein
+  } catch (error) {
+    alert(typeof error === "string" ? error : "Failed to extend membership.");
+  }
+};
 
-  // Builds the EXTENSION confirmation text (Extend button — active
-  // members). Uses what was actually submitted in the extend form
-  // (this transaction's amount/plan), not the member's cumulative
-  // totals, plus the freshly-computed new expiry date from the
-  // backend response.
-  const buildExtensionMessage = (member) => {
-    const gym = gymName || "our gym";
-    const payload = member._extensionPayload || {};
-    const durationLabel = (payload.plan || member.plan || "").replace("_", "-");
-    const balance = Number(payload.balanceAmount ?? member.balanceAmount ?? 0);
+const buildExtensionMessage = (member) => {
+  if (!member) return "";
+  const gym = gymName || "our gym";
+  const payload = member._extensionPayload || {};
+  const durationLabel = (payload.plan || member.plan || "").replace("_", "-");
+  const balance = Number(payload.balanceAmount ?? member.balanceAmount ?? 0);
 
-    let message = `Hello ${member.name}! 🎉
+  // Dates Fallbacks text safely map karne ke liye
+  const startDate = member.joiningDate || payload.joiningDate || "Today";
+  const endDate = member.expiryDate || payload.expiryDate || "N/A";
 
-✅ Your membership at ${gym} has been extended for ${durationLabel}. We've received your payment of ₹${payload.amountPayingToday || 0}.`;
+  let message = `Hello ${member.name}! 🎉\n\n✅ Your membership at ${gym} has been updated for ${durationLabel}. We've received your payment of ₹${payload.amountPayingToday || 0}.`;
 
-    if (balance > 0) {
-      message += `
-💰 Remaining balance: ₹${balance} — please clear this at your earliest convenience.`;
-    }
+  if (balance > 0) {
+    message += `\n\n💰 Remaining balance: ₹${balance} — please clear this at your earliest convenience.`;
+  }
 
-    message += `
-📅 Your plan is valid from ${member.joiningDate} to ${member.expiryDate}.
+  message += `\n\n📅 Your plan is valid from ${startDate} to ${endDate}.\n\nThank you for continuing with us! 💪🙌`;
 
-Thank you for continuing with us! 💪🙌`;
-
-    return message;
-  };
+  return message;
+};
 
   const handleConfirmDelete = (id) => {
     dispatch(deleteMember(id));
@@ -252,6 +245,14 @@ Thank you for continuing with us! 💪🙌`;
                           gymName={gymName}
                           canUseManualWhatsApp={canUseManualWhatsApp}
                           variant="desktop"
+                          onRenewSuccess={(updateMember,extensionPayload)=>{
+                            if(canUseManualWhatsApp){
+                              setConfirmingRenewalMember({
+                                ...updateMember,
+                                _extensionPayload:extensionPayload,
+                              })
+                            }
+                          }}
                         />
                       ) : (
                         <button onClick={() => handleExtend(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200 transition-colors cursor-pointer">
@@ -281,7 +282,7 @@ Thank you for continuing with us! 💪🙌`;
                           {openActionMenuId === member.id && (
                             <>
                               <div className="fixed inset-0 z-40" onClick={() => setOpenActionMenuId(null)} />
-                              <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden animate-in fade-in duration-100">
+                              <div className="absolute right-0 bottom-full mb-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden animate-in fade-in duration-100">
                                 <button
                                   onClick={() => { setOpenActionMenuId(null); handleEdit(member); }}
                                   className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -428,6 +429,14 @@ Thank you for continuing with us! 💪🙌`;
                     gymName={gymName}
                     canUseManualWhatsApp={canUseManualWhatsApp}
                     variant="mobile"
+                     onRenewSuccess={(updateMember,extensionPayload)=>{
+                            if(canUseManualWhatsApp){
+                              setConfirmingRenewalMember({
+                                ...updateMember,
+                                _extensionPayload:extensionPayload,
+                              })
+                            }
+                          }}
                   />
                 ) : (
                   <button onClick={() => handleExtend(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm cursor-pointer">
