@@ -27,11 +27,7 @@ export default function RenewMembershipAction({
   // ---------------------------------------------------------------
   const handleSaveRenew = async (id, extensionPayload) => {
     try {
-      console.log("1. Renew started", {
-        id,
-        extensionPayload,
-        canUseManualWhatsApp,
-      });
+      
 
       const updatedMember = await dispatch(
         extendMembership({
@@ -40,14 +36,12 @@ export default function RenewMembershipAction({
         })
       ).unwrap();
 
-      console.log("2. Renew API successful", updatedMember);
 
       // IMPORTANT:
       // WhatsApp popup state is handled by MembersView.
       // This component can unmount after Redux updates the member
       // from expired -> active, so popup state must NOT live here.
       if (canUseManualWhatsApp && onRenewSuccess) {
-        console.log("3. Sending data to parent for WhatsApp popup");
 
         onRenewSuccess(
           updatedMember,
@@ -58,10 +52,8 @@ export default function RenewMembershipAction({
       // Close renewal modal
       setRenewingMember(null);
 
-      console.log("4. Renew flow completed");
 
     } catch (error) {
-      console.error("Renewal Error:", error);
 
       alert(
         typeof error === "string"

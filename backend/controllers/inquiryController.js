@@ -1,4 +1,5 @@
 import Inquiry from "../models/Inquiry.js";
+import { emitToGym } from "../socket/index.js";
 
 // Inquiry.js stores `willingToJoin` and relies on `createdAt` (timestamps)
 // as the add-date. Frontend (EnquiryView/EnquiryForm) calls these
@@ -46,6 +47,8 @@ export const addInquiry = async (req, res) => {
       willingToJoin: whenToJoin,
     });
 
+    emitToGym(req.user.gymId, "enquiry:created", { enquiry: formatInquiry(inquiry) });
+
     res.status(201).json({
       success: true,
       message: "Enquiry added successfully.",
@@ -77,6 +80,8 @@ export const updateInquiry = async (req, res) => {
     if (mobile !== undefined) inquiry.mobile = mobile;
     await inquiry.save();
 
+    emitToGym(req.user.gymId, "enquiry:updated", { enquiry: formatInquiry(inquiry) });
+
     res.status(200).json({
       success: true,
       message: "Enquiry updated successfully.",
@@ -101,6 +106,9 @@ export const deleteInquiry = async (req, res) => {
     }
 
     await Inquiry.findByIdAndDelete(id);
+
+    emitToGym(req.user.gymId, "enquiry:deleted", { id });
+
     res.status(200).json({ success: true, message: "Enquiry deleted successfully." });
   } catch (error) {
     console.error(error);

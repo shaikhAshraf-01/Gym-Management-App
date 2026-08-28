@@ -1,6 +1,7 @@
 import Member from "../models/Member.js";
 import MemberSubscriptionHistory from "../models/MemberSubscriptionHistory.js";
 import MemberPaymentHistory from "../models/MemberPaymentHistory.js";
+import { emitToGym } from "../socket/index.js"; // 👈 ADD THIS LINE
 
 const PLAN_MONTHS = {
   "1_month": 1,
@@ -120,19 +121,18 @@ const formatMember = async (memberDoc) => {
   // ---------------------------------------------------------------
   const totalPlanAmount = subscriptions.reduce(
     (sum, subscription) => sum + Number(subscription.planAmount || 0),
-    0
+    0,
   );
 
   const totalAmountPaid = payments.reduce(
     (sum, payment) => sum + Number(payment.amountPaid || 0),
-    0
+    0,
   );
 
   // ---------------------------------------------------------------
   // Latest subscription payments only
   // ---------------------------------------------------------------
-  const latestPayments =
-    paymentsBySubscription[latest._id.toString()] || [];
+  const latestPayments = paymentsBySubscription[latest._id.toString()] || [];
 
   const latestPaymentMode = latestPayments.length
     ? latestPayments[latestPayments.length - 1].paymentMode
@@ -140,20 +140,19 @@ const formatMember = async (memberDoc) => {
 
   const latestAmountPaid = latestPayments.reduce(
     (sum, payment) => sum + Number(payment.amountPaid || 0),
-    0
+    0,
   );
 
   // ---------------------------------------------------------------
   // Membership History
   // ---------------------------------------------------------------
   const membershipHistory = subscriptions.map((sub, idx) => {
-    const subPayments =
-      paymentsBySubscription[sub._id.toString()] || [];
+    const subPayments = paymentsBySubscription[sub._id.toString()] || [];
 
     const amount =
       subPayments.reduce(
         (sum, payment) => sum + Number(payment.amountPaid || 0),
-        0
+        0,
       ) || Number(sub.planAmount || 0);
 
     const mode = subPayments.length
@@ -183,7 +182,7 @@ const formatMember = async (memberDoc) => {
         thisStart.setHours(0, 0, 0, 0);
 
         const gapDays = Math.round(
-          (thisStart - prevExpiry) / (1000 * 60 * 60 * 24)
+          (thisStart - prevExpiry) / (1000 * 60 * 60 * 24),
         );
 
         type = gapDays > 1 ? "renewed" : "extended";
@@ -270,9 +269,7 @@ export const getMembers = async (req, res) => {
       createdAt: -1,
     });
 
-    const formatted = await Promise.all(
-      members.map(formatMember)
-    );
+    const formatted = await Promise.all(members.map(formatMember));
 
     res.status(200).json({
       success: true,
@@ -282,7 +279,8 @@ export const getMembers = async (req, res) => {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch members.",    });
+      message: "Failed to fetch members.",
+    });
   }
 };
 
@@ -334,21 +332,20 @@ export const addMember = async (req, res) => {
     // ---------------------------------------------------------------
     // Create first subscription
     // ---------------------------------------------------------------
-    const subscription =
-      await MemberSubscriptionHistory.create({
-        member: member._id,
+    const subscription = await MemberSubscriptionHistory.create({
+      member: member._id,
 
-        plan,
+      plan,
 
-        joiningDate,
-        expiryDate,
+      joiningDate,
+      expiryDate,
 
-        planAmount: Number(planAmount),
+      planAmount: Number(planAmount),
 
-        balance: Number(balanceAmount || 0),
+      balance: Number(balanceAmount || 0),
 
-        createdBy: req.user._id,
-      });
+      createdBy: req.user._id,
+    });
 
     // ---------------------------------------------------------------
     // Initial payment
@@ -368,6 +365,7 @@ export const addMember = async (req, res) => {
     }
 
     const formatted = await formatMember(member);
+    emitToGym(req.user.gymId, "member:created", { member: formatted });
 
     res.status(201).json({
       success: true,
@@ -442,12 +440,11 @@ export const updateMember = async (req, res) => {
     // ---------------------------------------------------------------
     // Find latest subscription
     // ---------------------------------------------------------------
-    const latestSub =
-      await MemberSubscriptionHistory.findOne({
-        member: member._id,
-      }).sort({
-        joiningDate: -1,
-      });
+    const latestSub = await MemberSubscriptionHistory.findOne({
+      member: member._id,
+    }).sort({
+      joiningDate: -1,
+    });
 
     if (latestSub) {
       if (plan !== undefined) {
@@ -476,16 +473,14 @@ export const updateMember = async (req, res) => {
       // Update latest payment
       // -------------------------------------------------------------
       if (amountPayingToday !== undefined) {
-        const latestPayment =
-          await MemberPaymentHistory.findOne({
-            memberSubscription: latestSub._id,
-          }).sort({
-            paymentDate: -1,
-          });
+        const latestPayment = await MemberPaymentHistory.findOne({
+          memberSubscription: latestSub._id,
+        }).sort({
+          paymentDate: -1,
+        });
 
         if (latestPayment) {
-          latestPayment.amountPaid =
-            Number(amountPayingToday);
+          latestPayment.amountPaid = Number(amountPayingToday);
 
           if (paymentMode !== undefined) {
             latestPayment.paymentMode = paymentMode;
@@ -509,6 +504,7 @@ export const updateMember = async (req, res) => {
     }
 
     const formatted = await formatMember(member);
+    emitToGym(req.user.gymId, "member:updated", { member: formatted });
 
     res.status(200).json({
       success: true,
@@ -547,13 +543,11 @@ export const deleteMember = async (req, res) => {
       });
     }
 
-    const subscriptions =
-      await MemberSubscriptionHistory.find({
-        member: member._id,
-      });
+    const subscriptions = await MemberSubscriptionHistory.find({
+      member: member._id,
+    });
 
-    const subscriptionIds =
-      subscriptions.map((s) => s._id);
+    const subscriptionIds = subscriptions.map((s) => s._id);
 
     // Delete payments
     await MemberPaymentHistory.deleteMany({
@@ -569,6 +563,7 @@ export const deleteMember = async (req, res) => {
 
     // Delete member
     await Member.findByIdAndDelete(id);
+    emitToGym(req.user.gymId, "member:deleted", { id });
 
     res.status(200).json({
       success: true,
@@ -640,12 +635,11 @@ export const extendMembership = async (req, res) => {
     // ---------------------------------------------------------------
     // Find latest/current subscription
     // ---------------------------------------------------------------
-    const latestSub =
-      await MemberSubscriptionHistory.findOne({
-        member: member._id,
-      }).sort({
-        joiningDate: -1,
-      });
+    const latestSub = await MemberSubscriptionHistory.findOne({
+      member: member._id,
+    }).sort({
+      joiningDate: -1,
+    });
 
     // ---------------------------------------------------------------
     // Validate plan
@@ -691,20 +685,16 @@ export const extendMembership = async (req, res) => {
     let wasActive = false;
 
     if (latestSub?.expiryDate) {
-      const currentExpiry =
-        new Date(latestSub.expiryDate);
+      const currentExpiry = new Date(latestSub.expiryDate);
 
       currentExpiry.setHours(0, 0, 0, 0);
 
       if (currentExpiry >= today) {
         wasActive = true;
 
-        defaultStartDate =
-          new Date(currentExpiry);
+        defaultStartDate = new Date(currentExpiry);
 
-        defaultStartDate.setDate(
-          defaultStartDate.getDate() + 1
-        );
+        defaultStartDate.setDate(defaultStartDate.getDate() + 1);
       }
     }
 
@@ -718,8 +708,7 @@ export const extendMembership = async (req, res) => {
     let startFrom = defaultStartDate;
 
     if (newStartDate) {
-      const selectedStartDate =
-        new Date(`${newStartDate}T12:00:00`);
+      const selectedStartDate = new Date(`${newStartDate}T12:00:00`);
 
       if (Number.isNaN(selectedStartDate.getTime())) {
         return res.status(400).json({
@@ -736,12 +725,9 @@ export const extendMembership = async (req, res) => {
     // ---------------------------------------------------------------
     // Calculate new expiry
     // ---------------------------------------------------------------
-    const newExpiry =
-      new Date(startFrom);
+    const newExpiry = new Date(startFrom);
 
-    newExpiry.setMonth(
-      newExpiry.getMonth() + monthsToAdd
-    );
+    newExpiry.setMonth(newExpiry.getMonth() + monthsToAdd);
 
     // ---------------------------------------------------------------
     // Create NEW subscription
@@ -750,47 +736,38 @@ export const extendMembership = async (req, res) => {
     // Old membership remains untouched.
     // It stays in MemberSubscriptionHistory.
     // ---------------------------------------------------------------
-    const newSubscription =
-      await MemberSubscriptionHistory.create({
-        member: member._id,
+    const newSubscription = await MemberSubscriptionHistory.create({
+      member: member._id,
 
-        plan,
+      plan,
 
-        joiningDate: startFrom,
+      joiningDate: startFrom,
 
-        expiryDate: newExpiry,
+      expiryDate: newExpiry,
 
-        planAmount: Number(
-          extensionAmount || 0
-        ),
+      planAmount: Number(extensionAmount || 0),
 
-        balance: Number(
-          balanceAmount || 0
-        ),
+      balance: Number(balanceAmount || 0),
 
-        wasActive,
+      wasActive,
 
-        createdBy: req.user._id,
-      });
+      createdBy: req.user._id,
+    });
 
     // ---------------------------------------------------------------
     // Create payment for NEW membership
     // ---------------------------------------------------------------
     if (Number(amountPayingToday) > 0) {
       await MemberPaymentHistory.create({
-        memberSubscription:
-          newSubscription._id,
+        memberSubscription: newSubscription._id,
 
-        amountPaid:
-          Number(amountPayingToday),
+        amountPaid: Number(amountPayingToday),
 
-        paymentMode:
-          paymentMode || "upi",
+        paymentMode: paymentMode || "upi",
 
         paymentDate: today,
 
-        remarks:
-          "Membership renewal payment",
+        remarks: "Membership renewal payment",
       });
     }
 
@@ -804,28 +781,23 @@ export const extendMembership = async (req, res) => {
     // ---------------------------------------------------------------
     // Return current member
     // ---------------------------------------------------------------
-    const formatted =
-      await formatMember(member);
+    const formatted = await formatMember(member);
+    emitToGym(req.user.gymId, "member:updated", { member: formatted });
 
     return res.status(200).json({
       success: true,
 
-      message:
-        "Membership renewed successfully.",
+      message: "Membership renewed successfully.",
 
       member: formatted,
     });
   } catch (error) {
-    console.error(
-      "extendMembership error:",
-      error
-    );
+    console.error("extendMembership error:", error);
 
     return res.status(500).json({
       success: false,
 
-      message:
-        "Failed to renew membership.",
+      message: "Failed to renew membership.",
     });
   }
 };

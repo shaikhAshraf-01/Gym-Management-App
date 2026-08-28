@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import http from "http";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -8,6 +9,7 @@ import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "@exortek/express-mongo-sanitize";
 import connectDB from "./config/db.js";
+import { initSocket } from "./socket/index.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
@@ -100,6 +102,14 @@ process.on("uncaughtException", (error) => {
   process.exit(1);
 });
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+
+// socket.io needs the raw http server (it hooks into the HTTP
+// upgrade event for the websocket handshake) — express's app.listen()
+// creates one internally but doesn't expose it, so we create it
+// ourselves and hand it to both express and socket.io.
+const httpServer = http.createServer(app);
+initSocket(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

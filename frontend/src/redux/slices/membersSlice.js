@@ -122,6 +122,24 @@ const membersSlice = createSlice({
     clearMemberActionError: (state) => {
       state.actionError = null;
     },
+    // ---- Real-time (socket.io) reducers ----
+    // Fired when ANOTHER device/session on the same gym (owner's other
+    // device, or a trainer) adds/edits/renews a member. Same
+    // upsert-by-id shape as the REST thunks above, so it's safe even
+    // if this device's own action already applied the same change
+    // (e.g. the server echoing our own write back to us too).
+    memberUpserted: (state, action) => {
+      const incoming = action.payload;
+      const index = state.members.findIndex((m) => m.id === incoming.id);
+      if (index !== -1) {
+        state.members[index] = incoming;
+      } else {
+        state.members.unshift(incoming);
+      }
+    },
+    memberRemoved: (state, action) => {
+      state.members = state.members.filter((m) => m.id !== action.payload);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -199,6 +217,6 @@ const membersSlice = createSlice({
   },
 });
 
-export const { clearMemberActionError } = membersSlice.actions;
+export const { clearMemberActionError, memberUpserted, memberRemoved } = membersSlice.actions;
 
 export default membersSlice.reducer;

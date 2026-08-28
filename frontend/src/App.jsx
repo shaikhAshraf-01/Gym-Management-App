@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { Capacitor } from "@capacitor/core";
 import { restoreSession } from "./redux/slices/authSlice";
+import useRealtimeSync from "./hooks/useRealtimeSync";
 
 // 🚀 ADDED: The missing Protected Route file import statement
 import ProtectedRoute from "./pages/protectedRoute"; 
@@ -34,6 +35,10 @@ function App() {
   useEffect(() => {
     dispatch(restoreSession());
   }, [dispatch]);
+
+  // Live member/enquiry updates across devices + owner<->trainer —
+  // connects once authenticated, disconnects on logout (see the hook).
+  useRealtimeSync();
 
   return (
     <BrowserRouter>

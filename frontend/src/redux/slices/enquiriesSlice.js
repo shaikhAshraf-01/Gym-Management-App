@@ -89,6 +89,19 @@ const enquiriesSlice = createSlice({
     clearEnquiryActionError: (state) => {
       state.actionError = null;
     },
+    // ---- Real-time (socket.io) reducers — see membersSlice for why ----
+    enquiryUpserted: (state, action) => {
+      const incoming = action.payload;
+      const index = state.enquiries.findIndex((e) => e.id === incoming.id);
+      if (index !== -1) {
+        state.enquiries[index] = incoming;
+      } else {
+        state.enquiries.unshift(incoming);
+      }
+    },
+    enquiryRemoved: (state, action) => {
+      state.enquiries = state.enquiries.filter((e) => e.id !== action.payload);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -151,6 +164,6 @@ const enquiriesSlice = createSlice({
   },
 });
 
-export const { clearEnquiryActionError } = enquiriesSlice.actions;
+export const { clearEnquiryActionError, enquiryUpserted, enquiryRemoved } = enquiriesSlice.actions;
 
 export default enquiriesSlice.reducer;
