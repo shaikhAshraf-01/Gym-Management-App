@@ -28,6 +28,18 @@ import OwnerProfile from "./components/ownerComponents/OwnerProfile";
 import TrainerLayout from "./layouts/trainerLayout/TrainerLayout";
 import TrainerProfile from "./components/trainerComponents/TrainerProfile";
 
+// True once the user has installed the PWA (Add to Home Screen / Install
+// app) and is opening it from that icon, NOT just browsing the site in a
+// normal browser tab. Two ways browsers report this:
+//   - `display-mode: standalone` media query — Android Chrome, desktop
+//     Chrome/Edge, and modern iOS Safari all support this.
+//   - `navigator.standalone` — older iOS Safari flag, kept as a fallback
+//     since some iOS versions only expose this one.
+const isStandalonePWA = () =>
+  typeof window !== "undefined" &&
+  (window.matchMedia?.("(display-mode: standalone)").matches ||
+    window.navigator?.standalone === true);
+
 function App() {
   const dispatch = useDispatch();
 
@@ -49,10 +61,16 @@ function App() {
         <Route
           path="/"
           element={
-            // Installed app users want to log in immediately — the
-            // marketing homepage is only useful for website visitors
-            // who haven't downloaded the app yet.
-            Capacitor.isNativePlatform() ? <Login /> : <Home />
+            // Installed users (native Capacitor app OR an installed PWA
+            // opened from its home-screen icon) want to log in
+            // immediately — the marketing homepage with its "Download
+            // App" button is only useful for someone browsing the site
+            // in a normal browser tab who hasn't installed anything yet.
+            Capacitor.isNativePlatform() || isStandalonePWA() ? (
+              <Login />
+            ) : (
+              <Home />
+            )
           }
         />
 
