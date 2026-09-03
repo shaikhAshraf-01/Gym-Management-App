@@ -16,10 +16,10 @@ export const fetchEnquiries = createAsyncThunk(
       return response.data.enquiries;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch enquiries."
+        error.response?.data?.message || "Failed to fetch enquiries.",
       );
     }
-  }
+  },
 );
 
 // ================= ADD ENQUIRY =================
@@ -34,10 +34,10 @@ export const addEnquiry = createAsyncThunk(
       return response.data.enquiry;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to add enquiry."
+        error.response?.data?.message || "Failed to add enquiry.",
       );
     }
-  }
+  },
 );
 
 // ================= UPDATE ENQUIRY (inline "Change Date" edit) =================
@@ -52,10 +52,10 @@ export const updateEnquiry = createAsyncThunk(
       return response.data.enquiry;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to update enquiry."
+        error.response?.data?.message || "Failed to update enquiry.",
       );
     }
-  }
+  },
 );
 
 // ================= DELETE ENQUIRY =================
@@ -68,10 +68,10 @@ export const deleteEnquiry = createAsyncThunk(
       return id;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to delete enquiry."
+        error.response?.data?.message || "Failed to delete enquiry.",
       );
     }
-  }
+  },
 );
 
 const initialState = {
@@ -126,7 +126,13 @@ const enquiriesSlice = createSlice({
       })
       .addCase(addEnquiry.fulfilled, (state, action) => {
         state.actionLoading = false;
-        state.enquiries.unshift(action.payload);
+        const incoming = action.payload;
+        const index = state.enquiries.findIndex((e) => e.id === incoming.id);
+        if (index !== -1) {
+          state.enquiries[index] = incoming;
+        } else {
+          state.enquiries.unshift(incoming);
+        }
       })
       .addCase(addEnquiry.rejected, (state, action) => {
         state.actionLoading = false;
@@ -140,7 +146,9 @@ const enquiriesSlice = createSlice({
       })
       .addCase(updateEnquiry.fulfilled, (state, action) => {
         state.actionLoading = false;
-        const index = state.enquiries.findIndex((e) => e.id === action.payload.id);
+        const index = state.enquiries.findIndex(
+          (e) => e.id === action.payload.id,
+        );
         if (index !== -1) state.enquiries[index] = action.payload;
       })
       .addCase(updateEnquiry.rejected, (state, action) => {
@@ -155,7 +163,9 @@ const enquiriesSlice = createSlice({
       })
       .addCase(deleteEnquiry.fulfilled, (state, action) => {
         state.actionLoading = false;
-        state.enquiries = state.enquiries.filter((e) => e.id !== action.payload);
+        state.enquiries = state.enquiries.filter(
+          (e) => e.id !== action.payload,
+        );
       })
       .addCase(deleteEnquiry.rejected, (state, action) => {
         state.actionLoading = false;
@@ -164,6 +174,7 @@ const enquiriesSlice = createSlice({
   },
 });
 
-export const { clearEnquiryActionError, enquiryUpserted, enquiryRemoved } = enquiriesSlice.actions;
+export const { clearEnquiryActionError, enquiryUpserted, enquiryRemoved } =
+  enquiriesSlice.actions;
 
 export default enquiriesSlice.reducer;

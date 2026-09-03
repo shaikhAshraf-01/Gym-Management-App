@@ -17,10 +17,10 @@ export const fetchMembers = createAsyncThunk(
       return response.data.members;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch members."
+        error.response?.data?.message || "Failed to fetch members.",
       );
     }
-  }
+  },
 );
 
 // ================= ADD MEMBER =================
@@ -37,10 +37,10 @@ export const addMember = createAsyncThunk(
       return response.data.member;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to add member."
+        error.response?.data?.message || "Failed to add member.",
       );
     }
-  }
+  },
 );
 
 // ================= UPDATE MEMBER (generic field patch) =================
@@ -55,10 +55,10 @@ export const updateMember = createAsyncThunk(
       return response.data.member;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to update member."
+        error.response?.data?.message || "Failed to update member.",
       );
     }
-  }
+  },
 );
 
 // ================= DELETE MEMBER =================
@@ -71,10 +71,10 @@ export const deleteMember = createAsyncThunk(
       return id;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to delete member."
+        error.response?.data?.message || "Failed to delete member.",
       );
     }
-  }
+  },
 );
 
 // ================= EXTEND MEMBERSHIP =================
@@ -90,10 +90,10 @@ export const extendMembership = createAsyncThunk(
       return response.data.member;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to extend membership."
+        error.response?.data?.message || "Failed to extend membership.",
       );
     }
-  }
+  },
 );
 
 // Human-readable label for the `plan` code, used anywhere the UI
@@ -164,7 +164,13 @@ const membersSlice = createSlice({
       })
       .addCase(addMember.fulfilled, (state, action) => {
         state.actionLoading = false;
-        state.members.unshift(action.payload);
+        const incoming = action.payload;
+        const index = state.members.findIndex((m) => m.id === incoming.id);
+        if (index !== -1) {
+          state.members[index] = incoming;
+        } else {
+          state.members.unshift(incoming);
+        }
       })
       .addCase(addMember.rejected, (state, action) => {
         state.actionLoading = false;
@@ -178,7 +184,9 @@ const membersSlice = createSlice({
       })
       .addCase(updateMember.fulfilled, (state, action) => {
         state.actionLoading = false;
-        const index = state.members.findIndex((m) => m.id === action.payload.id);
+        const index = state.members.findIndex(
+          (m) => m.id === action.payload.id,
+        );
         if (index !== -1) state.members[index] = action.payload;
       })
       .addCase(updateMember.rejected, (state, action) => {
@@ -207,7 +215,9 @@ const membersSlice = createSlice({
       })
       .addCase(extendMembership.fulfilled, (state, action) => {
         state.actionLoading = false;
-        const index = state.members.findIndex((m) => m.id === action.payload.id);
+        const index = state.members.findIndex(
+          (m) => m.id === action.payload.id,
+        );
         if (index !== -1) state.members[index] = action.payload;
       })
       .addCase(extendMembership.rejected, (state, action) => {
@@ -217,6 +227,7 @@ const membersSlice = createSlice({
   },
 });
 
-export const { clearMemberActionError, memberUpserted, memberRemoved } = membersSlice.actions;
+export const { clearMemberActionError, memberUpserted, memberRemoved } =
+  membersSlice.actions;
 
 export default membersSlice.reducer;

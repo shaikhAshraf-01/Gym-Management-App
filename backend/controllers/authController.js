@@ -2,12 +2,6 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import sendOTPEmails from "../utils/sendOTPEmails.js";
 
-// Token now always lives for JWT_EXPIRE (set this to something long in
-// .env, e.g. "90d") regardless of "Remember Me" — the old behaviour
-// silently expired non-rememberMe sessions after just 1 day, which is
-// what was killing sessions mid-use. Actual logout is what clears the
-// session client-side now (see axios.js's 401 interceptor + authSlice's
-// logout action), not token expiry.
 const generateToken = (userId, role, tokenVersion) => {
   return jwt.sign(
     {
