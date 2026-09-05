@@ -21,7 +21,9 @@ export default function AdminSidebar() {
   ];
 
   return (
-    <div className="w-full h-16 md:w-64 md:h-screen bg-slate-900 text-white fixed bottom-0 left-0 md:top-0 md:bottom-auto z-50 shadow-lg md:shadow-none flex md:flex-col items-center md:items-start justify-between p-2 md:p-5">
+    <div
+      className="w-full h-[calc(4rem+env(safe-area-inset-bottom))] md:w-64 md:h-screen bg-slate-900 text-white fixed bottom-0 left-0 md:top-0 md:bottom-auto z-50 shadow-lg md:shadow-none flex md:flex-col items-center md:items-start justify-between px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:p-5"
+    >
       
       {/* Sidebar Heading Panel Element (Hidden on mobile phones) */}
       <h2 className="text-xl font-bold mb-8 hidden md:block text-indigo-400 tracking-wide px-2">

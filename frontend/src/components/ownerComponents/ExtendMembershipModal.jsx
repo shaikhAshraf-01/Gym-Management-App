@@ -374,32 +374,7 @@ export default function ExtendMembershipModal({
               </p>
             </div>
 
-            {/* Balance Due Date — only meaningful while a balance is
-                actually outstanding, and must fall somewhere between
-                today and the new expiry date. */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Balance Due Date
-              </label>
-
-              <input
-                type="date"
-                name="balanceDueDate"
-                value={formData.balanceDueDate}
-                onChange={handleChange}
-                min={todayStr}
-                max={formData.newExpiryDate || undefined}
-                disabled={!hasBalance}
-                required={hasBalance}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-semibold focus:outline-none focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-              />
-
-              <p className="text-[10px] text-gray-400 mt-1">
-                {hasBalance
-                  ? "Must fall between today and the new expiry date"
-                  : "No balance pending — nothing to collect"}
-              </p>
-            </div>
+           
 
             {/* Payment Mode */}
             <div className="md:col-span-2">

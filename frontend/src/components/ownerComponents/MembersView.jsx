@@ -37,6 +37,9 @@ export default function MembersView() {
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
   // Member currently being sent a balance-due reminder WhatsApp message
   const [remindingBalanceMember, setRemindingBalanceMember] = useState(null);
+  // Member just saved via Edit whose pending balance went from >0 to 0
+  // — triggers a "balance received" confirmation WhatsApp popup.
+  const [balanceClearedMember, setBalanceClearedMember] = useState(null);
   // Holds { ...updatedMember, _extensionPayload } after a successful
   // extend, so the renewal popup can show the right numbers.
   const [confirmingRenewalMember, setConfirmingRenewalMember] = useState(null);
@@ -48,6 +51,7 @@ export default function MembersView() {
   useBackHandler(!!deletingMemberId, () => setDeletingMemberId(null));
   useBackHandler(!!openActionMenuId, () => setOpenActionMenuId(null));
   useBackHandler(!!remindingBalanceMember, () => setRemindingBalanceMember(null));
+  useBackHandler(!!balanceClearedMember, () => setBalanceClearedMember(null));
   useBackHandler(!!confirmingRenewalMember, () => setConfirmingRenewalMember(null));
 
   // Members now come from the backend — only fetch if not already
@@ -80,6 +84,18 @@ Thank you! 🙏
 ${gym} Team 💪`;
   };
 
+  // Builds the "balance received / cleared" confirmation WhatsApp text,
+  // sent when an Edit-Member save brings the pending balance to ₹0.
+  const buildBalanceReceivedMessage = (member) => {
+    const gym = gymName || "our gym";
+    return `Hello ${member.name}! 👋
+
+✅ We've received your pending payment — your balance at ${gym} is now fully cleared.
+
+Thank you for your payment! 🙏
+${gym} Team 💪`;
+  };
+
   // "Fees khatam" check — membership already expired (expiryDate is in
   // the past) → show Renew, otherwise the plan is still active → Extend.
   const isMemberExpired = (member) => {
@@ -95,9 +111,17 @@ ${gym} Team 💪`;
   const handleView = (member) => setViewingMember(member);
   const handleExtend = (member) => setExtendingMember(member);
 
-  const handleSaveEdit = (id, changes) => {
-    dispatch(updateMember({ id, changes }));
+  const handleSaveEdit = async (id, changes) => {
+    const oldBalance = Number(editingMember?.balanceAmount || 0);
+    const newBalance = Number(changes.balanceAmount || 0);
+
+    await dispatch(updateMember({ id, changes }));
     setEditingMember(null);
+
+    // Balance just got fully cleared — offer to notify the member.
+    if (canUseManualWhatsApp && oldBalance > 0 && newBalance === 0) {
+      setBalanceClearedMember({ ...editingMember, ...changes });
+    }
   };
 
 const handleSaveExtend = async (id, extensionPayload) => {
@@ -461,6 +485,14 @@ const buildExtensionMessage = (member) => {
         onClose={() => setRemindingBalanceMember(null)}
         phone={remindingBalanceMember?.mobile}
         customMessage={remindingBalanceMember ? buildBalanceMessage(remindingBalanceMember) : ""}
+      />
+
+      {/* 💬 BALANCE RECEIVED CONFIRMATION WHATSAPP POPUP (Edit Member flow) */}
+      <WhatsAppMessagePopup
+        isOpen={!!balanceClearedMember}
+        onClose={() => setBalanceClearedMember(null)}
+        phone={balanceClearedMember?.mobile}
+        customMessage={balanceClearedMember ? buildBalanceReceivedMessage(balanceClearedMember) : ""}
       />
 
       {/* 💬 RENEWAL CONFIRMATION WHATSAPP POPUP (for the Extend button's own flow) */}

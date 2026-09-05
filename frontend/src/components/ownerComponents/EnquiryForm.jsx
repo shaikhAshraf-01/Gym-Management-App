@@ -87,7 +87,6 @@ minLength={10}
             onChange={handleChange}
             className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500 transition-all placeholder-gray-400"
             placeholder="e.g. Tomorrow, Next Week, Monday"
-            required
           />
         </div>
 

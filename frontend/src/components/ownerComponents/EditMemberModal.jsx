@@ -16,7 +16,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
     planAmount: "",
     amountPayingToday: "",
     balanceAmount: "",
-    balanceUpdateDate: "",
     paymentMode: "upi",
     joiningDate: "",
     expiryDate: "",
@@ -45,7 +44,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
         // Keep balance consistent with plan - paid
         balanceAmount: String(Math.max(0, planAmount - paidAmount)),
 
-        balanceUpdateDate: member.balanceUpdateDate || "",
         paymentMode: member.paymentMode || "upi",
         joiningDate: member.joiningDate || "",
         expiryDate: member.expiryDate || "",
@@ -65,8 +63,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     return sixMonthsAgo.toISOString().split("T")[0];
   };
-
-  const todayStr = new Date().toISOString().split("T")[0];
 
   // ------------------------------------------------------------
   // CALCULATE EXPIRY DATE
@@ -220,9 +216,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
         amountPayingToday: String(
           Math.min(newPaid, planAmount)
         ),
-
-        balanceUpdateDate:
-          new Date().toISOString().split("T")[0],
       };
     });
   };
@@ -461,30 +454,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
 
               <p className="text-[10px] text-gray-400 mt-1">
                 Plan Amount − Amount Paid
-              </p>
-            </div>
-
-            {/* BALANCE UPDATED DATE */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Balance Updated On
-              </label>
-
-              <input
-                type="date"
-                name="balanceUpdateDate"
-                value={formData.balanceUpdateDate}
-                onChange={handleChange}
-                min={todayStr}
-                max={formData.expiryDate || undefined}
-                disabled={Number(formData.balanceAmount) === 0}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-              />
-
-              <p className="text-[10px] text-gray-400 mt-1">
-                {Number(formData.balanceAmount) === 0
-                  ? "No balance pending — nothing to collect"
-                  : "Must fall between today and the expiry date"}
               </p>
             </div>
 

@@ -27,7 +27,7 @@ export default function OwnerSidebar() {
       {/* Mobile Selection Sheet Overlay */}
       {isMobileMenuOpen && (
         <div className="block md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity">
-          <div className="absolute bottom-16 left-0 right-0 bg-slate-950 border-t border-slate-900 rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
+          <div className="absolute bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 right-0 bg-slate-950 border-t border-slate-900 rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-white">Create New Entry</h3>
               <button onClick={() => dispatch(closeDrawer())} className="text-slate-400 hover:text-white">
@@ -70,8 +70,11 @@ export default function OwnerSidebar() {
       )}
 
       {/* Floating Bottom Nav Bar */}
-      <div className="block md:hidden w-full h-16 bg-slate-950 text-white fixed bottom-0 left-0 z-50 shadow-2xl p-2 border-t border-slate-900">
-        <nav className="grid grid-cols-5 w-full h-full justify-items-center items-center">
+      <div
+        className="block md:hidden w-full bg-slate-950 text-white fixed bottom-0 left-0 z-50 shadow-2xl border-t border-slate-900"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <nav className="grid grid-cols-5 w-full h-16 justify-items-center items-center p-2">
           {navItems.map((item, index) => {
             const isCenterItem = index === 2;
             if (isCenterItem) {
