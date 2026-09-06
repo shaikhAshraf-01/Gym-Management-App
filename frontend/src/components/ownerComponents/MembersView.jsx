@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Edit2, CalendarPlus, Phone, User, Search, X, Calendar, CalendarX, Trash2, Eye, Check, MessageCircle, MoreVertical } from "lucide-react";
-import { fetchMembers, updateMember, deleteMember, extendMembership, PLAN_LABELS } from "../../redux/slices/membersSlice";
+import { CalendarPlus, Phone, User, Search, X, Calendar, CalendarX, MessageCircle, Download } from "lucide-react";
+import { fetchMembers, updateMember, extendMembership, PLAN_LABELS } from "../../redux/slices/membersSlice";
 import { fetchOwnerProfile } from "../../redux/slices/ownerSlice";
 import EditMemberModal from "./EditMemberModal";
 import ExtendMembershipModal from "./ExtendMembershipModal";
 import RenewMembershipAction from "./RenewMembershipAction";
-import MemberHistoryModal from "./MemberHistoryModal";
+import MemberProfileModal from "./MemberProfileModal";
 import WhatsAppMessagePopup from "../adminComponents/WhatsAppMessagePopup";
 import WhatsAppRenewMessagePopup from "../adminComponents/WhatsAppRenewMessagePopup";
 import { useBackHandler } from "../../hooks/useBackHandler";
@@ -29,12 +29,11 @@ export default function MembersView() {
   const canUseManualWhatsApp = subscriptionPlan === "Basic";
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // all | active | inactive
+  const [sortOrder, setSortOrder] = useState("newest"); // newest | oldest
   const [editingMember, setEditingMember] = useState(null); 
   const [extendingMember, setExtendingMember] = useState(null); 
-  const [viewingMember, setViewingMember] = useState(null); 
-  const [deletingMemberId, setDeletingMemberId] = useState(null);
-  // Row/card whose "⋮" (Edit/Delete) dropdown is currently open
-  const [openActionMenuId, setOpenActionMenuId] = useState(null);
+  const [viewingProfileMember, setViewingProfileMember] = useState(null);
   // Member currently being sent a balance-due reminder WhatsApp message
   const [remindingBalanceMember, setRemindingBalanceMember] = useState(null);
   // Member just saved via Edit whose pending balance went from >0 to 0
@@ -47,9 +46,7 @@ export default function MembersView() {
   // Hardware back button pehle in modals ko close kare, page navigate na kare
   useBackHandler(!!editingMember, () => setEditingMember(null));
   useBackHandler(!!extendingMember, () => setExtendingMember(null));
-  useBackHandler(!!viewingMember, () => setViewingMember(null));
-  useBackHandler(!!deletingMemberId, () => setDeletingMemberId(null));
-  useBackHandler(!!openActionMenuId, () => setOpenActionMenuId(null));
+  useBackHandler(!!viewingProfileMember, () => setViewingProfileMember(null));
   useBackHandler(!!remindingBalanceMember, () => setRemindingBalanceMember(null));
   useBackHandler(!!balanceClearedMember, () => setBalanceClearedMember(null));
   useBackHandler(!!confirmingRenewalMember, () => setConfirmingRenewalMember(null));
@@ -107,9 +104,40 @@ ${gym} Team 💪`;
     return expiry < today;
   };
 
-  const handleEdit = (member) => setEditingMember(member);
-  const handleView = (member) => setViewingMember(member);
   const handleExtend = (member) => setExtendingMember(member);
+  const handleViewProfile = (member) => setViewingProfileMember(member);
+
+  // Profile modal's "Edit Profile" button hands off to the existing
+  // Edit modal — close one, open the other.
+  const handleEditFromProfile = (member) => {
+    setViewingProfileMember(null);
+    setEditingMember(member);
+  };
+
+  // Opens a plain WhatsApp chat thread with the member — no template,
+  // no plan gating (unlike the balance-reminder/renewal popups, this
+  // is just a deep link, so every plan gets it).
+  const handleOpenWhatsAppChat = (mobile) => {
+    const cleanPhone = String(mobile || "").replace(/\D/g, "");
+    if (cleanPhone.length !== 10) {
+      alert("Invalid WhatsApp mobile number.");
+      return;
+    }
+    const finalPhone = `91${cleanPhone}`;
+    const nativeAppUrl = `whatsapp://send?phone=${finalPhone}`;
+    const browserFallbackUrl = `https://api.whatsapp.com/send?phone=${finalPhone}`;
+    const isMobileDevice =
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.Capacitor;
+
+    if (isMobileDevice) {
+      window.location.href = nativeAppUrl;
+      setTimeout(() => {
+        window.location.href = browserFallbackUrl;
+      }, 1500);
+    } else {
+      window.open(browserFallbackUrl, "MemberWhatsAppChat");
+    }
+  };
 
   const handleSaveEdit = async (id, changes) => {
     const oldBalance = Number(editingMember?.balanceAmount || 0);
@@ -160,36 +188,148 @@ const buildExtensionMessage = (member) => {
   return message;
 };
 
-  const handleConfirmDelete = (id) => {
-    dispatch(deleteMember(id));
-    setDeletingMemberId(null);
-  };
-
-  const filteredMembers = members.filter((member) => {
+  const searchedMembers = members.filter((member) => {
     const query = searchQuery.toLowerCase().trim();
     return member.name.toLowerCase().includes(query) || member.mobile.includes(query);
   });
 
+  // Active = membership not yet expired. Inactive = expired.
+  const activeCount = searchedMembers.filter((m) => !isMemberExpired(m)).length;
+  const inactiveCount = searchedMembers.filter((m) => isMemberExpired(m)).length;
+  const allCount = searchedMembers.length;
+
+  const statusFilteredMembers = searchedMembers.filter((member) => {
+    if (statusFilter === "active") return !isMemberExpired(member);
+    if (statusFilter === "inactive") return isMemberExpired(member);
+    return true;
+  });
+
+  const filteredMembers = [...statusFilteredMembers].sort((a, b) => {
+    const dateA = new Date(a.joiningDate).getTime();
+    const dateB = new Date(b.joiningDate).getTime();
+    return sortOrder === "oldest" ? dateA - dateB : dateB - dateA;
+  });
+
+  // ---------------------------------------------------------
+  // CSV Export — exports whatever search/status-filter/sort is
+  // currently applied.
+  // ---------------------------------------------------------
+  const escapeCsvValue = (value) => {
+    const str = String(value ?? "");
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const handleDownloadCsv = () => {
+    const headers = [
+      "Name",
+      "Mobile",
+      "Plan",
+      "Activities",
+      "Joining Date",
+      "Expiry Date",
+      "Plan Amount",
+      "Balance Amount",
+      "Status",
+    ];
+
+    const rows = filteredMembers.map((member) => [
+      member.name,
+      member.mobile,
+      PLAN_LABELS[member.plan] || member.plan,
+      (member.activities || []).join(" + "),
+      member.joiningDate,
+      member.expiryDate,
+      member.planAmount,
+      member.balanceAmount,
+      isMemberExpired(member) ? "Inactive" : "Active",
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map(escapeCsvValue).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `members-${statusFilter}-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="w-full text-gray-900 animate-in fade-in duration-200">
+    <div className="w-full text-slate-400 animate-in fade-in duration-200">
       
       {/* 🔍 SEARCH BAR */}
-      <div className="relative mb-6 w-full">
+      <div className="relative mb-3 w-full">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-4 w-4 text-gray-400" />
+          <Search className="h-4 w-4 text-slate-500" />
         </div>
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search members by name or mobile number..."
-          className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-10 py-2.5 text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm"
+          className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg pl-10 pr-10 py-2.5 text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:bg-slate-800 transition-all shadow-sm"
         />
         {searchQuery && (
-          <button onClick={() => setSearchQuery("")} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer">
+          <button onClick={() => setSearchQuery("")} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer">
             <X className="h-4 w-4" />
           </button>
         )}
+      </div>
+
+      {/* 🧰 STATUS FILTER + SORT + CSV */}
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-lg">
+          {[
+            { value: "all", label: "All", count: allCount },
+            { value: "active", label: "Active", count: activeCount },
+            { value: "inactive", label: "Inactive", count: inactiveCount },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setStatusFilter(opt.value)}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                statusFilter === opt.value
+                  ? "bg-slate-700 text-white shadow-sm"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {opt.label} ({opt.count})
+            </button>
+          ))}
+        </div>
+
+        <div className="relative ml-auto">
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            className="appearance-none pl-3 pr-8 py-2 rounded-lg text-xs font-medium border border-slate-700 bg-slate-800 text-slate-200 cursor-pointer hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          >
+            <option value="newest">Newest to Oldest</option>
+            <option value="oldest">Oldest to Newest</option>
+          </select>
+          <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleDownloadCsv}
+          disabled={filteredMembers.length === 0}
+          title="Download CSV of the current view"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
+          <Download className="h-3.5 w-3.5" />
+          <span>CSV</span>
+        </button>
       </div>
 
       {/* LOADING STATE */}
@@ -214,7 +354,6 @@ const buildExtensionMessage = (member) => {
               <tr className="border-b border-gray-200 bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider">
                 <th className="py-3 px-4">Name</th>
                 <th className="py-3 px-4">Mobile No.</th>
-                <th className="py-3 px-4">Age</th>
                 <th className="py-3 px-4">Plan</th>
                 <th className="py-3 px-4">Start Date</th>
                 <th className="py-3 px-4">End Date</th>
@@ -228,7 +367,6 @@ const buildExtensionMessage = (member) => {
                 <tr key={member.id} className="hover:bg-gray-50 transition-colors">
                   <td className="py-3.5 px-4 font-semibold text-gray-900">{member.name}</td>
                   <td className="py-3.5 px-4 text-gray-600">{member.mobile}</td>
-                  <td className="py-3.5 px-4 text-gray-600">{member.age}</td>
                   <td className="py-3.5 px-4">
                     <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-xs font-medium">
                       {PLAN_LABELS[member.plan] || member.plan}
@@ -258,9 +396,12 @@ const buildExtensionMessage = (member) => {
                       <a href={`tel:${member.mobile}`} className="p-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-md border border-gray-200 transition-colors cursor-pointer" title="Call Member">
                         <Phone className="h-3.5 w-3.5" />
                       </a>
-                      <button onClick={() => handleView(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-md border border-blue-200 transition-colors cursor-pointer">
-                        <Eye className="h-3.5 w-3.5" />
-                        <span>View</span>
+                      <button onClick={() => handleOpenWhatsAppChat(member.mobile)} className="p-1.5 bg-green-50 hover:bg-green-100 text-green-600 rounded-md border border-green-200 transition-colors cursor-pointer" title="Open WhatsApp chat">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => handleViewProfile(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-md border border-blue-200 transition-colors cursor-pointer">
+                        <User className="h-3.5 w-3.5" />
+                        <span>Profile</span>
                       </button>
                       {isMemberExpired(member) ? (
                         <RenewMembershipAction
@@ -283,46 +424,6 @@ const buildExtensionMessage = (member) => {
                           <CalendarPlus className="h-3.5 w-3.5" />
                           <span>Extend</span>
                         </button>
-                      )}
-
-                      {deletingMemberId === member.id ? (
-                        <div className="flex items-center gap-1 animate-in fade-in slide-in-from-right-2 duration-150">
-                          <button onClick={() => handleConfirmDelete(member.id)} className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-md cursor-pointer" title="Confirm Delete">
-                            <Check className="h-3.5 w-3.5" />
-                          </button>
-                          <button onClick={() => setDeletingMemberId(null)} className="p-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md cursor-pointer" title="Cancel">
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="relative">
-                          <button
-                            onClick={() => setOpenActionMenuId(openActionMenuId === member.id ? null : member.id)}
-                            className="p-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-md border border-gray-200 cursor-pointer transition-colors"
-                            title="More actions"
-                          >
-                            <MoreVertical className="h-3.5 w-3.5" />
-                          </button>
-                          {openActionMenuId === member.id && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => setOpenActionMenuId(null)} />
-                              <div className="absolute right-0 bottom-full mb-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden animate-in fade-in duration-100">
-                                <button
-                                  onClick={() => { setOpenActionMenuId(null); handleEdit(member); }}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
-                                >
-                                  <Edit2 className="h-3.5 w-3.5" /> Edit
-                                </button>
-                                <button
-                                  onClick={() => { setOpenActionMenuId(null); setDeletingMemberId(member.id); }}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 cursor-pointer"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" /> Delete
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
                       )}
                     </div>
                   </td>
@@ -348,57 +449,15 @@ const buildExtensionMessage = (member) => {
                     {member.mobile}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="bg-gray-100 text-gray-700 text-xs font-bold px-2 py-0.5 rounded-md">
-                    Age: {member.age}
-                  </span>
-                  
-                  <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5">
                     <a href={`tel:${member.mobile}`} className="p-2 bg-gray-100 active:bg-gray-200 text-gray-700 rounded-lg cursor-pointer shrink-0 border border-gray-200" aria-label="Call member">
                       <Phone className="h-3.5 w-3.5" />
                     </a>
 
-                    {deletingMemberId === member.id ? (
-                      <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200 animate-in scale-in duration-100">
-                        <button onClick={() => handleConfirmDelete(member.id)} className="px-2 py-1 bg-red-600 active:bg-red-700 text-white text-xs font-bold rounded-md cursor-pointer">
-                          Confirm
-                        </button>
-                        <button onClick={() => setDeletingMemberId(null)} className="px-2 py-1 bg-gray-200 active:bg-gray-300 text-gray-700 text-xs font-bold rounded-md cursor-pointer">
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="relative shrink-0">
-                        <button
-                          onClick={() => setOpenActionMenuId(openActionMenuId === member.id ? null : member.id)}
-                          aria-label="More actions"
-                          className="p-2 bg-gray-100 active:bg-gray-200 text-gray-700 border border-gray-200 rounded-lg cursor-pointer"
-                        >
-                          <MoreVertical className="h-3.5 w-3.5" />
-                        </button>
-                        {openActionMenuId === member.id && (
-                          <>
-                            <div className="fixed inset-0 z-40" onClick={() => setOpenActionMenuId(null)} />
-                            <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden animate-in fade-in duration-100">
-                              <button
-                                onClick={() => { setOpenActionMenuId(null); handleEdit(member); }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 active:bg-gray-50 cursor-pointer"
-                              >
-                                <Edit2 className="h-3.5 w-3.5" /> Edit
-                              </button>
-                              <button
-                                onClick={() => { setOpenActionMenuId(null); setDeletingMemberId(member.id); }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 active:bg-red-50 cursor-pointer"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" /> Delete
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
+                    <button onClick={() => handleOpenWhatsAppChat(member.mobile)} className="p-2 bg-green-50 active:bg-green-100 text-green-600 rounded-lg cursor-pointer shrink-0 border border-green-200" aria-label="Open WhatsApp chat">
+                      <MessageCircle className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 border-t border-b border-gray-100 py-3 my-3 text-xs">
@@ -442,9 +501,9 @@ const buildExtensionMessage = (member) => {
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-1">
-                <button onClick={() => handleView(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 active:bg-blue-100 text-blue-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-blue-200 cursor-pointer">
-                  <Eye className="h-3.5 w-3.5" />
-                  <span>View</span>
+                <button onClick={() => handleViewProfile(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 active:bg-blue-100 text-blue-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-blue-200 cursor-pointer">
+                  <User className="h-3.5 w-3.5" />
+                  <span>Profile</span>
                 </button>
                 {isMemberExpired(member) ? (
                   <RenewMembershipAction
@@ -477,7 +536,7 @@ const buildExtensionMessage = (member) => {
       {/* ✏️ MODALS */}
       <EditMemberModal member={editingMember} onSave={handleSaveEdit} onClose={() => setEditingMember(null)} />
       <ExtendMembershipModal member={extendingMember} addedBy={addedBy} onSave={handleSaveExtend} onClose={() => setExtendingMember(null)} />
-      <MemberHistoryModal member={viewingMember} onClose={() => setViewingMember(null)} />
+      <MemberProfileModal member={viewingProfileMember} onClose={() => setViewingProfileMember(null)} onEdit={handleEditFromProfile} onExtend={(member) => { setViewingProfileMember(null); setExtendingMember(member); }} />
 
       {/* 💬 BALANCE-DUE REMINDER WHATSAPP POPUP */}
       <WhatsAppMessagePopup

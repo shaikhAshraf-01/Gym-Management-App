@@ -64,8 +64,11 @@ const formatMember = async (memberDoc) => {
       name: memberDoc.name,
       mobile: memberDoc.mobile,
       age: memberDoc.age,
+      gender: memberDoc.gender,
 
       plan: null,
+
+      activities: [],
 
       planAmount: "0",
       amountPayingToday: "0",
@@ -196,6 +199,8 @@ const formatMember = async (memberDoc) => {
 
       plan: sub.plan,
 
+      activities: sub.activities || [],
+
       startDate: toDateStr(sub.joiningDate),
       endDate: toDateStr(sub.expiryDate),
 
@@ -228,9 +233,12 @@ const formatMember = async (memberDoc) => {
     name: memberDoc.name,
     mobile: memberDoc.mobile,
     age: memberDoc.age,
+    gender: memberDoc.gender,
 
     // Current plan
     plan: latest.plan,
+
+    activities: latest.activities || [],
 
     // CURRENT membership values
     planAmount: String(latest.planAmount || 0),
@@ -294,6 +302,7 @@ export const addMember = async (req, res) => {
       name,
       mobile,
       age,
+      gender,
       plan,
       planAmount,
       amountPayingToday,
@@ -302,6 +311,7 @@ export const addMember = async (req, res) => {
       joiningDate,
       expiryDate,
       trainer,
+      activities,
     } = req.body;
 
     if (
@@ -325,6 +335,7 @@ export const addMember = async (req, res) => {
       name,
       mobile,
       age: age || null,
+      gender: gender || null,
       gym: req.user.gymId,
       trainer: trainer || null,
     });
@@ -343,6 +354,8 @@ export const addMember = async (req, res) => {
       planAmount: Number(planAmount),
 
       balance: Number(balanceAmount || 0),
+
+      activities: Array.isArray(activities) ? activities : [],
 
       createdBy: req.user._id,
     });
@@ -396,6 +409,7 @@ export const updateMember = async (req, res) => {
       name,
       mobile,
       age,
+      gender,
       plan,
       planAmount,
       amountPayingToday,
@@ -403,6 +417,7 @@ export const updateMember = async (req, res) => {
       paymentMode,
       joiningDate,
       expiryDate,
+      activities,
     } = req.body;
 
     // ---------------------------------------------------------------
@@ -435,6 +450,10 @@ export const updateMember = async (req, res) => {
       member.age = age;
     }
 
+    if (gender !== undefined) {
+      member.gender = gender;
+    }
+
     await member.save();
 
     // ---------------------------------------------------------------
@@ -457,6 +476,10 @@ export const updateMember = async (req, res) => {
 
       if (balanceAmount !== undefined) {
         latestSub.balance = Number(balanceAmount);
+      }
+
+      if (activities !== undefined) {
+        latestSub.activities = Array.isArray(activities) ? activities : [];
       }
 
       if (joiningDate !== undefined) {
@@ -615,6 +638,7 @@ export const extendMembership = async (req, res) => {
       balanceAmount,
       paymentMode,
       newStartDate,
+      activities,
     } = req.body;
 
     // ---------------------------------------------------------------
@@ -748,6 +772,10 @@ export const extendMembership = async (req, res) => {
       planAmount: Number(extensionAmount || 0),
 
       balance: Number(balanceAmount || 0),
+
+      activities: Array.isArray(activities)
+        ? activities
+        : (latestSub?.activities || []),
 
       wasActive,
 

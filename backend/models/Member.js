@@ -19,6 +19,12 @@ const memberSchema = new mongoose.Schema(
       default:null,
     },
 
+    gender: {
+      type: String,
+      enum: ["Male", "Female", "Other"],
+      default: null,
+    },
+
     gym: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Gym",

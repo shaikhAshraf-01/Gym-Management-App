@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { X, Loader2 } from "lucide-react";
 
+const ACTIVITY_OPTIONS = [
+  { value: "workout", label: "Workout" },
+  { value: "cardio", label: "Cardio" },
+  { value: "zumba", label: "Zumba" },
+  { value: "hiit", label: "HIIT" },
+];
+
 export default function EditMemberModal({ member, onSave, onClose }) {
   // handleSaveEdit in MembersView.jsx now awaits the update (previously
   // it closed the modal instantly, before the request even finished) —
@@ -12,6 +19,8 @@ export default function EditMemberModal({ member, onSave, onClose }) {
     name: "",
     mobile: "",
     age: "",
+    gender: "",
+    activities: [],
     plan: "1_month",
     planAmount: "",
     amountPayingToday: "",
@@ -20,6 +29,19 @@ export default function EditMemberModal({ member, onSave, onClose }) {
     joiningDate: "",
     expiryDate: "",
   });
+
+  // Toggle an activity in/out of the selected list
+  const handleActivityToggle = (value) => {
+    setFormData((prev) => {
+      const isSelected = prev.activities.includes(value);
+      return {
+        ...prev,
+        activities: isSelected
+          ? prev.activities.filter((a) => a !== value)
+          : [...prev.activities, value],
+      };
+    });
+  };
 
   // ------------------------------------------------------------
   // LOAD MEMBER DATA
@@ -36,6 +58,8 @@ export default function EditMemberModal({ member, onSave, onClose }) {
         name: member.name || "",
         mobile: member.mobile || "",
         age: member.age || "",
+        gender: member.gender || "",
+        activities: member.activities || [],
         plan: member.plan || "1_month",
 
         planAmount: String(planAmount),
@@ -335,6 +359,52 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 onChange={handleChange}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
               />
+            </div>
+
+            {/* GENDER */}
+            <div>
+              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+                Gender
+              </label>
+
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+              >
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            {/* ACTIVITIES */}
+            <div>
+              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+                Activities
+              </label>
+
+              <div className="flex flex-wrap gap-2">
+                {ACTIVITY_OPTIONS.map((opt) => {
+                  const isSelected = formData.activities.includes(opt.value);
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => handleActivityToggle(opt.value)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                        isSelected
+                          ? "bg-indigo-600 border-indigo-600 text-white"
+                          : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* PLAN */}

@@ -10,6 +10,7 @@ import {
   Check,
   X,
   MessageCircle,
+  Download,
 } from "lucide-react";
 
 import {
@@ -183,6 +184,10 @@ export default function OwnerDashboard() {
       member.expiryInfo.type === "cold"
   ).length;
 
+  const feesRemainingCount = expiryMembers.filter(
+    (member) => Number(member.balanceAmount) > 0
+  ).length;
+
   const allCount =
     daysLeftCount +
     warmExpiredCount +
@@ -218,6 +223,12 @@ export default function OwnerDashboard() {
           return member.expiryInfo.type === "cold";
 
         // -----------------------------------------
+        // Fees Remaining
+        // -----------------------------------------
+        case "fees":
+          return Number(member.balanceAmount) > 0;
+
+        // -----------------------------------------
         // All
         // -----------------------------------------
         case "all":
@@ -233,7 +244,11 @@ export default function OwnerDashboard() {
           return false;
       }
     })
-    .sort((a, b) => a.daysLeft - b.daysLeft);
+    .sort((a, b) =>
+      expiryFilter === "fees"
+        ? Number(b.balanceAmount) - Number(a.balanceAmount)
+        : a.daysLeft - b.daysLeft
+    );
 
   // ---------------------------------------------------------
   // Filter dropdown options (used to build the <select>)
@@ -244,7 +259,59 @@ export default function OwnerDashboard() {
     { value: "days", label: "Days Left", count: daysLeftCount },
     { value: "warm", label: "Warm Expired", count: warmExpiredCount },
     { value: "cold", label: "Cold Expired", count: coldExpiredCount },
+    { value: "fees", label: "Fees Remaining", count: feesRemainingCount },
   ];
+
+  // ---------------------------------------------------------
+  // CSV Export — exports whatever the current filter is showing
+  // ---------------------------------------------------------
+
+  const escapeCsvValue = (value) => {
+    const str = String(value ?? "");
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const handleDownloadCsv = () => {
+    const headers = [
+      "Name",
+      "Mobile",
+      "Expiry Date",
+      "Days Left",
+      "Status",
+      "Balance Amount",
+    ];
+
+    const rows = expiringMembers.map((member) => [
+      member.name,
+      member.mobile,
+      member.expiryDate,
+      member.daysLeft,
+      member.expiryInfo.type,
+      member.balanceAmount || 0,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map(escapeCsvValue).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `members-${expiryFilter}-${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   // ---------------------------------------------------------
   // Extend Membership
@@ -365,59 +432,74 @@ ${gym} Team 💪`;
   // ---------------------------------------------------------
 
   return (
-    <div className="md:p-6 max-w-7xl mx-auto bg-gray-50 min-h-screen pb-24 md:pb-6 text-gray-600">
+    <div className="md:p-6 max-w-7xl mx-auto bg-slate-950 min-h-screen pb-24 md:pb-6 text-slate-400">
 
       {/* Main Container Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+      <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl shadow-sm border border-cyan-500/10 p-4 md:p-6">
 
         {/* -------------------------------------------------
             Header (title left, filter dropdown fixed right)
         ------------------------------------------------- */}
-        <div className="sticky top-0 z-20 bg-white flex items-center justify-between gap-3 mb-6 py-2 -mx-4 px-4 md:-mx-6 md:px-6 border-b border-gray-100">
+        <div className="sticky top-0 z-20 bg-slate-900/90 backdrop-blur-sm flex items-center justify-between gap-3 mb-6 py-2 -mx-4 px-4 md:-mx-6 md:px-6 border-b border-slate-800">
 
           <div className="flex items-center gap-3">
-            <CalendarClock className="h-6 w-6 text-blue-600" />
+            <CalendarClock className="h-6 w-6 text-cyan-400" />
 
-            <h3 className="text-lg font-bold text-gray-900 tracking-tight">
+            <h3 className="text-lg font-bold text-white tracking-tight">
               Membership Status
             </h3>
           </div>
 
           {/* -----------------------------------------------
-              FILTER DROPDOWN (replaces the button row)
+              FILTER DROPDOWN + CSV DOWNLOAD
           ----------------------------------------------- */}
-          <div className="relative">
-            <select
-              value={expiryFilter}
-              onChange={(e) =>
-                setExpiryFilter(e.target.value)
-              }
-              className="appearance-none pl-3 pr-8 py-2 rounded-lg text-sm font-medium border border-gray-200 bg-white text-gray-700 cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {filterOptions.map((option) => (
-                <option
-                  key={option.value}
-                  value={option.value}
-                >
-                  {option.label} ({option.count})
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <select
+                value={expiryFilter}
+                onChange={(e) =>
+                  setExpiryFilter(e.target.value)
+                }
+                className="appearance-none pl-3 pr-8 py-2 rounded-lg text-sm font-medium border border-slate-700 bg-slate-800 text-slate-200 cursor-pointer hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+              >
+                {filterOptions.map((option) => (
+                  <option
+                    key={option.value}
+                    value={option.value}
+                  >
+                    {option.label} ({option.count})
+                  </option>
+                ))}
+              </select>
 
-            {/* Dropdown chevron */}
-            <svg
-              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+              {/* Dropdown chevron */}
+              <svg
+                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+
+            {/* Download CSV — exports whatever the dropdown above is
+                currently showing */}
+            <button
+              type="button"
+              onClick={handleDownloadCsv}
+              disabled={expiringMembers.length === 0}
+              title="Download CSV of the current view"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+              <Download className="h-4 w-4" />
+              <span className="hidden md:inline">CSV</span>
+            </button>
           </div>
 
         </div>
@@ -426,7 +508,7 @@ ${gym} Team 💪`;
             Loading
         ------------------------------------------------- */}
         {loading && (
-          <div className="text-center py-10 text-gray-400 border border-dashed border-gray-200 rounded-xl">
+          <div className="text-center py-10 text-slate-500 border border-dashed border-slate-800 rounded-xl">
             <p className="text-sm font-medium">
               Loading members...
             </p>
@@ -438,7 +520,7 @@ ${gym} Team 💪`;
         ------------------------------------------------- */}
         {!loading &&
           expiringMembers.length === 0 && (
-            <div className="text-center py-10 text-gray-400 border border-dashed border-gray-200 rounded-xl">
+            <div className="text-center py-10 text-slate-500 border border-dashed border-slate-800 rounded-xl">
               <p className="text-sm font-medium">
                 {expiryFilter === "days" &&
                   "No memberships expiring in the next 7 days."}
@@ -448,6 +530,9 @@ ${gym} Team 💪`;
 
                 {expiryFilter === "cold" &&
                   "No cold expired members."}
+
+                {expiryFilter === "fees" &&
+                  "No members with pending fees."}
 
                 {expiryFilter === "all" &&
                   "No members found."}
@@ -462,7 +547,7 @@ ${gym} Team 💪`;
           expiringMembers.length > 0 && (
             <>
               {/* Desktop Header */}
-              <div className="hidden md:grid grid-cols-7 gap-4 px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 border border-gray-200 rounded-t-xl">
+              <div className="hidden md:grid grid-cols-7 gap-4 px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-900/80 border border-slate-800 rounded-t-xl">
 
                 <div>Name</div>
 
@@ -489,19 +574,19 @@ ${gym} Team 💪`;
               </div>
 
               {/* Dynamic List */}
-              <div className="divide-y divide-gray-200 border-x border-b border-gray-200 rounded-b-xl overflow-hidden bg-white">
+              <div className="divide-y divide-slate-800 border-x border-b border-slate-800 rounded-b-xl overflow-hidden bg-slate-900/40">
 
                 {expiringMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="flex flex-col md:grid md:grid-cols-7 gap-2 md:gap-4 p-4 px-4 items-start md:items-center hover:bg-gray-50 transition-colors"
+                    className="flex flex-col md:grid md:grid-cols-7 gap-2 md:gap-4 p-4 px-4 items-start md:items-center hover:bg-slate-800/50 transition-colors"
                   >
 
                     {/* ---------------------------------------
                         Member Name
                     --------------------------------------- */}
-                    <div className="flex items-center gap-2 font-medium text-gray-900">
-                      <User className="h-4 w-4 text-gray-400 md:hidden" />
+                    <div className="flex items-center gap-2 font-medium text-white">
+                      <User className="h-4 w-4 text-slate-500 md:hidden" />
 
                       <span>
                         {member.name}
@@ -511,8 +596,8 @@ ${gym} Team 💪`;
                     {/* ---------------------------------------
                         Mobile
                     --------------------------------------- */}
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Smartphone className="h-4 w-4 text-gray-400 md:hidden" />
+                    <div className="flex items-center gap-2 text-sm text-slate-400">
+                      <Smartphone className="h-4 w-4 text-slate-500 md:hidden" />
 
                       <span>
                         {member.mobile}
@@ -527,29 +612,29 @@ ${gym} Team 💪`;
                       {/* Cold */}
                       {member.expiryInfo.type ===
                       "cold" ? (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                          Cold Expired
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                          Cold Expired · {member.expiryInfo.expiredDays}d ago
                         </span>
                       ) : member.expiryInfo.type ===
                         "warm" ? (
 
                         /* Warm */
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-700">
-                          Warm Expired
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                          Warm Expired · {member.expiryInfo.expiredDays}d ago
                         </span>
 
                       ) : member.expiryInfo.type ===
                         "today" ? (
 
                         /* Today */
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
                           Expired Today
                         </span>
 
                       ) : member.daysLeft <= 2 ? (
 
                         /* 1-2 Days */
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
                           {member.daysLeft}{" "}
                           {member.daysLeft === 1
                             ? "Day"
@@ -560,7 +645,7 @@ ${gym} Team 💪`;
                       ) : (
 
                         /* 3-7 Days */
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                           {member.daysLeft} Days left
                         </span>
                       )}
@@ -575,7 +660,7 @@ ${gym} Team 💪`;
                       {/* Call */}
                       <a
                         href={`tel:${member.mobile}`}
-                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors shadow-sm select-none cursor-pointer"
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-cyan-500 text-slate-950 text-xs font-semibold hover:bg-cyan-400 transition-colors shadow-sm select-none cursor-pointer"
                       >
                         <Phone className="h-3.5 w-3.5" />
 
@@ -592,7 +677,7 @@ ${gym} Team 💪`;
                               member
                             )
                           }
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 text-xs font-medium hover:bg-green-100 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium hover:bg-emerald-500/20 transition-colors cursor-pointer"
                         >
                           <MessageCircle className="h-3.5 w-3.5" />
 
@@ -604,7 +689,7 @@ ${gym} Team 💪`;
                         <button
                           type="button"
                           disabled
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-gray-50 text-gray-400 border border-gray-200 text-xs font-medium cursor-not-allowed"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-slate-800/50 text-slate-600 border border-slate-800 text-xs font-medium cursor-not-allowed"
                         >
                           <MessageCircle className="h-3.5 w-3.5" />
 
@@ -623,7 +708,7 @@ ${gym} Team 💪`;
                           onClick={() =>
                             handleExtend(member)
                           }
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 text-xs font-medium hover:bg-purple-100 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-medium hover:bg-purple-500/20 transition-colors cursor-pointer"
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
 
@@ -636,7 +721,7 @@ ${gym} Team 💪`;
                           onClick={() =>
                             handleExtend(member)
                           }
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium hover:bg-emerald-100 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium hover:bg-emerald-500/20 transition-colors cursor-pointer"
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
 
@@ -658,7 +743,7 @@ ${gym} Team 💪`;
                                 member.id
                               )
                             }
-                            className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-red-700"
+                            className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-red-500"
                           >
                             <Check className="h-3 w-3" />
 
@@ -674,7 +759,7 @@ ${gym} Team 💪`;
                                 null
                               )
                             }
-                            className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-gray-300"
+                            className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-slate-700 text-slate-200 text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-slate-600"
                           >
                             <X className="h-3 w-3" />
 
@@ -691,7 +776,7 @@ ${gym} Team 💪`;
                               member.id
                             )
                           }
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 text-xs font-medium hover:bg-red-100 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-medium hover:bg-red-500/20 transition-colors cursor-pointer"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
 
