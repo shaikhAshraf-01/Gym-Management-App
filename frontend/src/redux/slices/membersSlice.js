@@ -4,6 +4,7 @@ import {
   addMemberApi,
   updateMemberApi,
   deleteMemberApi,
+  deleteCurrentMembershipApi,
   extendMembershipApi,
 } from "../../api/memberApi";
 
@@ -72,6 +73,20 @@ export const deleteMember = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to delete member.",
+      );
+    }
+  },
+);
+
+export const deleteCurrentMembership = createAsyncThunk(
+  "members/deleteCurrentMembership",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await deleteCurrentMembershipApi(id);
+      return response.data.member;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete current membership.",
       );
     }
   },
@@ -204,6 +219,23 @@ const membersSlice = createSlice({
         state.members = state.members.filter((m) => m.id !== action.payload);
       })
       .addCase(deleteMember.rejected, (state, action) => {
+        state.actionLoading = false;
+        state.actionError = action.payload;
+      })
+
+      // ---------------- Delete Current Membership ----------------
+      .addCase(deleteCurrentMembership.pending, (state) => {
+        state.actionLoading = true;
+        state.actionError = null;
+      })
+      .addCase(deleteCurrentMembership.fulfilled, (state, action) => {
+        state.actionLoading = false;
+        const index = state.members.findIndex(
+          (m) => m.id === action.payload.id,
+        );
+        if (index !== -1) state.members[index] = action.payload;
+      })
+      .addCase(deleteCurrentMembership.rejected, (state, action) => {
         state.actionLoading = false;
         state.actionError = action.payload;
       })

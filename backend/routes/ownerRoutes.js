@@ -5,6 +5,7 @@ import {
   addMember,
   updateMember,
   deleteMember,
+  deleteCurrentMembership,
   extendMembership,
 } from "../controllers/memberController.js";
 import {
@@ -50,6 +51,7 @@ router.get("/members", authMiddleware, roleMiddleware("owner", "trainer"), getMe
 router.post("/members", authMiddleware, roleMiddleware("owner", "trainer"), addMember);
 router.put("/members/:id", authMiddleware, roleMiddleware("owner", "trainer"), updateMember);
 router.delete("/members/:id", authMiddleware, roleMiddleware("owner", "trainer"), deleteMember);
+router.delete("/members/:id/current-membership", authMiddleware, roleMiddleware("owner", "trainer"), deleteCurrentMembership);
 router.post(
   "/members/:id/extend",
   authMiddleware,

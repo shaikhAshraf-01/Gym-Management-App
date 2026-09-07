@@ -147,7 +147,7 @@ ${gym} Team 💪`;
     setEditingMember(null);
 
     // Balance just got fully cleared — offer to notify the member.
-    if (canUseManualWhatsApp && oldBalance > 0 && newBalance === 0) {
+    if (oldBalance > 0 && newBalance === 0) {
       setBalanceClearedMember({ ...editingMember, ...changes });
     }
   };

@@ -604,6 +604,59 @@ export const deleteMember = async (req, res) => {
 };
 
 // =====================================================================
+// DELETE CURRENT MEMBERSHIP
+// =====================================================================
+
+export const deleteCurrentMembership = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const member = await Member.findOne({
+      _id: id,
+      gym: req.user.gymId,
+    });
+
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: "Member not found.",
+      });
+    }
+
+    const currentMembership = await MemberSubscriptionHistory.findOne({
+      member: member._id,
+    }).sort({ joiningDate: -1, createdAt: -1 });
+
+    if (!currentMembership) {
+      return res.status(404).json({
+        success: false,
+        message: "No current membership found.",
+      });
+    }
+
+    await MemberPaymentHistory.deleteMany({
+      memberSubscription: currentMembership._id,
+    });
+    await MemberSubscriptionHistory.deleteOne({ _id: currentMembership._id });
+
+    const formatted = await formatMember(member);
+    emitToGym(req.user.gymId, "member:updated", { member: formatted });
+
+    res.status(200).json({
+      success: true,
+      message: "Current membership deleted successfully.",
+      member: formatted,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete current membership.",
+    });
+  }
+};
+
+// =====================================================================
 // EXTEND / RENEW MEMBERSHIP
 // =====================================================================
 //

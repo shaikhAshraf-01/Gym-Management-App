@@ -55,8 +55,8 @@ function daysBetween(fromDateStr, toDateStr) {
 export default function MemberHistoryModal({ member, onClose }) {
   if (!member) return null;
 
-  // Most recent first, capped to the last 6 events (current + last 5).
-  const history = [...(member.membershipHistory || [])].reverse().slice(0, 6);
+  // Most recent first; show the complete membership history.
+  const history = [...(member.membershipHistory || [])].reverse();
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto p-4">

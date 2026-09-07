@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Loader2 } from "lucide-react";
 
 const ACTIVITY_OPTIONS = [
@@ -49,6 +50,20 @@ export default function EditMemberModal({ member, onSave, onClose }) {
         expiryDate: member.expiryDate || "",
       });
     }
+  }, [member]);
+
+  useEffect(() => {
+    if (!member) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const previousTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.touchAction = previousTouchAction;
+    };
   }, [member]);
 
   if (!member) return null;
@@ -185,9 +200,9 @@ export default function EditMemberModal({ member, onSave, onClose }) {
   const labelClass =
     "block text-xs uppercase font-bold tracking-wider text-slate-400 mb-1.5";
 
-  return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl shadow-black/60 w-full max-w-lg max-h-[85vh] overflow-y-auto">
+  return createPortal((
+    <div className="fixed inset-0 z-100 isolate h-dvh min-h-svh w-full overflow-y-auto overscroll-contain bg-slate-950/80 backdrop-blur-md [touch-action:pan-y] p-3 sm:p-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl shadow-black/60 w-full max-w-lg mx-auto my-1 sm:my-4">
         {/* HEADER */}
         <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
           <div>
@@ -445,5 +460,5 @@ export default function EditMemberModal({ member, onSave, onClose }) {
         </form>
       </div>
     </div>
-  );
+  ), document.body);
 }

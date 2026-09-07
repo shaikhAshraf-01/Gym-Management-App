@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useDispatch } from "react-redux";
 import {
   ArrowLeft,
@@ -15,7 +16,11 @@ import {
   Calendar,
   CalendarX,
 } from "lucide-react";
-import { PLAN_LABELS, deleteMember } from "../../redux/slices/membersSlice";
+import {
+  PLAN_LABELS,
+  deleteMember,
+  deleteCurrentMembership,
+} from "../../redux/slices/membersSlice";
 
 // ---------------------------------------------------------------
 // Same gap-formatting helpers as the old MemberHistoryModal — history
@@ -54,6 +59,21 @@ function daysBetween(fromDateStr, toDateStr) {
 export default function MemberProfileModal({ member, onClose, onEdit, onExtend }) {
   const dispatch = useDispatch();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [confirmingCurrentDelete, setConfirmingCurrentDelete] = useState(false);
+
+  useEffect(() => {
+    if (!member) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const previousTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.touchAction = previousTouchAction;
+    };
+  }, [member]);
 
   if (!member) return null;
 
@@ -65,7 +85,7 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
     .join("");
 
   const activities = member.activities || [];
-  const history = [...(member.membershipHistory || [])].reverse().slice(0, 6);
+  const history = [...(member.membershipHistory || [])].reverse();
 
   // Same native-app-first WhatsApp deep link used across the app.
   const handleOpenWhatsAppChat = (mobile) => {
@@ -92,8 +112,17 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 bg-slate-950 z-50 overflow-y-auto">
+  const handleConfirmCurrentDelete = async () => {
+    try {
+      await dispatch(deleteCurrentMembership(member.id)).unwrap();
+      onClose();
+    } catch {
+      setConfirmingCurrentDelete(false);
+    }
+  };
+
+  return createPortal((
+    <div className="fixed inset-0 z-100 isolate h-dvh min-h-svh w-full overflow-y-auto overscroll-contain bg-slate-950 [touch-action:pan-y]">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 flex items-center gap-3 px-4 py-4">
         <button onClick={onClose} className="p-1.5 -ml-1.5 text-slate-300 hover:text-white cursor-pointer rounded-lg hover:bg-slate-800">
@@ -230,6 +259,12 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
                   <React.Fragment key={entry.id}>
                     <div className="border border-slate-800 rounded-xl p-3.5 mb-3 bg-slate-900/40">
                       <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                        {idx === 0 && (
+                          <span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                            Current
+                          </span>
+                        )}
                         <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           entry.type === "joined"
                             ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
@@ -240,6 +275,7 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
                           {entry.type === "joined" ? <UserPlus className="h-3 w-3" /> : <RefreshCw className="h-3 w-3" />}
                           {entry.type === "joined" ? "Joined" : entry.type === "renewed" ? "Renewed" : "Extended"}
                         </span>
+                        </div>
                         <span className="text-xs font-bold text-white">
                           ₹{Number(entry.amount || 0).toLocaleString("en-IN")}
                         </span>
@@ -276,7 +312,36 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
         {/* ---------------------------------------------------
             DELETE (moved here from the old ⋮ dropdown)
         --------------------------------------------------- */}
-        <div className="border-t border-slate-800 pt-4">
+        <div className="border-t border-slate-800 pt-4 space-y-2">
+          {confirmingCurrentDelete ? (
+            <div className="border border-amber-500/20 bg-amber-500/5 rounded-lg p-3">
+              <p className="text-xs text-amber-300 mb-3">
+                Delete only the current membership? Older membership history and this member will remain.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleConfirmCurrentDelete}
+                  className="flex-1 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2.5 rounded-lg cursor-pointer"
+                >
+                  Delete Current
+                </button>
+                <button
+                  onClick={() => setConfirmingCurrentDelete(false)}
+                  className="flex-1 bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-bold py-2.5 rounded-lg cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmingCurrentDelete(true)}
+              className="w-full flex items-center justify-center gap-2 bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 text-sm font-bold uppercase tracking-wider py-2.5 rounded-lg cursor-pointer transition-colors"
+            >
+              <Trash2 className="h-4 w-4" /> Delete Current Membership
+            </button>
+          )}
+
           {confirmingDelete ? (
             <div className="flex gap-2">
               <button
@@ -303,5 +368,5 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }

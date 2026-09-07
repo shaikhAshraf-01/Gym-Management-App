@@ -8,4 +8,7 @@ export const updateMemberApi = (id, data) => api.put(`/owner/members/${id}`, dat
 
 export const deleteMemberApi = (id) => api.delete(`/owner/members/${id}`);
 
+export const deleteCurrentMembershipApi = (id) =>
+	api.delete(`/owner/members/${id}/current-membership`);
+
 export const extendMembershipApi = (id, data) => api.post(`/owner/members/${id}/extend`, data);
