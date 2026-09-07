@@ -5,6 +5,7 @@ import GymSubscriptionHistory from "../models/GymSubscriptionHistory.js";
 import cloudinary from "../config/cloudinary.js"
 import streamifier from "streamifier"
 import { compressImageBuffer } from "../utils/compressImage.js";
+import { emitToAdmins, emitToGym } from "../socket/index.js";
 // ================= GET OWNER / TRAINER PROFILE =================
 // Originally owner-only. Now also serves Trainers (used by
 // TrainerProfile.jsx) — a trainer has no gym logo/subscription
@@ -126,6 +127,9 @@ streamifier.createReadStream(compressedBuffer).pipe(uploadStream); // req.file.b
     gym.gymLogoPublicId=result.public_id;
     await gym.save();
 
+    emitToGym(gym._id, "gym:updated", { gym });
+    emitToAdmins("gym:updated", { gym });
+
     return res.status(200).json({
       success: true,
       message: "Gym logo uploaded successfully.",
@@ -170,6 +174,9 @@ export const removeGymLogo = async (req, res) => {
     gym.gymLogoPublicId = "";
 
     await gym.save();
+
+    emitToGym(gym._id, "gym:updated", { gym });
+    emitToAdmins("gym:updated", { gym });
 
     return res.status(200).json({
       success: true,

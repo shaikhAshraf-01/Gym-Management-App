@@ -3,8 +3,6 @@ import {
   getOwnerProfileApi,
   uploadGymLogoApi,
   removeGymLogoApi,
-  uploadTrainerPhotoApi,
-  removeTrainerPhotoApi,
 } from "../../api/ownerApi";
 
 // ❌ REMOVED: getAuthHeaders() is no longer needed because 
@@ -55,36 +53,6 @@ export const removeGymLogo = createAsyncThunk(
   },
 );
 
-// ================= TRAINER PROFILE PHOTO =================
-
-export const uploadTrainerPhoto = createAsyncThunk(
-  "owner/uploadTrainerPhoto",
-  async (formData, { rejectWithValue }) => {
-    try {
-      const response = await uploadTrainerPhotoApi(formData);
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Photo upload failed.",
-      );
-    }
-  },
-);
-
-export const removeTrainerPhoto = createAsyncThunk(
-  "owner/removeTrainerPhoto",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await removeTrainerPhotoApi();
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to remove photo.",
-      );
-    }
-  },
-);
-
 const initialState = {
   owner: null,
   gym: null,
@@ -109,6 +77,11 @@ const ownerSlice = createSlice({
     },
     clearUploadError: (state) => {
       state.uploadError = null;
+    },
+    gymProfileUpdated: (state, action) => {
+      if (state.gym && action.payload?.gym?._id === state.gym._id) {
+        state.gym = action.payload.gym;
+      }
     },
   },
   extraReducers: (builder) => {
@@ -154,36 +127,10 @@ const ownerSlice = createSlice({
         state.uploading = false;
         state.uploadError = action.payload;
       })
-      // ---------------- Trainer Photo ----------------
-      .addCase(uploadTrainerPhoto.pending, (state) => {
-        state.uploading = true;
-      })
-      .addCase(uploadTrainerPhoto.fulfilled, (state, action) => {
-        state.uploading = false;
-        if (state.owner) {
-          state.owner.photo = action.payload.photo;
-        }
-      })
-      .addCase(uploadTrainerPhoto.rejected, (state, action) => {
-        state.uploading = false;
-        state.uploadError = action.payload;
-      })
-      .addCase(removeTrainerPhoto.pending, (state) => {
-        state.uploading = true;
-      })
-      .addCase(removeTrainerPhoto.fulfilled, (state) => {
-        state.uploading = false;
-        if (state.owner) {
-          state.owner.photo = "";
-        }
-      })
-      .addCase(removeTrainerPhoto.rejected, (state, action) => {
-        state.uploading = false;
-        state.uploadError = action.payload;
-      });
+      ;
   },
 });
 
-export const { clearOwnerError, clearUploadError } = ownerSlice.actions;
+export const { clearOwnerError, clearUploadError, gymProfileUpdated } = ownerSlice.actions;
 
 export default ownerSlice.reducer;

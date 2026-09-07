@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { connectSocket, disconnectSocket } from "../socket.js";
 import { memberUpserted, memberRemoved } from "../redux/slices/membersSlice";
 import { enquiryUpserted, enquiryRemoved } from "../redux/slices/enquiriesSlice";
+import { gymProfileUpdated } from "../redux/slices/ownerSlice";
 
 // Keeps members/enquiries live across:
 //   - multiple devices logged into the same account
@@ -32,6 +33,7 @@ export default function useRealtimeSync() {
       socket.on("enquiry:created", ({ enquiry }) => dispatch(enquiryUpserted(enquiry)));
       socket.on("enquiry:updated", ({ enquiry }) => dispatch(enquiryUpserted(enquiry)));
       socket.on("enquiry:deleted", ({ id }) => dispatch(enquiryRemoved(id)));
+      socket.on("gym:updated", (payload) => dispatch(gymProfileUpdated(payload)));
     })();
 
     return () => {

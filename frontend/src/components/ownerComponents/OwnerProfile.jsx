@@ -97,12 +97,12 @@ export default function OwnerProfile() {
   const subscription = currentSubscription || {};
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-20">
+    <div className="min-h-screen bg-slate-950 p-4 pb-20 text-slate-100 md:p-8">
       <div className="max-w-xl mx-auto">
         {/* ===================== UPLOAD ERROR BANNER ===================== */}
         {uploadError && (
-          <div className="mb-4 flex items-start justify-between gap-3 bg-red-50 border border-red-200 rounded-xl p-3">
-            <p className="text-sm text-red-600 font-medium">{uploadError}</p>
+          <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-rose-900/60 bg-rose-950/40 p-3">
+            <p className="text-sm font-medium text-rose-300">{uploadError}</p>
             <button
               onClick={() => dispatch(clearUploadError())}
               className="text-red-400 hover:text-red-600 text-xs font-bold shrink-0"
@@ -116,7 +116,7 @@ export default function OwnerProfile() {
 
         <div className="flex flex-col items-center text-center">
           <div className="relative">
-            <div className="w-28 h-28 rounded-full bg-white border shadow-md overflow-hidden flex items-center justify-center">
+            <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-xl">
               {logo ? (
                 <img
                   src={logo}
@@ -124,14 +124,14 @@ export default function OwnerProfile() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <Building2 className="w-12 h-12 text-gray-400" />
+                <Building2 className="h-12 w-12 text-cyan-400" />
               )}
             </div>
 
             <button
               disabled={uploading}
               onClick={() => photoInputRef.current?.click()}
-              className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 shadow-lg"
+              className="absolute bottom-0 right-0 rounded-full bg-cyan-500 p-2 text-slate-950 shadow-lg hover:bg-cyan-400"
             >
               {uploading ? "Uploading ..." : <Camera size={16} />}
             </button>
@@ -162,17 +162,18 @@ export default function OwnerProfile() {
             </button>
           )}
 
-          <h1 className="text-2xl font-bold mt-4">{gym.gymName}</h1>
+          <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-cyan-400">Owner profile</p>
+          <h1 className="mt-1 text-2xl font-bold text-white">{gym.gymName}</h1>
 
-          <p className="text-gray-500 text-sm flex items-center gap-1 mt-1">
+          <p className="mt-1 flex items-center gap-1 text-sm text-slate-400">
             <Building2 size={14} />
             {gym.gymCode}
           </p>
         </div>
         {/* ===================== OWNER DETAILS ===================== */}
 
-        <div className="bg-white rounded-xl shadow-sm border mt-8 p-5">
-          <h2 className="text-sm font-bold text-gray-500 uppercase mb-5">
+        <div className="mt-8 rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+          <h2 className="mb-5 text-sm font-bold uppercase text-slate-500">
             Owner Details
           </h2>
 
@@ -180,24 +181,24 @@ export default function OwnerProfile() {
             <div className="flex items-center gap-3">
               <User size={18} className="text-blue-600" />
               <div>
-                <p className="text-xs text-gray-400">Owner Name</p>
-                <p className="font-semibold">{owner.name}</p>
+                <p className="text-xs text-slate-500">Owner Name</p>
+                <p className="font-semibold text-slate-100">{owner.name}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <Phone size={18} className="text-blue-600" />
               <div>
-                <p className="text-xs text-gray-400">Mobile Number</p>
-                <p className="font-semibold">{owner.mobile}</p>
+                <p className="text-xs text-slate-500">Mobile Number</p>
+                <p className="font-semibold text-slate-100">{owner.mobile}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <Mail size={18} className="text-blue-600" />
               <div>
-                <p className="text-xs text-gray-400">Email Address</p>
-                <p className="font-semibold break-all">{owner.email}</p>
+                <p className="text-xs text-slate-500">Email Address</p>
+                <p className="break-all font-semibold text-slate-100">{owner.email}</p>
               </div>
             </div>
           </div>
@@ -205,8 +206,8 @@ export default function OwnerProfile() {
 
         {/* ===================== GYM DETAILS ===================== */}
 
-        <div className="bg-white rounded-xl shadow-sm border mt-6 p-5">
-          <h2 className="text-sm font-bold text-gray-500 uppercase mb-5">
+        <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+          <h2 className="mb-5 text-sm font-bold uppercase text-slate-500">
             Gym Details
           </h2>
 
@@ -247,27 +248,27 @@ export default function OwnerProfile() {
         </div>
         {/* ===================== SUBSCRIPTION DETAILS ===================== */}
 
-        <div className="bg-white rounded-xl shadow-sm border mt-6 p-5">
-          <h2 className="text-sm font-bold text-gray-500 uppercase mb-5">
+        <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+          <h2 className="mb-5 text-sm font-bold uppercase text-slate-500">
             Subscription Details
           </h2>
 
           <div className="space-y-5">
             <div className="flex items-center gap-3">
-              <BadgeCheck size={18} className="text-green-600" />
+              <BadgeCheck size={18} className="text-emerald-400" />
               <div>
-                <p className="text-xs text-gray-400">Current Plan</p>
-                <p className="font-semibold">
+                <p className="text-xs text-slate-500">Current Plan</p>
+                <p className="font-semibold text-slate-100">
                   {subscription.subscriptionPlan || "No Active Plan"}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <CalendarDays size={18} className="text-blue-600" />
+              <CalendarDays size={18} className="text-cyan-400" />
               <div>
-                <p className="text-xs text-gray-400">Start Date</p>
-                <p className="font-semibold">
+                <p className="text-xs text-slate-500">Start Date</p>
+                <p className="font-semibold text-slate-100">
                   {subscription.startDate
                     ? new Date(subscription.startDate).toLocaleDateString()
                     : "--"}
@@ -276,10 +277,10 @@ export default function OwnerProfile() {
             </div>
 
             <div className="flex items-center gap-3">
-              <CalendarDays size={18} className="text-red-600" />
+              <CalendarDays size={18} className="text-rose-400" />
               <div>
-                <p className="text-xs text-gray-400">Expiry Date</p>
-                <p className="font-semibold">
+                <p className="text-xs text-slate-500">Expiry Date</p>
+                <p className="font-semibold text-slate-100">
                   {subscription.endDate
                     ? new Date(subscription.endDate).toLocaleDateString()
                     : "--"}
@@ -293,7 +294,7 @@ export default function OwnerProfile() {
 
         <button
           onClick={handleLogout}
-          className="mt-8 w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl py-3 font-semibold transition"
+          className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-rose-900/60 bg-rose-950/40 py-3 font-semibold text-rose-300 transition hover:bg-rose-950/70"
         >
           <LogOut size={18} />
           Logout

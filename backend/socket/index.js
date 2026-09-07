@@ -60,6 +60,10 @@ export const initSocket = (httpServer) => {
     if (user.gymId) {
       socket.join(`gym:${user.gymId}`);
     }
+    if (user.role === "admin") {
+      socket.join("admins");
+      socket.emit("admin:connected");
+    }
 
     socket.on("disconnect", () => {
       // socket.io auto-leaves all rooms on disconnect — nothing to do.
@@ -74,4 +78,9 @@ export const getIo = () => io;
 export const emitToGym = (gymId, event, payload) => {
   if (!io || !gymId) return;
   io.to(`gym:${gymId}`).emit(event, payload);
+};
+
+export const emitToAdmins = (event, payload) => {
+  if (!io) return;
+  io.to("admins").emit(event, payload);
 };

@@ -217,7 +217,7 @@ export default function AdminProfile() {
       <div className="block md:hidden">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-sm rounded-2xl border border-red-200 shadow-sm transition-colors cursor-pointer focus:outline-none"
+          className="w-full flex items-center justify-center gap-2 rounded-2xl border border-rose-900/60 bg-rose-950/40 px-4 py-3.5 text-sm font-bold text-rose-300 shadow-sm transition-colors hover:bg-rose-950/70 focus:outline-none"
         >
           <LogOut className="h-4 w-4" />
           <span>Sign Out of Admin Account</span>
