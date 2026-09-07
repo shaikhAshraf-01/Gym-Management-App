@@ -440,10 +440,10 @@ ${gym} Team 💪`;
         {/* -------------------------------------------------
             Header (title left, filter dropdown fixed right)
         ------------------------------------------------- */}
-        <div className="sticky top-0 z-20 bg-slate-900/90 backdrop-blur-sm flex items-center justify-between gap-3 mb-6 py-2 -mx-4 px-4 md:-mx-6 md:px-6 border-b border-slate-800">
+        <div className="sticky top-0 z-20 bg-slate-900/90 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-3 mb-6 py-2 -mx-4 px-4 md:-mx-6 md:px-6 border-b border-slate-800">
 
           <div className="flex items-center gap-3">
-            <CalendarClock className="h-6 w-6 text-cyan-400" />
+            <CalendarClock className="h-6 w-6 text-cyan-400 shrink-0" />
 
             <h3 className="text-lg font-bold text-white tracking-tight">
               Membership Status
@@ -453,14 +453,14 @@ ${gym} Team 💪`;
           {/* -----------------------------------------------
               FILTER DROPDOWN + CSV DOWNLOAD
           ----------------------------------------------- */}
-          <div className="flex items-center gap-2">
-            <div className="relative">
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="relative flex-1 md:flex-none">
               <select
                 value={expiryFilter}
                 onChange={(e) =>
                   setExpiryFilter(e.target.value)
                 }
-                className="appearance-none pl-3 pr-8 py-2 rounded-lg text-sm font-medium border border-slate-700 bg-slate-800 text-slate-200 cursor-pointer hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                className="w-full appearance-none pl-3 pr-8 py-2 rounded-lg text-sm font-medium border border-slate-700 bg-slate-800 text-slate-200 cursor-pointer hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
               >
                 {filterOptions.map((option) => (
                   <option
@@ -495,7 +495,7 @@ ${gym} Team 💪`;
               onClick={handleDownloadCsv}
               disabled={expiringMembers.length === 0}
               title="Download CSV of the current view"
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <Download className="h-4 w-4" />
               <span className="hidden md:inline">CSV</span>

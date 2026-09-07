@@ -35,15 +35,15 @@ export default function EnquiryForm({ onSave }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full p-4 text-gray-900">
-      <h2 className="text-base font-bold text-gray-900 mb-6 uppercase tracking-wider border-b border-gray-100 pb-2">
+    <form onSubmit={handleSubmit} className="w-full p-4 text-slate-200">
+      <h2 className="text-base font-bold text-white mb-6 uppercase tracking-wider border-b border-slate-800 pb-2">
         Prospect Enquiry Form
       </h2>
       
       <div className="space-y-4">
         {/* Full Name Field */}
         <div>
-          <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+          <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
             Full Name
           </label>
           <input
@@ -51,7 +51,7 @@ export default function EnquiryForm({ onSave }) {
             name="name"
             value={formData.name}
             onChange={handleChange}
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500 transition-all placeholder-gray-400"
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition-all placeholder-slate-500"
             placeholder="e.g. John Doe"
             required
           />
@@ -59,7 +59,7 @@ export default function EnquiryForm({ onSave }) {
 
         {/* Mobile Number Field */}
         <div>
-          <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+          <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
             Mobile Number
           </label>
           <input
@@ -69,7 +69,7 @@ export default function EnquiryForm({ onSave }) {
             onChange={handleChange}
             maxLength={10}
 minLength={10}
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500 transition-all placeholder-gray-400"
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition-all placeholder-slate-500"
             placeholder="e.g. 9876543210"
             required
           />
@@ -77,7 +77,7 @@ minLength={10}
 
         {/* Willing to Join Field */}
         <div>
-          <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+          <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
             When to Join
           </label>
           <input
@@ -85,8 +85,9 @@ minLength={10}
             name="whenToJoin"
             value={formData.whenToJoin}
             onChange={handleChange}
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500 transition-all placeholder-gray-400"
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition-all placeholder-slate-500"
             placeholder="e.g. Tomorrow, Next Week, Monday"
+            required
           />
         </div>
 

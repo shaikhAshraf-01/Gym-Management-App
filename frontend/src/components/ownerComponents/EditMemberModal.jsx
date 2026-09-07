@@ -9,10 +9,6 @@ const ACTIVITY_OPTIONS = [
 ];
 
 export default function EditMemberModal({ member, onSave, onClose }) {
-  // handleSaveEdit in MembersView.jsx now awaits the update (previously
-  // it closed the modal instantly, before the request even finished) —
-  // this tracks that wait so the Save button shows it's working instead
-  // of looking unresponsive.
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -30,10 +26,10 @@ export default function EditMemberModal({ member, onSave, onClose }) {
     expiryDate: "",
   });
 
-  // Toggle an activity in/out of the selected list
   const handleActivityToggle = (value) => {
     setFormData((prev) => {
       const isSelected = prev.activities.includes(value);
+
       return {
         ...prev,
         activities: isSelected
@@ -43,12 +39,10 @@ export default function EditMemberModal({ member, onSave, onClose }) {
     });
   };
 
-  // ------------------------------------------------------------
-  // LOAD MEMBER DATA
-  // ------------------------------------------------------------
   useEffect(() => {
     if (member) {
       const planAmount = Number(member.latestPlanAmount || 0);
+
       const paidAmount = Math.min(
         Number(member.latestAmountPaid || 0),
         planAmount
@@ -64,9 +58,9 @@ export default function EditMemberModal({ member, onSave, onClose }) {
 
         planAmount: String(planAmount),
         amountPayingToday: String(paidAmount),
-
-        // Keep balance consistent with plan - paid
-        balanceAmount: String(Math.max(0, planAmount - paidAmount)),
+        balanceAmount: String(
+          Math.max(0, planAmount - paidAmount)
+        ),
 
         paymentMode: member.paymentMode || "upi",
         joiningDate: member.joiningDate || "",
@@ -77,26 +71,29 @@ export default function EditMemberModal({ member, onSave, onClose }) {
 
   if (!member) return null;
 
-  // ---------------------------------------------------------------
-  // Earliest allowed Joining Date — capped to 6 months back from
-  // today (no upper cap, so future-dated joining is still allowed).
-  // ---------------------------------------------------------------
   const getMinJoiningDate = () => {
     const sixMonthsAgo = new Date();
+
     sixMonthsAgo.setHours(0, 0, 0, 0);
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    sixMonthsAgo.setMonth(
+      sixMonthsAgo.getMonth() - 6
+    );
+
     return sixMonthsAgo.toISOString().split("T")[0];
   };
 
-  // ------------------------------------------------------------
-  // CALCULATE EXPIRY DATE
-  // ------------------------------------------------------------
   const calculateExpiryDate = (joiningDate, plan) => {
     if (!joiningDate) return "";
 
-    const [year, month, day] = joiningDate.split("-").map(Number);
+    const [year, month, day] = joiningDate
+      .split("-")
+      .map(Number);
 
-    const date = new Date(year, month - 1, day);
+    const date = new Date(
+      year,
+      month - 1,
+      day
+    );
 
     switch (plan) {
       case "1_month":
@@ -126,9 +123,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  // ------------------------------------------------------------
-  // GENERAL INPUT HANDLER
-  // ------------------------------------------------------------
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -138,34 +132,38 @@ export default function EditMemberModal({ member, onSave, onClose }) {
         [name]: value,
       };
 
-      // Joining date or plan changes -> recalculate expiry
       if (name === "joiningDate" || name === "plan") {
         updated.expiryDate = calculateExpiryDate(
-          name === "joiningDate" ? value : prev.joiningDate,
-          name === "plan" ? value : prev.plan
+          name === "joiningDate"
+            ? value
+            : prev.joiningDate,
+          name === "plan"
+            ? value
+            : prev.plan
         );
       }
 
-      // --------------------------------------------------------
-      // PLAN AMOUNT CHANGED
-      // --------------------------------------------------------
-      // Paid can NEVER be greater than plan amount.
-      // Balance = Plan Amount - Paid Amount.
       if (name === "planAmount") {
-        const planAmount = Math.max(0, Number(value) || 0);
+        const planAmount = Math.max(
+          0,
+          Number(value) || 0
+        );
 
-        const currentPaid = Number(prev.amountPayingToday) || 0;
+        const currentPaid =
+          Number(prev.amountPayingToday) || 0;
 
-        const safePaid = Math.min(currentPaid, planAmount);
+        const safePaid = Math.min(
+          currentPaid,
+          planAmount
+        );
 
         updated.planAmount = String(planAmount);
         updated.amountPayingToday = String(safePaid);
-        updated.balanceAmount = String(planAmount - safePaid);
+        updated.balanceAmount = String(
+          planAmount - safePaid
+        );
       }
 
-      // --------------------------------------------------------
-      // AMOUNT PAID CHANGED
-      // --------------------------------------------------------
       if (name === "amountPayingToday") {
         const planAmount = Math.max(
           0,
@@ -177,16 +175,15 @@ export default function EditMemberModal({ member, onSave, onClose }) {
           Number(value) || 0
         );
 
-        // IMPORTANT:
-        // Paid cannot exceed plan amount.
         const safePaid = Math.min(
           requestedPaid,
           planAmount
         );
 
-        updated.amountPayingToday = String(safePaid);
+        updated.amountPayingToday = String(
+          safePaid
+        );
 
-        // Automatically calculate remaining balance.
         updated.balanceAmount = String(
           Math.max(0, planAmount - safePaid)
         );
@@ -196,15 +193,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
     });
   };
 
-  // ------------------------------------------------------------
-  // BALANCE HANDLER
-  // ------------------------------------------------------------
-  // Balance is also constrained by:
-  //
-  //     balance = planAmount - amountPaid
-  //
-  // So changing balance automatically changes paid amount.
-  // ------------------------------------------------------------
   const handleBalanceChange = (e) => {
     const value = e.target.value;
 
@@ -219,7 +207,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
         Number(value) || 0
       );
 
-      // Balance cannot be greater than plan amount.
       newBalance = Math.min(
         newBalance,
         planAmount
@@ -232,11 +219,7 @@ export default function EditMemberModal({ member, onSave, onClose }) {
 
       return {
         ...prev,
-
         balanceAmount: String(newBalance),
-
-        // This guarantees:
-        // paid <= planAmount
         amountPayingToday: String(
           Math.min(newPaid, planAmount)
         ),
@@ -244,9 +227,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
     });
   };
 
-  // ------------------------------------------------------------
-  // SUBMIT
-  // ------------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -272,13 +252,13 @@ export default function EditMemberModal({ member, onSave, onClose }) {
 
     const finalData = {
       ...formData,
-
       planAmount: String(planAmount),
       amountPayingToday: String(paidAmount),
       balanceAmount: String(balanceAmount),
     };
 
     setIsSubmitting(true);
+
     try {
       await onSave(member.id, finalData);
     } finally {
@@ -286,22 +266,35 @@ export default function EditMemberModal({ member, onSave, onClose }) {
     }
   };
 
-  // ------------------------------------------------------------
-  // RENDER
-  // ------------------------------------------------------------
+  const inputClass =
+    "w-full bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all";
+
+  const labelClass =
+    "block text-xs uppercase font-bold tracking-wider text-zinc-400 mb-1.5";
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+
+      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/50 w-full max-w-lg max-h-[85vh] overflow-y-auto">
 
         {/* HEADER */}
-        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
-          <h2 className="text-base font-bold text-gray-900 uppercase tracking-wider">
-            Edit Member
-          </h2>
+        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-zinc-800 sticky top-0 bg-zinc-950 z-10">
+
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-500 mb-1">
+              Member Management
+            </p>
+
+            <h2 className="text-lg font-black text-white uppercase tracking-wider">
+              Edit Member
+            </h2>
+          </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg cursor-pointer transition-colors"
+            disabled={isSubmitting}
+            className="p-2 bg-red-950/50 hover:bg-red-900/70 text-red-500 hover:text-red-400 border border-red-900/50 rounded-lg cursor-pointer transition-colors disabled:opacity-50"
           >
             <X className="h-5 w-5" />
           </button>
@@ -316,7 +309,7 @@ export default function EditMemberModal({ member, onSave, onClose }) {
 
             {/* NAME */}
             <div className="md:col-span-2">
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className={labelClass}>
                 Full Client Name
               </label>
 
@@ -325,14 +318,14 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                className={inputClass}
                 required
               />
             </div>
 
             {/* MOBILE */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className={labelClass}>
                 Mobile Number
               </label>
 
@@ -341,94 +334,122 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 name="mobile"
                 value={formData.mobile}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                className={inputClass}
                 required
               />
             </div>
 
-            {/* AGE */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Age
-              </label>
+            {/* AGE + GENDER */}
+            <div className="grid grid-cols-2 gap-4 md:col-span-2">
 
-              <input
-                type="number"
-                name="age"
-                value={formData.age}
-                onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-              />
-            </div>
+              <div>
+                <label className={labelClass}>
+                  Age
+                </label>
 
-            {/* GENDER */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Gender
-              </label>
+                <input
+                  type="number"
+                  name="age"
+                  value={formData.age}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
 
-              <select
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-              >
-                <option value="">Select</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
+              <div>
+                <label className={labelClass}>
+                  Gender
+                </label>
+
+                <select
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  className={inputClass}
+                >
+                  <option value="">Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">
+                    Female
+                  </option>
+                  <option value="Other">
+                    Other
+                  </option>
+                </select>
+              </div>
+
             </div>
 
             {/* ACTIVITIES */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className={labelClass}>
                 Activities
               </label>
 
               <div className="flex flex-wrap gap-2">
+
                 {ACTIVITY_OPTIONS.map((opt) => {
-                  const isSelected = formData.activities.includes(opt.value);
+                  const isSelected =
+                    formData.activities.includes(
+                      opt.value
+                    );
+
                   return (
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => handleActivityToggle(opt.value)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                      onClick={() =>
+                        handleActivityToggle(
+                          opt.value
+                        )
+                      }
+                      className={`px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide border transition-all cursor-pointer ${
                         isSelected
-                          ? "bg-indigo-600 border-indigo-600 text-white"
-                          : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                          ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-600/20"
+                          : "bg-zinc-900 border-zinc-700 text-zinc-400 hover:border-red-500 hover:text-white"
                       }`}
                     >
                       {opt.label}
                     </button>
                   );
                 })}
+
               </div>
             </div>
 
             {/* PLAN */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Select Plan Option
+              <label className={labelClass}>
+                Select Plan
               </label>
 
               <select
                 name="plan"
                 value={formData.plan}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                className={inputClass}
               >
-                <option value="1_month">1 Month</option>
-                <option value="3_month">3 Months</option>
-                <option value="6_month">6 Months</option>
-                <option value="1_year">1 Year</option>
+                <option value="1_month">
+                  1 Month
+                </option>
+
+                <option value="3_month">
+                  3 Months
+                </option>
+
+                <option value="6_month">
+                  6 Months
+                </option>
+
+                <option value="1_year">
+                  1 Year
+                </option>
               </select>
             </div>
 
             {/* JOINING DATE */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className={labelClass}>
                 Joining Date
               </label>
 
@@ -438,18 +459,18 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 value={formData.joiningDate}
                 onChange={handleChange}
                 min={getMinJoiningDate()}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                className={inputClass}
                 required
               />
 
-              <p className="text-[10px] text-gray-400 mt-1">
+              <p className="text-[10px] text-zinc-600 mt-1">
                 Up to 6 months back, or any date onwards
               </p>
             </div>
 
             {/* EXPIRY DATE */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className={labelClass}>
                 Expiry Date
               </label>
 
@@ -458,14 +479,14 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 name="expiryDate"
                 value={formData.expiryDate}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-blue-600 font-semibold focus:outline-none focus:border-blue-500"
+                className={`${inputClass} text-red-400 font-semibold`}
                 required
               />
             </div>
 
             {/* PLAN AMOUNT */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className={labelClass}>
                 This Period's Plan Amount
               </label>
 
@@ -475,18 +496,18 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 min="0"
                 value={formData.planAmount}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                className={inputClass}
                 required
               />
 
-              <p className="text-[10px] text-gray-400 mt-1">
-                Current plan's fee only — not the lifetime total
+              <p className="text-[10px] text-zinc-600 mt-1">
+                Current plan fee only
               </p>
             </div>
 
             {/* AMOUNT PAID */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className={labelClass}>
                 This Period's Amount Paid
               </label>
 
@@ -497,17 +518,17 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 max={formData.planAmount || 0}
                 value={formData.amountPayingToday}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-emerald-600 font-bold focus:outline-none focus:border-blue-500"
+                className={`${inputClass} text-emerald-400 font-bold`}
               />
 
-              <p className="text-[10px] text-gray-400 mt-1">
-                Cannot exceed the plan amount
+              <p className="text-[10px] text-zinc-600 mt-1">
+                Cannot exceed plan amount
               </p>
             </div>
 
             {/* BALANCE */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className={labelClass}>
                 Balance Amount
               </label>
 
@@ -518,18 +539,18 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 max={formData.planAmount || 0}
                 value={formData.balanceAmount}
                 onChange={handleBalanceChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold focus:outline-none focus:border-blue-500"
+                className={`${inputClass} text-red-400 font-bold`}
                 required
               />
 
-              <p className="text-[10px] text-gray-400 mt-1">
+              <p className="text-[10px] text-zinc-600 mt-1">
                 Plan Amount − Amount Paid
               </p>
             </div>
 
             {/* PAYMENT MODE */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className={labelClass}>
                 Payment Mode
               </label>
 
@@ -537,25 +558,32 @@ export default function EditMemberModal({ member, onSave, onClose }) {
                 name="paymentMode"
                 value={formData.paymentMode}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                className={inputClass}
               >
-                <option value="upi">UPI</option>
-                <option value="cash">Cash</option>
+                <option value="upi">
+                  UPI
+                </option>
+
+                <option value="cash">
+                  Cash
+                </option>
+
                 <option value="both">
                   Both (UPI + Cash)
                 </option>
               </select>
             </div>
+
           </div>
 
           {/* BUTTONS */}
-          <div className="flex gap-3 mt-6">
+          <div className="flex gap-3 mt-6 pt-5 border-t border-zinc-800">
 
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold uppercase tracking-wider p-2 rounded-lg transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 text-sm font-bold uppercase tracking-wider p-3 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
@@ -563,7 +591,7 @@ export default function EditMemberModal({ member, onSave, onClose }) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold uppercase tracking-wider p-2 rounded-lg transition-colors cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-bold uppercase tracking-wider p-3 rounded-lg transition-all cursor-pointer shadow-lg shadow-red-600/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>

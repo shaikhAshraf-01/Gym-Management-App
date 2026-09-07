@@ -325,7 +325,7 @@ const buildExtensionMessage = (member) => {
           onClick={handleDownloadCsv}
           disabled={filteredMembers.length === 0}
           title="Download CSV of the current view"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           <Download className="h-3.5 w-3.5" />
           <span>CSV</span>
@@ -334,14 +334,14 @@ const buildExtensionMessage = (member) => {
 
       {/* LOADING STATE */}
       {loading && (
-        <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
+        <div className="text-center py-12 text-slate-500 border border-dashed border-slate-800 rounded-xl">
           <p className="text-sm font-medium">Loading members...</p>
         </div>
       )}
 
       {/* FALLBACK NO RESULTS */}
       {!loading && filteredMembers.length === 0 && (
-        <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
+        <div className="text-center py-12 text-slate-500 border border-dashed border-slate-800 rounded-xl">
           <p className="text-sm font-medium">No members match your search criteria.</p>
         </div>
       )}
@@ -351,7 +351,7 @@ const buildExtensionMessage = (member) => {
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider">
+              <tr className="border-b border-slate-800 bg-slate-900/80 text-slate-500 text-xs font-bold uppercase tracking-wider">
                 <th className="py-3 px-4">Name</th>
                 <th className="py-3 px-4">Mobile No.</th>
                 <th className="py-3 px-4">Plan</th>
@@ -362,28 +362,28 @@ const buildExtensionMessage = (member) => {
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-sm">
+            <tbody className="divide-y divide-slate-800 text-sm">
               {filteredMembers.map((member) => (
-                <tr key={member.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="py-3.5 px-4 font-semibold text-gray-900">{member.name}</td>
-                  <td className="py-3.5 px-4 text-gray-600">{member.mobile}</td>
+                <tr key={member.id} className="hover:bg-slate-800/50 transition-colors">
+                  <td className="py-3.5 px-4 font-semibold text-white">{member.name}</td>
+                  <td className="py-3.5 px-4 text-slate-400">{member.mobile}</td>
                   <td className="py-3.5 px-4">
-                    <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-xs font-medium">
+                    <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-md text-xs font-medium">
                       {PLAN_LABELS[member.plan] || member.plan}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-gray-600">{member.joiningDate}</td>
-                  <td className="py-3.5 px-4 text-gray-600">{member.expiryDate}</td>
-                  <td className="py-3.5 px-4 font-medium text-gray-900">₹{member.planAmount}</td>
+                  <td className="py-3.5 px-4 text-slate-400">{member.joiningDate}</td>
+                  <td className="py-3.5 px-4 text-slate-400">{member.expiryDate}</td>
+                  <td className="py-3.5 px-4 font-medium text-white">₹{member.planAmount}</td>
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-1.5">
-                      <span className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-500" : "text-emerald-600"}`}>
+                      <span className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-400" : "text-emerald-400"}`}>
                         ₹{member.balanceAmount}
                       </span>
                       {Number(member.balanceAmount) > 0 && canUseManualWhatsApp && (
                         <button
                           onClick={() => setRemindingBalanceMember(member)}
-                          className="p-1 bg-green-50 hover:bg-green-100 text-green-600 rounded-md border border-green-200 cursor-pointer"
+                          className="p-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-md border border-emerald-500/20 cursor-pointer"
                           title="Send balance reminder via WhatsApp"
                         >
                           <MessageCircle className="h-3 w-3" />
@@ -393,13 +393,13 @@ const buildExtensionMessage = (member) => {
                   </td>
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex justify-end items-center gap-2">
-                      <a href={`tel:${member.mobile}`} className="p-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-md border border-gray-200 transition-colors cursor-pointer" title="Call Member">
+                      <a href={`tel:${member.mobile}`} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md border border-slate-700 transition-colors cursor-pointer" title="Call Member">
                         <Phone className="h-3.5 w-3.5" />
                       </a>
-                      <button onClick={() => handleOpenWhatsAppChat(member.mobile)} className="p-1.5 bg-green-50 hover:bg-green-100 text-green-600 rounded-md border border-green-200 transition-colors cursor-pointer" title="Open WhatsApp chat">
+                      <button onClick={() => handleOpenWhatsAppChat(member.mobile)} className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-md border border-emerald-500/20 transition-colors cursor-pointer" title="Open WhatsApp chat">
                         <MessageCircle className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => handleViewProfile(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-md border border-blue-200 transition-colors cursor-pointer">
+                      <button onClick={() => handleViewProfile(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-xs font-semibold rounded-md border border-cyan-500/20 transition-colors cursor-pointer">
                         <User className="h-3.5 w-3.5" />
                         <span>Profile</span>
                       </button>
@@ -420,7 +420,7 @@ const buildExtensionMessage = (member) => {
                           }}
                         />
                       ) : (
-                        <button onClick={() => handleExtend(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-200 transition-colors cursor-pointer">
+                        <button onClick={() => handleExtend(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-md border border-emerald-500/20 transition-colors cursor-pointer">
                           <CalendarPlus className="h-3.5 w-3.5" />
                           <span>Extend</span>
                         </button>
@@ -437,60 +437,60 @@ const buildExtensionMessage = (member) => {
       {filteredMembers.length > 0 && (
         <div className="block md:hidden space-y-3">
           {filteredMembers.map((member) => (
-            <div key={member.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div key={member.id} className="bg-slate-900/60 backdrop-blur-sm border border-cyan-500/10 rounded-xl p-4">
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <h4 className="font-bold text-base text-gray-900 flex items-center gap-1.5">
-                    <User className="h-4 w-4 text-gray-400" />
+                  <h4 className="font-bold text-base text-white flex items-center gap-1.5">
+                    <User className="h-4 w-4 text-slate-500" />
                     {member.name}
                   </h4>
-                  <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5 text-gray-400" />
+                  <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5 text-slate-500" />
                     {member.mobile}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <a href={`tel:${member.mobile}`} className="p-2 bg-gray-100 active:bg-gray-200 text-gray-700 rounded-lg cursor-pointer shrink-0 border border-gray-200" aria-label="Call member">
+                    <a href={`tel:${member.mobile}`} className="p-2 bg-slate-800 active:bg-slate-700 text-slate-300 rounded-lg cursor-pointer shrink-0 border border-slate-700" aria-label="Call member">
                       <Phone className="h-3.5 w-3.5" />
                     </a>
 
-                    <button onClick={() => handleOpenWhatsAppChat(member.mobile)} className="p-2 bg-green-50 active:bg-green-100 text-green-600 rounded-lg cursor-pointer shrink-0 border border-green-200" aria-label="Open WhatsApp chat">
+                    <button onClick={() => handleOpenWhatsAppChat(member.mobile)} className="p-2 bg-emerald-500/10 active:bg-emerald-500/20 text-emerald-400 rounded-lg cursor-pointer shrink-0 border border-emerald-500/20" aria-label="Open WhatsApp chat">
                       <MessageCircle className="h-3.5 w-3.5" />
                     </button>
                   </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 border-t border-b border-gray-100 py-3 my-3 text-xs">
+              <div className="grid grid-cols-2 gap-2 border-t border-b border-slate-800 py-3 my-3 text-xs">
                 <div>
-                  <p className="text-gray-400 uppercase font-bold tracking-wider text-[10px]">Active Plan</p>
-                  <p className="font-semibold text-blue-600 mt-0.5">{PLAN_LABELS[member.plan] || member.plan}</p>
+                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Active Plan</p>
+                  <p className="font-semibold text-cyan-400 mt-0.5">{PLAN_LABELS[member.plan] || member.plan}</p>
                 </div>
                 <div>
-                  <p className="text-gray-400 uppercase font-bold tracking-wider text-[10px]">Total Fees</p>
-                  <p className="font-semibold text-gray-900 mt-0.5">₹{member.planAmount}</p>
+                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Total Fees</p>
+                  <p className="font-semibold text-white mt-0.5">₹{member.planAmount}</p>
                 </div>
                 <div>
-                  <p className="text-gray-400 uppercase font-bold tracking-wider text-[10px] flex items-center gap-1">
+                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px] flex items-center gap-1">
                     <Calendar className="h-3 w-3" /> Start Date
                   </p>
-                  <p className="font-semibold text-gray-700 mt-0.5">{member.joiningDate}</p>
+                  <p className="font-semibold text-slate-300 mt-0.5">{member.joiningDate}</p>
                 </div>
                 <div>
-                  <p className="text-gray-400 uppercase font-bold tracking-wider text-[10px] flex items-center gap-1">
+                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px] flex items-center gap-1">
                     <CalendarX className="h-3 w-3" /> End Date
                   </p>
-                  <p className="font-semibold text-gray-700 mt-0.5">{member.expiryDate}</p>
+                  <p className="font-semibold text-slate-300 mt-0.5">{member.expiryDate}</p>
                 </div>
                 <div className="col-span-2 pt-1.5">
-                  <p className="text-gray-400 uppercase font-bold tracking-wider text-[10px]">Balance Outstanding</p>
+                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Balance Outstanding</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <p className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-500" : "text-emerald-600"}`}>
+                    <p className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-400" : "text-emerald-400"}`}>
                       ₹{member.balanceAmount}
                     </p>
                     {Number(member.balanceAmount) > 0 && canUseManualWhatsApp && (
                       <button
                         onClick={() => setRemindingBalanceMember(member)}
-                        className="flex items-center gap-1 px-2 py-1 bg-green-50 active:bg-green-100 text-green-600 rounded-md border border-green-200 cursor-pointer text-[10px] font-bold"
+                        className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 active:bg-emerald-500/20 text-emerald-400 rounded-md border border-emerald-500/20 cursor-pointer text-[10px] font-bold"
                       >
                         <MessageCircle className="h-3 w-3" />
                         Remind
@@ -501,7 +501,7 @@ const buildExtensionMessage = (member) => {
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-1">
-                <button onClick={() => handleViewProfile(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 active:bg-blue-100 text-blue-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-blue-200 cursor-pointer">
+                <button onClick={() => handleViewProfile(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-cyan-500/10 active:bg-cyan-500/20 text-cyan-400 font-bold text-xs uppercase tracking-wider rounded-lg border border-cyan-500/20 cursor-pointer">
                   <User className="h-3.5 w-3.5" />
                   <span>Profile</span>
                 </button>
