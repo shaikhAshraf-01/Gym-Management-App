@@ -13,9 +13,6 @@ export default function ExtendMembershipModal({
   onSave,
   onClose,
 }) {
-  // Same reasoning as MembershipForm.jsx — the Confirm button gave no
-  // feedback while extendMembership was in flight (~1.5-2.5s), so it
-  // looked stuck/unresponsive until the modal suddenly closed.
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -29,7 +26,6 @@ export default function ExtendMembershipModal({
     newExpiryDate: "",
   });
 
-  // Toggle an activity in/out of the selected list
   const handleActivityToggle = (value) => {
     setFormData((prev) => {
       const isSelected = prev.activities.includes(value);
@@ -42,9 +38,6 @@ export default function ExtendMembershipModal({
     });
   };
 
-  // ---------------------------------------------------------------
-  // Format Date -> YYYY-MM-DD
-  // ---------------------------------------------------------------
   const formatDate = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -53,15 +46,6 @@ export default function ExtendMembershipModal({
     return `${year}-${month}-${day}`;
   };
 
-  // ---------------------------------------------------------------
-  // Calculate default Start Date
-  //
-  // Expired:
-  //     Start = today
-  //
-  // Active:
-  //     Start = current expiry + 1 day
-  // ---------------------------------------------------------------
   const calculateDefaultStartDate = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -81,11 +65,6 @@ export default function ExtendMembershipModal({
     return formatDate(startDate);
   };
 
-  // ---------------------------------------------------------------
-  // Earliest allowed New Start Date — capped to 6 months back from
-  // today, so owners can't accidentally backdate a renewal further
-  // than that.
-  // ---------------------------------------------------------------
   const getMinStartDate = () => {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setHours(0, 0, 0, 0);
@@ -94,9 +73,6 @@ export default function ExtendMembershipModal({
     return formatDate(sixMonthsAgo);
   };
 
-  // ---------------------------------------------------------------
-  // Calculate Expiry Date from selected Start Date + Plan
-  // ---------------------------------------------------------------
   useEffect(() => {
     if (!member || !formData.newStartDate) return;
 
@@ -110,23 +86,15 @@ export default function ExtendMembershipModal({
       monthsToAdd = 12;
     }
 
-    // Add T12:00 to avoid timezone-related date shifting
-    const startDate = new Date(
-      `${formData.newStartDate}T12:00:00`
-    );
-
+    const startDate = new Date(`${formData.newStartDate}T12:00:00`);
     const expiryDate = new Date(startDate);
-
-    expiryDate.setMonth(
-      expiryDate.getMonth() + monthsToAdd
-    );
+    expiryDate.setMonth(expiryDate.getMonth() + monthsToAdd);
 
     setFormData((prev) => ({
       ...prev,
       newExpiryDate: formatDate(expiryDate),
     }));
   }, [formData.plan, formData.newStartDate, member]);
-
 
   useEffect(() => {
     const fee = Number(formData.extensionAmount) || 0;
@@ -139,9 +107,6 @@ export default function ExtendMembershipModal({
     }));
   }, [formData.extensionAmount, formData.amountPayingToday]);
 
-  // ---------------------------------------------------------------
-  // Reset modal when member changes
-  // ---------------------------------------------------------------
   useEffect(() => {
     if (!member) return;
 
@@ -159,30 +124,20 @@ export default function ExtendMembershipModal({
 
   if (!member) return null;
 
-  // ---------------------------------------------------------------
-  // Input change
-  // ---------------------------------------------------------------
   const handleChange = (e) => {
     const { name, value } = e.target;
 
     setFormData((prev) => {
-      // Amount Paying Today can never exceed the membership fee.
-      // Clamp live as the user types.
       if (name === "amountPayingToday") {
         const fee = Number(prev.extensionAmount) || 0;
         const paid = Number(value) || 0;
 
-        // Don't force-clamp to 0 before a fee has been entered yet —
-        // only clamp once a real fee exists.
         return {
           ...prev,
           amountPayingToday: fee > 0 ? String(Math.min(paid, fee)) : value,
         };
       }
 
-      // If the membership fee itself is lowered (or changed) after an
-      // amount was already entered, re-clamp the paid amount so it
-      // can never sit above the new fee.
       if (name === "extensionAmount") {
         const newFee = Number(value) || 0;
         const currentPaid = Number(prev.amountPayingToday) || 0;
@@ -202,9 +157,6 @@ export default function ExtendMembershipModal({
     });
   };
 
-  // ---------------------------------------------------------------
-  // Submit
-  // ---------------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -219,9 +171,6 @@ export default function ExtendMembershipModal({
         amountPayingToday: formData.amountPayingToday,
         balanceAmount: formData.balanceAmount,
         paymentMode: formData.paymentMode,
-
-        // IMPORTANT:
-        // Send the selected start date to backend.
         newStartDate: formData.newStartDate,
       });
     } finally {
@@ -230,72 +179,55 @@ export default function ExtendMembershipModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-[#131b2e] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto text-slate-100">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 sticky top-0 bg-[#131b2e] z-10">
           <div>
-            <h2 className="text-base font-bold text-gray-900 uppercase tracking-wider">
-              Membership detail
+            <h2 className="text-base font-extrabold text-lime-400 uppercase tracking-wider">
+              Membership Detail
             </h2>
-
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5">
               {member.name} · {member.mobile}
             </p>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg cursor-pointer transition-colors"
+            className="p-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 rounded-lg cursor-pointer transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="p-4 md:p-6"
-        >
+        <form onSubmit={handleSubmit} className="p-5 md:p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             {/* Plan */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className="block text-xs uppercase font-bold text-slate-400 mb-1">
                 Plan
               </label>
-
               <select
                 name="plan"
                 value={formData.plan}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                className="w-full bg-[#1c273e] border border-slate-700/80 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-lime-400"
               >
-                <option value="1_month">
-                  1 Month
-                </option>
-
-                <option value="3_month">
-                  3 Months
-                </option>
-
-                <option value="6_month">
-                  6 Months
-                </option>
-
-                <option value="1_year">
-                  1 Year
-                </option>
+                <option value="1_month">1 Month</option>
+                <option value="3_month">3 Months</option>
+                <option value="6_month">6 Months</option>
+                <option value="1_year">1 Year</option>
               </select>
             </div>
 
             {/* Activities */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className="block text-xs uppercase font-bold text-slate-400 mb-1">
                 Activities
               </label>
-
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {ACTIVITY_OPTIONS.map((opt) => {
                   const isSelected = formData.activities.includes(opt.value);
                   return (
@@ -303,10 +235,10 @@ export default function ExtendMembershipModal({
                       key={opt.value}
                       type="button"
                       onClick={() => handleActivityToggle(opt.value)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                         isSelected
-                          ? "bg-indigo-600 border-indigo-600 text-white"
-                          : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                          ? "bg-lime-500 border-lime-400 text-slate-950 shadow-sm"
+                          : "bg-[#1c273e] border-slate-700 text-slate-300 hover:bg-slate-800"
                       }`}
                     >
                       {opt.label}
@@ -318,10 +250,9 @@ export default function ExtendMembershipModal({
 
             {/* New Start Date */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className="block text-xs uppercase font-bold text-slate-400 mb-1">
                 New Start Date
               </label>
-
               <input
                 type="date"
                 name="newStartDate"
@@ -329,35 +260,32 @@ export default function ExtendMembershipModal({
                 onChange={handleChange}
                 min={getMinStartDate()}
                 required
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-blue-600 font-semibold focus:outline-none focus:border-blue-500"
+                className="w-full bg-[#1c273e] border border-slate-700/80 rounded-lg p-3 text-sm text-lime-400 font-semibold focus:outline-none focus:border-lime-400 scheme-dark"
               />
-
-              <p className="text-[10px] text-gray-400 mt-1">
-                Expired: today · Active: day after current expiry · up to 6 months back
+              <p className="text-[10px] text-slate-500 mt-1">
+                Expired: today · Active: day after current expiry
               </p>
             </div>
 
             {/* New Expiry Date */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-400 mb-1">
+              <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
                 New Expiry Date
               </label>
-
               <input
                 type="date"
                 name="newExpiryDate"
                 value={formData.newExpiryDate}
                 readOnly
-                className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-blue-600 font-semibold cursor-not-allowed outline-none"
+                className="w-full bg-slate-900/60 border border-slate-800 rounded-lg p-3 text-sm text-lime-400/80 font-semibold cursor-not-allowed outline-none scheme-dark"
               />
             </div>
 
             {/* Extension Fee */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className="block text-xs uppercase font-bold text-slate-400 mb-1">
                 New Membership Fee
               </label>
-
               <input
                 type="number"
                 name="extensionAmount"
@@ -365,84 +293,71 @@ export default function ExtendMembershipModal({
                 onChange={handleChange}
                 min="0"
                 required
-                placeholder="Enter new membership fee"
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                placeholder="Enter new fee"
+                className="w-full bg-[#1c273e] border border-slate-700/80 rounded-lg p-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-lime-400"
               />
             </div>
 
             {/* Amount Paid */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className="block text-xs uppercase font-bold text-slate-400 mb-1">
                 Amount Paying Today
               </label>
-
               <input
                 type="number"
                 name="amountPayingToday"
                 value={formData.amountPayingToday}
                 onChange={handleChange}
                 min="0"
-                max={formData.extensionAmount||0}
+                max={formData.extensionAmount || 0}
                 required
-                placeholder="Enter collected payment"
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-emerald-600 font-bold focus:outline-none focus:border-blue-500"
+                placeholder="Enter payment"
+                className="w-full bg-[#1c273e] border border-slate-700/80 rounded-lg p-3 text-sm text-emerald-400 font-bold placeholder-slate-500 focus:outline-none focus:border-lime-400"
               />
             </div>
 
             {/* Balance */}
             <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className="block text-xs uppercase font-bold text-slate-400 mb-1">
                 Balance Amount
               </label>
-
               <input
                 type="number"
                 name="balanceAmount"
                 value={formData.balanceAmount}
                 readOnly
-                className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold cursor-not-allowed outline-none"
+                className="w-full bg-slate-900/60 border border-slate-800 rounded-lg p-3 text-sm text-rose-400 font-bold cursor-not-allowed outline-none"
               />
-
-              <p className="text-[10px] text-gray-400 mt-1">
-                Auto-calculated: Fee − Amount Paid
+              <p className="text-[10px] text-slate-500 mt-1">
+                Auto-calculated: Fee − Paid
               </p>
             </div>
 
             {/* Payment Mode */}
             <div className="md:col-span-2">
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+              <label className="block text-xs uppercase font-bold text-slate-400 mb-1">
                 Payment Mode
               </label>
-
               <select
                 name="paymentMode"
                 value={formData.paymentMode}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                className="w-full bg-[#1c273e] border border-slate-700/80 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-lime-400"
               >
-                <option value="upi">
-                  UPI
-                </option>
-
-                <option value="cash">
-                  Cash
-                </option>
-
-                <option value="both">
-                  Both (UPI + Cash)
-                </option>
+                <option value="upi">UPI</option>
+                <option value="cash">Cash</option>
+                <option value="both">Both (UPI + Cash)</option>
               </select>
             </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex gap-3 mt-6">
-
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4 border-t border-slate-800">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold uppercase tracking-wider p-2.5 rounded-lg transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-wider p-3 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
             >
               Cancel
             </button>
@@ -450,7 +365,7 @@ export default function ExtendMembershipModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold uppercase tracking-wider p-2.5 rounded-lg transition-colors cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 bg-lime-500 hover:bg-lime-400 text-slate-950 text-xs font-bold uppercase tracking-wider p-3 rounded-xl transition-colors cursor-pointer shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -461,7 +376,6 @@ export default function ExtendMembershipModal({
                 "Confirm"
               )}
             </button>
-
           </div>
         </form>
       </div>

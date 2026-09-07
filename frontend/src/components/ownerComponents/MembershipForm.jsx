@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
+// Hardcoded for now — becomes a per-gym manageable list later if needed.
 const ACTIVITY_OPTIONS = [
   { value: "workout", label: "Workout" },
   { value: "cardio", label: "Cardio" },
@@ -8,27 +9,75 @@ const ACTIVITY_OPTIONS = [
   { value: "hiit", label: "HIIT" },
 ];
 
-export default function EditMemberModal({ member, onSave, onClose }) {
-  // handleSaveEdit in MembersView.jsx now awaits the update (previously
-  // it closed the modal instantly, before the request even finished) —
-  // this tracks that wait so the Save button shows it's working instead
-  // of looking unresponsive.
+export default function MembershipForm({ onSave, prefill }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: "",
-    mobile: "",
+    name: prefill?.name || "",
+    mobile: prefill?.mobile || "",
     age: "",
     gender: "",
-    activities: [],
     plan: "1_month",
+    activities: [],
     planAmount: "",
     amountPayingToday: "",
-    balanceAmount: "",
     paymentMode: "upi",
-    joiningDate: "",
-    expiryDate: "",
+    joiningDate: new Date().toISOString().split("T")[0],
   });
+
+  // ---------------------------------------------------------------
+  // Earliest allowed Joining Date — capped to 6 months back from
+  // today (no upper cap, so future-dated joining is still allowed).
+  // ---------------------------------------------------------------
+  const getMinJoiningDate = () => {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    return sixMonthsAgo.toISOString().split("T")[0];
+  };
+
+  // Prefill listener
+  useEffect(() => {
+    if (prefill) {
+      setFormData((prev) => ({
+        ...prev,
+        name: prefill.name || "",
+        mobile: prefill.mobile || "",
+      }));
+    }
+  }, [prefill]);
+
+  // Plan duration
+  const monthsMap = {
+    "1_month": 1,
+    "3_month": 3,
+    "6_month": 6,
+    "1_year": 12,
+  };
+
+  const monthsToAdd = monthsMap[formData.plan] || 1;
+
+  // Calculate expiry date
+  let calculatedExpiry = "";
+
+  if (formData.joiningDate) {
+    const date = new Date(formData.joiningDate);
+
+    date.setMonth(date.getMonth() + monthsToAdd);
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    calculatedExpiry = `${year}-${month}-${day}`;
+  }
+
+  // Amount calculations
+  const total = parseFloat(formData.planAmount) || 0;
+
+  const paid = parseFloat(formData.amountPayingToday) || 0;
+
+  const calculatedBalance = Math.max(0, total - paid);
 
   // Toggle an activity in/out of the selected list
   const handleActivityToggle = (value) => {
@@ -43,542 +92,396 @@ export default function EditMemberModal({ member, onSave, onClose }) {
     });
   };
 
-  // ------------------------------------------------------------
-  // LOAD MEMBER DATA
-  // ------------------------------------------------------------
-  useEffect(() => {
-    if (member) {
-      const planAmount = Number(member.latestPlanAmount || 0);
-      const paidAmount = Math.min(
-        Number(member.latestAmountPaid || 0),
-        planAmount
-      );
-
-      setFormData({
-        name: member.name || "",
-        mobile: member.mobile || "",
-        age: member.age || "",
-        gender: member.gender || "",
-        activities: member.activities || [],
-        plan: member.plan || "1_month",
-
-        planAmount: String(planAmount),
-        amountPayingToday: String(paidAmount),
-
-        // Keep balance consistent with plan - paid
-        balanceAmount: String(Math.max(0, planAmount - paidAmount)),
-
-        paymentMode: member.paymentMode || "upi",
-        joiningDate: member.joiningDate || "",
-        expiryDate: member.expiryDate || "",
-      });
-    }
-  }, [member]);
-
-  if (!member) return null;
-
-  // ---------------------------------------------------------------
-  // Earliest allowed Joining Date — capped to 6 months back from
-  // today (no upper cap, so future-dated joining is still allowed).
-  // ---------------------------------------------------------------
-  const getMinJoiningDate = () => {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setHours(0, 0, 0, 0);
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    return sixMonthsAgo.toISOString().split("T")[0];
-  };
-
-  // ------------------------------------------------------------
-  // CALCULATE EXPIRY DATE
-  // ------------------------------------------------------------
-  const calculateExpiryDate = (joiningDate, plan) => {
-    if (!joiningDate) return "";
-
-    const [year, month, day] = joiningDate.split("-").map(Number);
-
-    const date = new Date(year, month - 1, day);
-
-    switch (plan) {
-      case "1_month":
-        date.setMonth(date.getMonth() + 1);
-        break;
-
-      case "3_month":
-        date.setMonth(date.getMonth() + 3);
-        break;
-
-      case "6_month":
-        date.setMonth(date.getMonth() + 6);
-        break;
-
-      case "1_year":
-        date.setFullYear(date.getFullYear() + 1);
-        break;
-
-      default:
-        return "";
-    }
-
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
-    const dd = String(date.getDate()).padStart(2, "0");
-
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
-  // ------------------------------------------------------------
-  // GENERAL INPUT HANDLER
-  // ------------------------------------------------------------
+  // Handle change
   const handleChange = (e) => {
     const { name, value } = e.target;
 
     setFormData((prev) => {
-      const updated = {
-        ...prev,
-        [name]: value,
-      };
-
-      // Joining date or plan changes -> recalculate expiry
-      if (name === "joiningDate" || name === "plan") {
-        updated.expiryDate = calculateExpiryDate(
-          name === "joiningDate" ? value : prev.joiningDate,
-          name === "plan" ? value : prev.plan
-        );
-      }
-
-      // --------------------------------------------------------
-      // PLAN AMOUNT CHANGED
-      // --------------------------------------------------------
-      // Paid can NEVER be greater than plan amount.
-      // Balance = Plan Amount - Paid Amount.
-      if (name === "planAmount") {
-        const planAmount = Math.max(0, Number(value) || 0);
-
-        const currentPaid = Number(prev.amountPayingToday) || 0;
-
-        const safePaid = Math.min(currentPaid, planAmount);
-
-        updated.planAmount = String(planAmount);
-        updated.amountPayingToday = String(safePaid);
-        updated.balanceAmount = String(planAmount - safePaid);
-      }
-
-      // --------------------------------------------------------
-      // AMOUNT PAID CHANGED
-      // --------------------------------------------------------
+      // Amount Paying Today cannot exceed Plan Amount
       if (name === "amountPayingToday") {
-        const planAmount = Math.max(
-          0,
-          Number(prev.planAmount) || 0
-        );
+        const plan = parseFloat(prev.planAmount) || 0;
+        const paidValue = parseFloat(value) || 0;
 
-        const requestedPaid = Math.max(
-          0,
-          Number(value) || 0
-        );
-
-        // IMPORTANT:
-        // Paid cannot exceed plan amount.
-        const safePaid = Math.min(
-          requestedPaid,
-          planAmount
-        );
-
-        updated.amountPayingToday = String(safePaid);
-
-        // Automatically calculate remaining balance.
-        updated.balanceAmount = String(
-          Math.max(0, planAmount - safePaid)
-        );
+        return {
+          ...prev,
+          amountPayingToday:
+            plan > 0
+              ? String(Math.min(paidValue, plan))
+              : value,
+        };
       }
 
-      return updated;
-    });
-  };
+      // If Plan Amount is reduced,
+      // reduce Amount Paying Today automatically
+      if (name === "planAmount") {
+        const newPlan = parseFloat(value) || 0;
+        const currentPaid =
+          parseFloat(prev.amountPayingToday) || 0;
 
-  // ------------------------------------------------------------
-  // BALANCE HANDLER
-  // ------------------------------------------------------------
-  // Balance is also constrained by:
-  //
-  //     balance = planAmount - amountPaid
-  //
-  // So changing balance automatically changes paid amount.
-  // ------------------------------------------------------------
-  const handleBalanceChange = (e) => {
-    const value = e.target.value;
-
-    setFormData((prev) => {
-      const planAmount = Math.max(
-        0,
-        Number(prev.planAmount) || 0
-      );
-
-      let newBalance = Math.max(
-        0,
-        Number(value) || 0
-      );
-
-      // Balance cannot be greater than plan amount.
-      newBalance = Math.min(
-        newBalance,
-        planAmount
-      );
-
-      const newPaid = Math.max(
-        0,
-        planAmount - newBalance
-      );
+        return {
+          ...prev,
+          planAmount: value,
+          amountPayingToday:
+            currentPaid > newPlan
+              ? String(newPlan)
+              : prev.amountPayingToday,
+        };
+      }
 
       return {
         ...prev,
-
-        balanceAmount: String(newBalance),
-
-        // This guarantees:
-        // paid <= planAmount
-        amountPayingToday: String(
-          Math.min(newPaid, planAmount)
-        ),
+        [name]: value,
       };
     });
   };
 
-  // ------------------------------------------------------------
-  // SUBMIT
-  // ------------------------------------------------------------
+  // Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (isSubmitting) return;
 
-    const planAmount = Math.max(
-      0,
-      Number(formData.planAmount) || 0
-    );
+    if (paid > total) {
+      alert(
+        "Amount paying today cannot be greater than the Plan Amount!"
+      );
+      return;
+    }
 
-    const paidAmount = Math.min(
-      Math.max(
-        0,
-        Number(formData.amountPayingToday) || 0
-      ),
-      planAmount
-    );
-
-    const balanceAmount = Math.max(
-      0,
-      planAmount - paidAmount
-    );
-
+    // Remaining payment date validation
     const finalData = {
       ...formData,
-
-      planAmount: String(planAmount),
-      amountPayingToday: String(paidAmount),
-      balanceAmount: String(balanceAmount),
+      balanceAmount: calculatedBalance,
+      expiryDate: calculatedExpiry,
     };
 
     setIsSubmitting(true);
+
     try {
-      await onSave(member.id, finalData);
+      if (onSave) {
+        await onSave(finalData);
+      }
+
+      // Reset form
+      setFormData({
+        name: "",
+        mobile: "",
+        age: "",
+        gender: "",
+        plan: "1_month",
+        activities: [],
+        planAmount: "",
+        amountPayingToday: "",
+        paymentMode: "upi",
+        joiningDate: new Date()
+          .toISOString()
+          .split("T")[0],
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ------------------------------------------------------------
-  // RENDER
-  // ------------------------------------------------------------
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
-
-        {/* HEADER */}
-        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
-          <h2 className="text-base font-bold text-gray-900 uppercase tracking-wider">
-            Edit Member
-          </h2>
-
-          <button
-            onClick={onClose}
-            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg cursor-pointer transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* FORM */}
-        <form
-          onSubmit={handleSubmit}
-          className="p-4 md:p-6"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-            {/* NAME */}
-            <div className="md:col-span-2">
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Full Client Name
-              </label>
-
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-                required
-              />
-            </div>
-
-            {/* MOBILE */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Mobile Number
-              </label>
-
-              <input
-                type="tel"
-                name="mobile"
-                value={formData.mobile}
-                onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-                required
-              />
-            </div>
-
-            {/* AGE + GENDER — side by side, even on mobile */}
-            <div className="grid grid-cols-2 gap-4 md:col-span-2">
-              <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                  Age
-                </label>
-
-                <input
-                  type="number"
-                  name="age"
-                  value={formData.age}
-                  onChange={handleChange}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                  Gender
-                </label>
-
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">Select</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-            </div>
-
-            {/* ACTIVITIES */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Activities
-              </label>
-
-              <div className="flex flex-wrap gap-2">
-                {ACTIVITY_OPTIONS.map((opt) => {
-                  const isSelected = formData.activities.includes(opt.value);
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => handleActivityToggle(opt.value)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
-                        isSelected
-                          ? "bg-indigo-600 border-indigo-600 text-white"
-                          : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* PLAN */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Select Plan Option
-              </label>
-
-              <select
-                name="plan"
-                value={formData.plan}
-                onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-              >
-                <option value="1_month">1 Month</option>
-                <option value="3_month">3 Months</option>
-                <option value="6_month">6 Months</option>
-                <option value="1_year">1 Year</option>
-              </select>
-            </div>
-
-            {/* JOINING DATE */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Joining Date
-              </label>
-
-              <input
-                type="date"
-                name="joiningDate"
-                value={formData.joiningDate}
-                onChange={handleChange}
-                min={getMinJoiningDate()}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-                required
-              />
-
-              <p className="text-[10px] text-gray-400 mt-1">
-                Up to 6 months back, or any date onwards
-              </p>
-            </div>
-
-            {/* EXPIRY DATE */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Expiry Date
-              </label>
-
-              <input
-                type="date"
-                name="expiryDate"
-                value={formData.expiryDate}
-                onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-blue-600 font-semibold focus:outline-none focus:border-blue-500"
-                required
-              />
-            </div>
-
-            {/* PLAN AMOUNT */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                This Period's Plan Amount
-              </label>
-
-              <input
-                type="number"
-                name="planAmount"
-                min="0"
-                value={formData.planAmount}
-                onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-                required
-              />
-
-              <p className="text-[10px] text-gray-400 mt-1">
-                Current plan's fee only — not the lifetime total
-              </p>
-            </div>
-
-            {/* AMOUNT PAID */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                This Period's Amount Paid
-              </label>
-
-              <input
-                type="number"
-                name="amountPayingToday"
-                min="0"
-                max={formData.planAmount || 0}
-                value={formData.amountPayingToday}
-                onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-emerald-600 font-bold focus:outline-none focus:border-blue-500"
-              />
-
-              <p className="text-[10px] text-gray-400 mt-1">
-                Cannot exceed the plan amount
-              </p>
-            </div>
-
-            {/* BALANCE */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Balance Amount
-              </label>
-
-              <input
-                type="number"
-                name="balanceAmount"
-                min="0"
-                max={formData.planAmount || 0}
-                value={formData.balanceAmount}
-                onChange={handleBalanceChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-red-500 font-bold focus:outline-none focus:border-blue-500"
-                required
-              />
-
-              <p className="text-[10px] text-gray-400 mt-1">
-                Plan Amount − Amount Paid
-              </p>
-            </div>
-
-            {/* PAYMENT MODE */}
-            <div>
-              <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                Payment Mode
-              </label>
-
-              <select
-                name="paymentMode"
-                value={formData.paymentMode}
-                onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-              >
-                <option value="upi">UPI</option>
-                <option value="cash">Cash</option>
-                <option value="both">
-                  Both (UPI + Cash)
-                </option>
-              </select>
-            </div>
-          </div>
-
-          {/* BUTTONS */}
-          <div className="flex gap-3 mt-6">
-
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold uppercase tracking-wider p-2 rounded-lg transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold uppercase tracking-wider p-2 rounded-lg transition-colors cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </button>
-
-          </div>
-        </form>
+    <form
+      onSubmit={handleSubmit}
+      className="w-full h-full flex flex-col text-slate-200"
+    >
+      {/* Header */}
+      <div className="flex-shrink-0 px-4 pt-4">
+        <h2 className="text-base font-bold text-white mb-4 uppercase tracking-wider border-b border-slate-800 pb-2">
+          New Membership Form
+        </h2>
       </div>
-    </div>
+
+      {/* SCROLLABLE FORM AREA */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {/* Name */}
+          <div className="md:col-span-2">
+            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              Full Client Name
+            </label>
+
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+              placeholder="John Doe"
+              required
+            />
+          </div>
+
+          {/* Mobile */}
+          <div>
+            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              Mobile Number
+            </label>
+
+            <input
+              type="tel"
+              name="mobile"
+              value={formData.mobile}
+              onChange={handleChange}
+              maxLength={10}
+              minLength={10}
+              pattern="[0-9]{10}"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+              placeholder="e.g. 9876543210"
+              required
+            />
+          </div>
+
+          {/* Age + Gender — side by side, even on mobile */}
+          <div className="grid grid-cols-2 gap-4 md:col-span-2">
+            <div>
+              <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+                Age
+              </label>
+
+              <input
+                type="number"
+                name="age"
+                value={formData.age}
+                onChange={handleChange}
+                className="no-spinner w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+                placeholder="24"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+                Gender
+              </label>
+
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+              >
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Plan */}
+          <div>
+            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              Select Plan Option
+            </label>
+
+            <select
+              name="plan"
+              value={formData.plan}
+              onChange={handleChange}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+            >
+              <option value="1_month">
+                1 Month
+              </option>
+
+              <option value="3_month">
+                3 Months
+              </option>
+
+              <option value="6_month">
+                6 Months
+              </option>
+
+              <option value="1_year">
+                1 Year
+              </option>
+            </select>
+          </div>
+
+          {/* Activities */}
+          <div className="md:col-span-2">
+            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              Activities
+            </label>
+
+            <div className="flex flex-wrap gap-2">
+              {ACTIVITY_OPTIONS.map((opt) => {
+                const isSelected = formData.activities.includes(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleActivityToggle(opt.value)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                      isSelected
+                        ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                        : "bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Joining Date */}
+          <div>
+            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              Joining Date
+            </label>
+
+            <input
+              type="date"
+              name="joiningDate"
+              value={formData.joiningDate}
+              onChange={handleChange}
+              min={getMinJoiningDate()}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+              required
+            />
+
+            <p className="text-[10px] text-gray-400 mt-1">
+              Up to 6 months back, or any date onwards
+            </p>
+          </div>
+
+          {/* Plan Amount */}
+          <div>
+            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              Plan Amount
+            </label>
+
+            <input
+              type="number"
+              name="planAmount"
+              value={formData.planAmount}
+              onChange={handleChange}
+              min="0"
+              className="no-spinner w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+              placeholder="Enter total package price"
+              required
+            />
+          </div>
+
+          {/* Amount Paying Today */}
+          <div>
+            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              Amount Paying Today
+            </label>
+
+            <input
+              type="number"
+              name="amountPayingToday"
+              value={formData.amountPayingToday}
+              onChange={handleChange}
+              min="0"
+              max={formData.planAmount || undefined}
+              className="no-spinner w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-emerald-400 font-bold focus:outline-none focus:border-cyan-500"
+              placeholder="Enter collected payment"
+              required
+            />
+          </div>
+
+          {/* Balance */}
+          <div>
+            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              Balance Amount
+            </label>
+
+            <input
+              type="number"
+              name="balanceAmount"
+              value={calculatedBalance}
+              readOnly
+              className="no-spinner w-full bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-sm text-red-400 font-bold cursor-not-allowed outline-none"
+              placeholder="Calculated automatically"
+            />
+          </div>
+
+          {/* Payment Mode */}
+          <div>
+            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              Payment Mode
+            </label>
+
+            <select
+              name="paymentMode"
+              value={formData.paymentMode}
+              onChange={handleChange}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+            >
+              <option value="upi">
+                UPI
+              </option>
+
+              <option value="cash">
+                Cash
+              </option>
+
+              <option value="both">
+                Both (UPI + Cash)
+              </option>
+            </select>
+          </div>
+
+          {/* Expiry Date */}
+          <div
+            className={
+              calculatedBalance > 0
+                ? ""
+                : "md:col-span-2"
+            }
+          >
+            <label className="block text-xs uppercase font-bold text-gray-400 mb-1">
+              Automatic Plan Expiry Date
+            </label>
+
+            <input
+              type="date"
+              name="expiryDate"
+              value={calculatedExpiry}
+              readOnly
+              className="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-sm text-cyan-400 font-semibold cursor-not-allowed outline-none"
+            />
+          </div>
+
+        </div>
+      <div className="flex-shrink-0 bg-slate-900/90 border-t border-slate-800 p-4">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-blue-600 text-white text-sm font-semibold uppercase tracking-wider p-3 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save Client Membership"
+          )}
+        </button>
+      </div>
+      </div>
+
+      {/* FIXED BUTTON AREA */}
+
+      {/* Remove number input spinner */}
+      <style>{`
+        .no-spinner::-webkit-outer-spin-button,
+        .no-spinner::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+
+        .no-spinner {
+          -moz-appearance: textfield;
+        }
+      `}</style>
+    </form>
   );
 }
