@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { Capacitor } from "@capacitor/core";
 import { restoreSession } from "./redux/slices/authSlice";
@@ -40,6 +40,16 @@ const isStandalonePWA = () =>
   (window.matchMedia?.("(display-mode: standalone)").matches ||
     window.navigator?.standalone === true);
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  return null;
+}
+
 function App() {
   const dispatch = useDispatch();
 
@@ -54,6 +64,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <BackButtonHandler />
       <Routes>
         {/* Public Path */}

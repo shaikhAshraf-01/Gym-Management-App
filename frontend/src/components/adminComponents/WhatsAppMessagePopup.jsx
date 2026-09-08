@@ -36,6 +36,20 @@ We’re happy to have you with us.`;
     setMessage(generatedMessage);
   }, [isOpen, gymName, plan, durationMonths, amount, customMessage]);
 
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const previousTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.touchAction = previousTouchAction;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const cleanPhone = String(phone || "").replace(/\D/g, "");
@@ -76,8 +90,8 @@ We’re happy to have you with us.`;
 
   return createPortal((
     <div className="fixed inset-0 z-100 isolate h-dvh min-h-svh w-full overflow-y-auto overscroll-contain bg-black/50 p-3 sm:p-4 [touch-action:pan-y]">
-      <div className="flex min-h-full items-center justify-center">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="flex min-h-full items-start justify-center sm:items-center">
+      <div className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <div className="flex items-center gap-3">
@@ -105,7 +119,7 @@ We’re happy to have you with us.`;
         </div>
 
         {/* Content */}
-        <div className="space-y-3 p-4">
+        <div className="min-h-0 space-y-3 overflow-y-auto p-3">
           {/* Recipient */}
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-slate-500">
@@ -136,14 +150,14 @@ We’re happy to have you with us.`;
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              rows={5}
+              rows={3}
               className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-700 outline-none transition focus:border-green-500 focus:bg-white focus:ring-1 focus:ring-green-500"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 flex flex-row gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3 sm:justify-end">
+        <div className="sticky bottom-0 flex flex-row gap-2 border-t border-slate-100 bg-slate-50 px-3 py-2.5 sm:justify-end">
           <button
             type="button"
             onClick={onClose}

@@ -384,6 +384,18 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
                       <p className="text-sm font-semibold text-slate-200">
                         {PLAN_LABELS[entry.plan] || entry.plan}
                       </p>
+                      {entry.activities?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {entry.activities.map((activity) => (
+                            <span
+                              key={activity}
+                              className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full text-[10px] font-medium capitalize"
+                            >
+                              {activity}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <p className="text-xs text-slate-500 mt-0.5">
                         {entry.startDate} → {entry.endDate}
                       </p>

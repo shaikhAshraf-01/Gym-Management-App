@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Loader2 } from "lucide-react";
 
 const ACTIVITY_OPTIONS = [
@@ -122,6 +123,20 @@ export default function ExtendMembershipModal({
     });
   }, [member]);
 
+  useEffect(() => {
+    if (!member) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const previousTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.touchAction = previousTouchAction;
+    };
+  }, [member]);
+
   if (!member) return null;
 
   const handleChange = (e) => {
@@ -178,9 +193,10 @@ export default function ExtendMembershipModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#131b2e] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto text-slate-100">
+  return createPortal((
+    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/70 p-3 backdrop-blur-sm [touch-action:pan-y] sm:p-4">
+      <div className="flex min-h-full items-start justify-center sm:items-center">
+      <div className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-800 bg-[#131b2e] text-slate-100 shadow-2xl sm:max-h-[calc(100dvh-2rem)]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 sticky top-0 bg-[#131b2e] z-10">
@@ -379,6 +395,7 @@ export default function ExtendMembershipModal({
           </div>
         </form>
       </div>
+      </div>
     </div>
-  );
+  ), document.body);
 }

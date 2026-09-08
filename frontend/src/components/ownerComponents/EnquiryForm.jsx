@@ -35,12 +35,12 @@ export default function EnquiryForm({ onSave }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full p-4 text-slate-200">
-      <h2 className="text-base font-bold text-white mb-6 uppercase tracking-wider border-b border-slate-800 pb-2">
+    <form onSubmit={handleSubmit} className="flex h-full min-h-0 w-full flex-col text-slate-200">
+      <h2 className="shrink-0 px-4 pt-4 text-base font-bold uppercase tracking-wider text-white mb-6 border-b border-slate-800 pb-2">
         Prospect Enquiry Form
       </h2>
       
-      <div className="space-y-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 space-y-4">
         {/* Full Name Field */}
         <div>
           <label className="block text-xs uppercase font-bold text-slate-500 mb-1">

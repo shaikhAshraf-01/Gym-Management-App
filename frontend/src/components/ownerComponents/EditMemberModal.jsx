@@ -201,8 +201,9 @@ export default function EditMemberModal({ member, onSave, onClose }) {
     "block text-xs uppercase font-bold tracking-wider text-slate-400 mb-1.5";
 
   return createPortal((
-    <div className="fixed inset-0 z-100 isolate h-dvh min-h-svh w-full overflow-y-auto overscroll-contain bg-slate-950/80 backdrop-blur-md [touch-action:pan-y] p-3 sm:p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl shadow-black/60 w-full max-w-lg mx-auto my-1 sm:my-4">
+    <div className="fixed inset-0 z-100 isolate h-dvh min-h-svh w-full overflow-y-auto overscroll-contain bg-slate-950/80 p-3 backdrop-blur-md [touch-action:pan-y] sm:p-4">
+      <div className="flex min-h-full items-start justify-center sm:items-center">
+      <div className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl shadow-black/60 sm:max-h-[calc(100dvh-2rem)]">
         {/* HEADER */}
         <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
           <div>
@@ -458,6 +459,7 @@ export default function EditMemberModal({ member, onSave, onClose }) {
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   ), document.body);

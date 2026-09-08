@@ -18,7 +18,6 @@ import {
 } from "../../redux/slices/enquiriesSlice";
 
 import { fetchOwnerProfile } from "../../redux/slices/ownerSlice";
-import { openDrawer } from "../../redux/slices/uiSlice";
 import { useBackHandler } from "../../hooks/useBackHandler";
 
 export default function AddSelectionContainer() {
@@ -83,17 +82,11 @@ export default function AddSelectionContainer() {
   // (instead of dropping the user on the inline options page)
   // ------------------------------------------------------------
   const handleClose = () => {
-    setSelectedType(null);
-    setPrefillData(null);
+    const membersPath = location.pathname.startsWith("/trainer")
+      ? "/trainer/all-members"
+      : "/owner/all-members";
 
-    navigate(location.pathname, {
-      replace: true,
-      state: {},
-    });
-
-    // Mobile bottom-sheet ("Create New Entry") wapas khol do,
-    // taaki X dabane par popup dikhe, na ki options wala page.
-    dispatch(openDrawer());
+    navigate(membersPath, { replace: true });
   };
 
   // Hardware back button (native app) pe bhi same close behaviour
@@ -205,19 +198,25 @@ export default function AddSelectionContainer() {
       h-[100dvh] keeps this screen inside the device viewport.
       overflow-hidden prevents the outer page from scrolling.
     */
-    <div className="h-[100dvh] overflow-hidden bg-slate-950 text-slate-200">
+    <div
+      className={`overflow-hidden bg-slate-950 text-slate-200 ${
+        selectedType === "membership"
+          ? "h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] md:h-dvh"
+          : "h-dvh"
+      } ${selectedType === "membership" ? "p-0" : ""}`}
+    >
 
       {/* ------------------------------------------------------
           MAIN PAGE
       ------------------------------------------------------ */}
-      <div className="h-full max-w-7xl mx-auto px-2 md:px-6">
+      <div className={`h-full max-w-7xl mx-auto ${selectedType === "membership" ? "px-0" : "px-2 md:px-6"}`}>
 
-        <div className="max-w-4xl mx-auto h-full flex flex-col">
+        <div className={`${selectedType === "membership" ? "max-w-none" : "max-w-4xl"} mx-auto h-full flex flex-col`}>
 
           {/* --------------------------------------------------
               MOBILE HEADER
           -------------------------------------------------- */}
-          <div className="shrink-0 block md:hidden pt-2">
+          <div className={`shrink-0 block md:hidden pt-2 ${selectedType === "membership" ? "hidden" : ""}`}>
 
             {selectedType ? (
               <div className="flex items-center justify-between mb-2">
@@ -253,7 +252,7 @@ export default function AddSelectionContainer() {
           {/* --------------------------------------------------
               DESKTOP HEADER
           -------------------------------------------------- */}
-          <div className="shrink-0 hidden md:flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-800 pb-2 mb-6 pt-6 gap-4">
+          <div className={`shrink-0 hidden md:flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-800 pb-2 mb-6 pt-6 gap-4 ${selectedType === "membership" ? "md:hidden" : ""}`}>
 
             <div>
               <h1 className="text-2xl font-bold text-white">
@@ -277,9 +276,7 @@ export default function AddSelectionContainer() {
               grid grid-cols-1 md:grid-cols-2
               gap-4 mb-4 md:mb-6
               ${
-                selectedType
-                  ? "hidden md:grid"
-                  : "grid"
+                selectedType ? "hidden" : "grid"
               }
             `}
           >
@@ -408,29 +405,26 @@ export default function AddSelectionContainer() {
               min-h-0
               w-full
 
-              bg-slate-900/60
-              backdrop-blur-sm
-              rounded-xl
-              shadow-sm
-              border border-cyan-500/10
+              ${selectedType === "membership" ? "" : "bg-slate-900/60 backdrop-blur-sm rounded-xl shadow-sm border border-cyan-500/10"}
 
               overflow-hidden
 
-              mb-2 md:mb-6
+              ${selectedType === "membership" ? "mb-0" : "mb-2 md:mb-6"}
             `}
           >
 
             {selectedType === "membership" && (
-              <div className="w-full h-full min-h-0 overflow-hidden">
+              <div className="h-full min-h-0 w-full overflow-hidden">
                 <MembershipForm
                   prefill={prefillData || null}
                   onSave={handleSaveMembership}
+                  onCancel={handleClose}
                 />
               </div>
             )}
 
             {selectedType === "enquiry" && (
-              <div className="w-full h-full min-h-0 overflow-hidden">
+              <div className="h-full min-h-0 w-full overflow-hidden">
                 <EnquiryForm
                   onSave={handleSaveEnquiry}
                 />

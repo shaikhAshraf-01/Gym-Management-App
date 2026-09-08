@@ -9,7 +9,7 @@ const ACTIVITY_OPTIONS = [
   { value: "hiit", label: "HIIT" },
 ];
 
-export default function MembershipForm({ onSave, prefill }) {
+export default function MembershipForm({ onSave, onCancel, prefill }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -185,7 +185,7 @@ export default function MembershipForm({ onSave, prefill }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full h-full flex flex-col text-slate-200"
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden text-slate-200"
     >
       {/* Header */}
       <div className="flex-shrink-0 px-4 pt-4">
@@ -195,7 +195,7 @@ export default function MembershipForm({ onSave, prefill }) {
       </div>
 
       {/* SCROLLABLE FORM AREA */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 overscroll-contain">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           {/* Name */}
@@ -450,25 +450,33 @@ export default function MembershipForm({ onSave, prefill }) {
           </div>
 
         </div>
-      <div className="flex-shrink-0 bg-slate-900/90 border-t border-slate-800 p-4">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-blue-600 text-white text-sm font-semibold uppercase tracking-wider p-3 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Save Client Membership"
-          )}
-        </button>
+        <div className="border-t border-slate-800 bg-slate-900/90 py-4">
+        <div className="flex flex-row gap-2 sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="flex-1 rounded-lg border border-slate-700 bg-slate-800 p-3 text-sm font-semibold uppercase tracking-wider text-slate-300 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 sm:max-w-xs"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex-1 rounded-lg bg-blue-600 p-3 text-sm font-semibold uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:max-w-xs"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </span>
+            ) : (
+              "Save"
+            )}
+          </button>
+        </div>
       </div>
       </div>
-
-      {/* FIXED BUTTON AREA */}
 
       {/* Remove number input spinner */}
       <style>{`

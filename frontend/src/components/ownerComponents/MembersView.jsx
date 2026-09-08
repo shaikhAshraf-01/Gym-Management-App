@@ -355,6 +355,7 @@ const buildExtensionMessage = (member) => {
                 <th className="py-3 px-4">Name</th>
                 <th className="py-3 px-4">Mobile No.</th>
                 <th className="py-3 px-4">Plan</th>
+                <th className="py-3 px-4">Activities</th>
                 <th className="py-3 px-4">Start Date</th>
                 <th className="py-3 px-4">End Date</th>
                 <th className="py-3 px-4">Amount</th>
@@ -371,6 +372,21 @@ const buildExtensionMessage = (member) => {
                     <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-md text-xs font-medium">
                       {PLAN_LABELS[member.plan] || member.plan}
                     </span>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="flex max-w-40 flex-wrap gap-1">
+                      {(member.activities || []).map((activity) => (
+                        <span
+                          key={activity}
+                          className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-medium capitalize text-indigo-400"
+                        >
+                          {activity}
+                        </span>
+                      ))}
+                      {(member.activities || []).length === 0 && (
+                        <span className="text-xs text-slate-600">-</span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3.5 px-4 text-slate-400">{member.joiningDate}</td>
                   <td className="py-3.5 px-4 text-slate-400">{member.expiryDate}</td>
@@ -465,9 +481,22 @@ const buildExtensionMessage = (member) => {
                   <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Active Plan</p>
                   <p className="font-semibold text-cyan-400 mt-0.5">{PLAN_LABELS[member.plan] || member.plan}</p>
                 </div>
-                <div>
-                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Total Fees</p>
-                  <p className="font-semibold text-white mt-0.5">₹{member.planAmount}</p>
+                <div className="min-w-0">
+                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Activities</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {(member.activities || []).length > 0 ? (
+                      member.activities.map((activity) => (
+                        <span
+                          key={activity}
+                          className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-medium capitalize text-indigo-400"
+                        >
+                          {activity}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-slate-600">-</span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px] flex items-center gap-1">
@@ -481,7 +510,11 @@ const buildExtensionMessage = (member) => {
                   </p>
                   <p className="font-semibold text-slate-300 mt-0.5">{member.expiryDate}</p>
                 </div>
-                <div className="col-span-2 pt-1.5">
+                <div className="pt-1.5">
+                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Total Fees</p>
+                  <p className="font-semibold text-white mt-0.5">₹{member.planAmount}</p>
+                </div>
+                <div className="pt-1.5">
                   <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Balance Outstanding</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <p className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-400" : "text-emerald-400"}`}>

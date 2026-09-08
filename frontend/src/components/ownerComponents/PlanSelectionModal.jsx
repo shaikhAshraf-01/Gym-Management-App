@@ -159,7 +159,7 @@ export default function PlanSelectionModal({ onClose, onProceedToPay }) {
             <label className="block text-xs uppercase font-bold text-slate-400 mb-1.5">
               Duration
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {DURATIONS.map((d) => {
                 const isSelected = d.id === selectedDurationId;
                 return (
@@ -167,7 +167,7 @@ export default function PlanSelectionModal({ onClose, onProceedToPay }) {
                     key={d.id}
                     type="button"
                     onClick={() => setSelectedDurationId(d.id)}
-                    className={`py-2.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                    className={`min-w-0 whitespace-nowrap rounded-lg border py-2.5 text-xs font-semibold transition-all cursor-pointer ${
                       isSelected
                         ? "bg-cyan-500 border-cyan-400 text-slate-950"
                         : "bg-[#1c273e] border-slate-700 text-slate-300 hover:bg-slate-800"
