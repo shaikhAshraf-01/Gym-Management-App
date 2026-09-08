@@ -31,6 +31,13 @@ const memberSubscriptionHistorySchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Selected activities for this subscription (workout, cardio, etc.)
+    // Must be declared here or Mongoose silently strips it on save.
+    activities: {
+      type: [String],
+      default: [],
+    },
+
     balance: {
       type: Number,
       default: 0,
