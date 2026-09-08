@@ -3,7 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { connectSocket, disconnectSocket } from "../socket.js";
 import { memberUpserted, memberRemoved } from "../redux/slices/membersSlice";
 import { enquiryUpserted, enquiryRemoved } from "../redux/slices/enquiriesSlice";
-import { gymProfileUpdated } from "../redux/slices/ownerSlice";
+import { gymProfileUpdated, trainersUpdated } from "../redux/slices/ownerSlice";
+import { gymUpserted, gymRemoved, gymTrainersUpdated } from "../redux/slices/gymSlice";
 
 // Keeps members/enquiries live across:
 //   - multiple devices logged into the same account
@@ -33,7 +34,27 @@ export default function useRealtimeSync() {
       socket.on("enquiry:created", ({ enquiry }) => dispatch(enquiryUpserted(enquiry)));
       socket.on("enquiry:updated", ({ enquiry }) => dispatch(enquiryUpserted(enquiry)));
       socket.on("enquiry:deleted", ({ id }) => dispatch(enquiryRemoved(id)));
-      socket.on("gym:updated", (payload) => dispatch(gymProfileUpdated(payload)));
+
+      // "gym:updated" is broadcast both to the gym's own room (owner/
+      // trainer) and to the admins room — harmless to dispatch both
+      // reducers on every client since each one no-ops unless the
+      // gym id actually matches what that slice is holding.
+      socket.on("gym:updated", (payload) => {
+        dispatch(gymProfileUpdated(payload));
+        if (payload?.gym) dispatch(gymUpserted(payload.gym));
+      });
+      socket.on("gym:created", (payload) => {
+        if (payload?.gym) dispatch(gymUpserted(payload.gym));
+      });
+      socket.on("gym:deleted", ({ id }) => dispatch(gymRemoved(id)));
+
+      // Trainer roster changed (owner or admin added/edited/removed
+      // a trainer) — keep both the owner's own profile page and the
+      // admin's gym list in sync.
+      socket.on("trainers:updated", (payload) => {
+        dispatch(trainersUpdated(payload));
+        dispatch(gymTrainersUpdated(payload));
+      });
     })();
 
     return () => {

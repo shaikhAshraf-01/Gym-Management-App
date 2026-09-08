@@ -6,6 +6,7 @@ import Member from "../models/Member.js";
 import MemberSubscriptionHistory from "../models/MemberSubscriptionHistory.js";
 import MemberPaymentHistory from "../models/MemberPaymentHistory.js";
 import Inquiry from "../models/Inquiry.js";
+import { emitToAdmins, emitToGym } from "../socket/index.js";
 
 // Gym model has no totalMembers field — count comes live from the
 // Member collection instead of relying on a stale/undefined property.
@@ -17,7 +18,7 @@ const getMembersCount = async (gymId) => {
 // embedded array on Gym. Frontend code keys off `trainer.id`, so we
 // map Mongo's `_id` -> `id` here once and reuse everywhere, instead
 // of changing every trainer.id reference across the frontend.
-const getFormattedTrainers = async (gymId) => {
+export const getFormattedTrainers = async (gymId) => {
   const trainers = await Trainer.find({ gymId }).select(
     "-password -otp -otpExpires"
   );
@@ -113,23 +114,29 @@ export const createGym = async (req, res) => {
   const trainers = await getFormattedTrainers(gym._id);
   const totalMembers = await getMembersCount(gym._id);
 
+  const responseGym = {
+    _id: populatedGym._id,
+    gymCode: populatedGym.gymCode,
+    gymName: populatedGym.gymName,
+    location: populatedGym.location,
+    gymLogo: populatedGym.gymLogo,
+    status: populatedGym.status,
+    owner: populatedGym.owner,
+    trainers,
+    totalMembers,
+    address: populatedGym.address || "",
+    subscriptionHistory,
+    currentSubscription,
+  };
+
+  // Realtime: other admin sessions (another tab/device logged in as
+  // admin) should see the new gym appear without a manual refresh.
+  emitToAdmins("gym:created", { gym: responseGym });
+
   res.status(201).json({
     success: true,
     message: "Gym created successfully.",
-    gym: {
-      _id: populatedGym._id,
-      gymCode: populatedGym.gymCode,
-      gymName: populatedGym.gymName,
-      location: populatedGym.location,
-      gymLogo: populatedGym.gymLogo,
-      status: populatedGym.status,
-      owner: populatedGym.owner,
-      trainers,
-      totalMembers,
-      address: populatedGym.address || "",
-      subscriptionHistory,
-      currentSubscription,
-    },
+    gym: responseGym,
   });
 }
 catch(error){
@@ -449,32 +456,39 @@ export const updateGym = async (req, res) => {
     // 7. RETURN UPDATED GYM
     // ============================================================
 
+    const responseGym = {
+      _id: populatedGym._id,
+      gymCode: populatedGym.gymCode,
+      gymName: populatedGym.gymName,
+      location: populatedGym.location,
+      gymLogo: populatedGym.gymLogo,
+      status: populatedGym.status,
+
+      owner: populatedGym.owner,
+
+      trainers: updatedTrainers,
+
+      totalMembers,
+
+      address: populatedGym.address || "",
+
+      subscriptionHistory,
+
+      currentSubscription:
+        updatedCurrentSubscription,
+    };
+
+    // Realtime: push the edited gym to every admin session, and to
+    // the owner/trainers of that gym (e.g. their subscription plan
+    // or trainer roster just changed from the admin side).
+    emitToAdmins("gym:updated", { gym: responseGym });
+    emitToGym(gym._id, "gym:updated", { gym: responseGym });
+
     return res.status(200).json({
       success: true,
       message: "Gym updated successfully.",
 
-      gym: {
-        _id: populatedGym._id,
-        gymCode: populatedGym.gymCode,
-        gymName: populatedGym.gymName,
-        location: populatedGym.location,
-        gymLogo: populatedGym.gymLogo,
-        status: populatedGym.status,
-
-        owner: populatedGym.owner,
-
-        trainers: updatedTrainers,
-
-        totalMembers,
-
-
-        address: populatedGym.address || "",
-
-        subscriptionHistory,
-
-        currentSubscription:
-          updatedCurrentSubscription,
-      },
+      gym: responseGym,
     });
   } catch (error) {
     console.error("UPDATE GYM ERROR:", error);
@@ -542,23 +556,30 @@ export const addTrainer = async (req, res) => {
     const currentSubscription =
       subscriptionHistory[subscriptionHistory.length - 1] || null;
 
+    const responseGym = {
+      _id: populatedGym._id,
+      gymCode: populatedGym.gymCode,
+      gymName: populatedGym.gymName,
+      location: populatedGym.location,
+      gymLogo: populatedGym.gymLogo,
+      status: populatedGym.status,
+      owner: populatedGym.owner,
+      trainers,
+      totalMembers,
+      address: populatedGym.address || "",
+      subscriptionHistory,
+      currentSubscription,
+    };
+
+    // Realtime: notify every admin session, plus the gym's own
+    // owner/trainers, that the trainer roster changed.
+    emitToAdmins("gym:updated", { gym: responseGym });
+    emitToGym(gym._id, "trainers:updated", { gymId: gym._id, trainers });
+
     res.status(201).json({
       success: true,
       message: "Trainer added successfully.",
-      gym: {
-        _id: populatedGym._id,
-        gymCode: populatedGym.gymCode,
-        gymName: populatedGym.gymName,
-        location: populatedGym.location,
-        gymLogo: populatedGym.gymLogo,
-        status: populatedGym.status,
-        owner: populatedGym.owner,
-        trainers,
-        totalMembers,
-        address: populatedGym.address || "",
-        subscriptionHistory,
-        currentSubscription,
-      },
+      gym: responseGym,
     });
   } catch (error) {
     console.log(error);
@@ -604,23 +625,28 @@ export const deleteTrainer = async (req, res) => {
     const currentSubscription =
       subscriptionHistory[subscriptionHistory.length - 1] || null;
 
+    const responseGym = {
+      _id: populatedGym._id,
+      gymCode: populatedGym.gymCode,
+      gymName: populatedGym.gymName,
+      location: populatedGym.location,
+      gymLogo: populatedGym.gymLogo,
+      status: populatedGym.status,
+      owner: populatedGym.owner,
+      trainers,
+      totalMembers,
+      address: populatedGym.address || "",
+      subscriptionHistory,
+      currentSubscription,
+    };
+
+    emitToAdmins("gym:updated", { gym: responseGym });
+    emitToGym(gym._id, "trainers:updated", { gymId: gym._id, trainers });
+
     res.status(200).json({
       success: true,
       message: "Trainer removed successfully.",
-      gym: {
-        _id: populatedGym._id,
-        gymCode: populatedGym.gymCode,
-        gymName: populatedGym.gymName,
-        location: populatedGym.location,
-        gymLogo: populatedGym.gymLogo,
-        status: populatedGym.status,
-        owner: populatedGym.owner,
-        trainers,
-        totalMembers,
-        address: populatedGym.address || "",
-        subscriptionHistory,
-        currentSubscription,
-      },
+      gym: responseGym,
     });
   } catch (error) {
     console.log(error);
@@ -676,6 +702,10 @@ export const deleteGym = async (req, res) => {
     await Trainer.deleteMany({ gymId: gym._id });
     await GymSubscriptionHistory.deleteMany({ gymId: gym._id });
     await Gym.findByIdAndDelete(id);
+
+    // Realtime: other admin sessions should drop this gym from their
+    // list immediately instead of showing a stale, now-deleted gym.
+    emitToAdmins("gym:deleted", { id });
 
     res.status(200).json({
       success: true,

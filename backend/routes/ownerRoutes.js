@@ -1,5 +1,14 @@
 import express from "express";
-import { getOwnerProfile, uploadGymLogo, removeGymLogo, uploadTrainerPhoto, removeTrainerPhoto } from "../controllers/ownerController.js";
+import {
+  getOwnerProfile,
+  uploadGymLogo,
+  removeGymLogo,
+  uploadTrainerPhoto,
+  removeTrainerPhoto,
+  addTrainerOwner,
+  updateTrainerOwner,
+  removeTrainerOwner,
+} from "../controllers/ownerController.js";
 import {
   getMembers,
   addMember,
@@ -44,6 +53,12 @@ router.patch(
   uploadTrainerPhoto
 );
 router.delete("/trainer-photo", authMiddleware, roleMiddleware("trainer"), removeTrainerPhoto);
+
+// Owner managing their own gym's trainers (add / edit / remove).
+// Owner-only — a trainer cannot manage other trainers.
+router.post("/trainers", authMiddleware, roleMiddleware("owner"), addTrainerOwner);
+router.put("/trainers/:trainerId", authMiddleware, roleMiddleware("owner"), updateTrainerOwner);
+router.delete("/trainers/:trainerId", authMiddleware, roleMiddleware("owner"), removeTrainerOwner);
 
 // ============ MEMBERS (owner + trainer — same gym data) ============
 

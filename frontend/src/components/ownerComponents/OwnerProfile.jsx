@@ -12,6 +12,11 @@ import {
   Camera,
   Trash2,
   LogOut,
+  Users,
+  Plus,
+  Pencil,
+  X,
+  Check,
 } from "lucide-react";
 
 import { performLogout } from "../../redux/slices/authSlice";
@@ -20,7 +25,223 @@ import {
   uploadGymLogo,
   removeGymLogo,
   clearUploadError,
+  addOwnerTrainer,
+  updateOwnerTrainer,
+  removeOwnerTrainer,
+  clearTrainerActionError,
 } from "../../redux/slices/ownerSlice";
+
+const EMPTY_TRAINER_FORM = { name: "", mobile: "", email: "" };
+
+// Small add/edit form shared by both flows — kept inline here rather
+// than a separate file since it's only ever used from this page.
+function TrainerForm({ initial, onCancel, onSubmit, submitting }) {
+  const [form, setForm] = useState(initial || EMPTY_TRAINER_FORM);
+
+  const handleChange = (field) => (e) =>
+    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(form);
+      }}
+      className="space-y-2.5 rounded-xl border border-slate-800 bg-slate-950 p-3.5"
+    >
+      <input
+        required
+        placeholder="Trainer name"
+        value={form.name}
+        onChange={handleChange("name")}
+        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"
+      />
+      <input
+        required
+        placeholder="Mobile number"
+        value={form.mobile}
+        onChange={handleChange("mobile")}
+        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"
+      />
+      <input
+        required
+        type="email"
+        placeholder="Email address"
+        value={form.email}
+        onChange={handleChange("email")}
+        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"
+      />
+      <div className="flex gap-2 pt-1">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-cyan-500 py-2 text-sm font-bold text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
+        >
+          <Check size={14} /> {submitting ? "Saving..." : "Save"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-800 py-2 text-sm font-bold text-slate-300 hover:bg-slate-700"
+        >
+          <X size={14} /> Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function TrainersSection() {
+  const dispatch = useDispatch();
+  const { trainers, trainerActionLoading, trainerActionError } = useSelector(
+    (state) => state.owner,
+  );
+
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
+
+  const handleAdd = async (form) => {
+    try {
+      await dispatch(addOwnerTrainer(form)).unwrap();
+      setAdding(false);
+    } catch {
+      // trainerActionError banner below already shows the failure.
+    }
+  };
+
+  const handleUpdate = async (trainerId, form) => {
+    try {
+      await dispatch(updateOwnerTrainer({ trainerId, ...form })).unwrap();
+      setEditingId(null);
+    } catch {
+      // trainerActionError banner below already shows the failure.
+    }
+  };
+
+  const handleRemove = async (trainerId) => {
+    try {
+      await dispatch(removeOwnerTrainer(trainerId)).unwrap();
+    } finally {
+      setConfirmingDeleteId(null);
+    }
+  };
+
+  return (
+    <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-sm font-bold uppercase text-slate-500">
+          <Users size={16} className="text-cyan-400" /> Trainers
+        </h2>
+        {!adding && (
+          <button
+            onClick={() => {
+              setAdding(true);
+              setEditingId(null);
+            }}
+            className="flex items-center gap-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1.5 text-xs font-bold text-cyan-400 hover:bg-cyan-500/20"
+          >
+            <Plus size={14} /> Add Trainer
+          </button>
+        )}
+      </div>
+
+      {trainerActionError && (
+        <div className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-rose-900/60 bg-rose-950/40 p-3">
+          <p className="text-sm font-medium text-rose-300">{trainerActionError}</p>
+          <button
+            onClick={() => dispatch(clearTrainerActionError())}
+            className="shrink-0 text-xs font-bold text-red-400 hover:text-red-600"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {adding && (
+        <div className="mb-3">
+          <TrainerForm
+            onCancel={() => setAdding(false)}
+            onSubmit={handleAdd}
+            submitting={trainerActionLoading}
+          />
+        </div>
+      )}
+
+      {trainers.length === 0 && !adding ? (
+        <p className="py-4 text-center text-xs text-slate-500">
+          No trainers added yet.
+        </p>
+      ) : (
+        <div className="space-y-2.5">
+          {trainers.map((trainer) =>
+            editingId === trainer.id ? (
+              <TrainerForm
+                key={trainer.id}
+                initial={{
+                  name: trainer.name,
+                  mobile: trainer.mobile,
+                  email: trainer.email,
+                }}
+                onCancel={() => setEditingId(null)}
+                onSubmit={(form) => handleUpdate(trainer.id, form)}
+                submitting={trainerActionLoading}
+              />
+            ) : (
+              <div
+                key={trainer.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3.5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-slate-100">{trainer.name}</p>
+                  <p className="truncate text-xs text-slate-500">
+                    {trainer.mobile} · {trainer.email}
+                  </p>
+                </div>
+
+                {confirmingDeleteId === trainer.id ? (
+                  <div className="flex shrink-0 gap-1.5">
+                    <button
+                      onClick={() => handleRemove(trainer.id)}
+                      disabled={trainerActionLoading}
+                      className="rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-60"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      onClick={() => setConfirmingDeleteId(null)}
+                      className="rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex shrink-0 gap-1.5">
+                    <button
+                      onClick={() => {
+                        setEditingId(trainer.id);
+                        setAdding(false);
+                      }}
+                      className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-blue-400 hover:bg-blue-500/20"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => setConfirmingDeleteId(trainer.id)}
+                      className="rounded-lg bg-red-500/10 border border-red-500/20 p-2 text-red-400 hover:bg-red-500/20"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function OwnerProfile() {
   const dispatch = useDispatch();
@@ -246,6 +467,9 @@ export default function OwnerProfile() {
             </div>
           </div>
         </div>
+        {/* ===================== TRAINERS ===================== */}
+        <TrainersSection />
+
         {/* ===================== SUBSCRIPTION DETAILS ===================== */}
 
         <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">

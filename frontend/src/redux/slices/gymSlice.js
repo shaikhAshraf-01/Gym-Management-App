@@ -150,6 +150,31 @@ const gymSlice = createSlice({
     clearActionError: (state) => {
       state.actionError = null;
     },
+    // ---------------- Realtime (socket.io) ----------------
+    // Wired up in useRealtimeSync.js so the Admin dashboard/gym list
+    // updates live when a gym is created/edited/deleted from another
+    // admin session or by an owner (logo, trainers, etc).
+    gymUpserted: (state, action) => {
+      const gym = action.payload;
+      if (!gym?._id) return;
+      const index = state.gyms.findIndex((g) => g._id === gym._id);
+      if (index !== -1) {
+        state.gyms[index] = { ...state.gyms[index], ...gym };
+      } else {
+        state.gyms.unshift(gym);
+      }
+    },
+    gymRemoved: (state, action) => {
+      state.gyms = state.gyms.filter((g) => g._id !== action.payload);
+    },
+    gymTrainersUpdated: (state, action) => {
+      const { gymId, trainers } = action.payload || {};
+      if (!gymId) return;
+      const index = state.gyms.findIndex((g) => g._id === gymId);
+      if (index !== -1) {
+        state.gyms[index] = { ...state.gyms[index], trainers };
+      }
+    },
   },
 
   extraReducers: (builder) => {
@@ -255,6 +280,7 @@ const gymSlice = createSlice({
   },
 });
 
-export const { addGym, clearActionError } = gymSlice.actions;
+export const { addGym, clearActionError, gymUpserted, gymRemoved, gymTrainersUpdated } =
+  gymSlice.actions;
 
 export default gymSlice.reducer;

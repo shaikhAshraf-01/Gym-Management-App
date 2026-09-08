@@ -3,6 +3,9 @@ import {
   getOwnerProfileApi,
   uploadGymLogoApi,
   removeGymLogoApi,
+  addTrainerOwnerApi,
+  updateTrainerOwnerApi,
+  removeTrainerOwnerApi,
 } from "../../api/ownerApi";
 
 // ❌ REMOVED: getAuthHeaders() is no longer needed because 
@@ -53,12 +56,57 @@ export const removeGymLogo = createAsyncThunk(
   },
 );
 
+export const addOwnerTrainer = createAsyncThunk(
+  "owner/addTrainer",
+  async (trainerData, { rejectWithValue }) => {
+    try {
+      const response = await addTrainerOwnerApi(trainerData);
+      return response.data.trainers;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to add trainer.",
+      );
+    }
+  },
+);
+
+export const updateOwnerTrainer = createAsyncThunk(
+  "owner/updateTrainer",
+  async ({ trainerId, ...trainerData }, { rejectWithValue }) => {
+    try {
+      const response = await updateTrainerOwnerApi(trainerId, trainerData);
+      return response.data.trainers;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update trainer.",
+      );
+    }
+  },
+);
+
+export const removeOwnerTrainer = createAsyncThunk(
+  "owner/removeTrainer",
+  async (trainerId, { rejectWithValue }) => {
+    try {
+      const response = await removeTrainerOwnerApi(trainerId);
+      return response.data.trainers;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to remove trainer.",
+      );
+    }
+  },
+);
+
 const initialState = {
   owner: null,
   gym: null,
   currentSubscription: null,
+  trainers: [],
   loading: false,
   uploading: false,
+  trainerActionLoading: false,
+  trainerActionError: null,
   error: null,
   // Kept separate from `error` on purpose — `error` blocks the whole
   // profile page (used only when the initial fetch fails and there's
@@ -83,6 +131,17 @@ const ownerSlice = createSlice({
         state.gym = action.payload.gym;
       }
     },
+    clearTrainerActionError: (state) => {
+      state.trainerActionError = null;
+    },
+    // Realtime (socket.io): fired whenever this gym's trainer roster
+    // changes — from the owner's own other device, a trainer's
+    // profile edit, or the admin adding/removing a trainer.
+    trainersUpdated: (state, action) => {
+      const { gymId, trainers } = action.payload || {};
+      if (!state.gym || !gymId || state.gym._id !== gymId) return;
+      state.trainers = trainers;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -95,6 +154,7 @@ const ownerSlice = createSlice({
         state.owner = action.payload.owner;
         state.gym = action.payload.gym;
         state.currentSubscription = action.payload.currentSubscription;
+        state.trainers = action.payload.trainers || [];
       })
       .addCase(fetchOwnerProfile.rejected, (state, action) => {
         state.loading = false;
@@ -127,10 +187,52 @@ const ownerSlice = createSlice({
         state.uploading = false;
         state.uploadError = action.payload;
       })
-      ;
+      // ---------------- Trainer management ----------------
+      .addCase(addOwnerTrainer.pending, (state) => {
+        state.trainerActionLoading = true;
+        state.trainerActionError = null;
+      })
+      .addCase(addOwnerTrainer.fulfilled, (state, action) => {
+        state.trainerActionLoading = false;
+        state.trainers = action.payload;
+      })
+      .addCase(addOwnerTrainer.rejected, (state, action) => {
+        state.trainerActionLoading = false;
+        state.trainerActionError = action.payload;
+      })
+      .addCase(updateOwnerTrainer.pending, (state) => {
+        state.trainerActionLoading = true;
+        state.trainerActionError = null;
+      })
+      .addCase(updateOwnerTrainer.fulfilled, (state, action) => {
+        state.trainerActionLoading = false;
+        state.trainers = action.payload;
+      })
+      .addCase(updateOwnerTrainer.rejected, (state, action) => {
+        state.trainerActionLoading = false;
+        state.trainerActionError = action.payload;
+      })
+      .addCase(removeOwnerTrainer.pending, (state) => {
+        state.trainerActionLoading = true;
+        state.trainerActionError = null;
+      })
+      .addCase(removeOwnerTrainer.fulfilled, (state, action) => {
+        state.trainerActionLoading = false;
+        state.trainers = action.payload;
+      })
+      .addCase(removeOwnerTrainer.rejected, (state, action) => {
+        state.trainerActionLoading = false;
+        state.trainerActionError = action.payload;
+      });
   },
 });
 
-export const { clearOwnerError, clearUploadError, gymProfileUpdated } = ownerSlice.actions;
+export const {
+  clearOwnerError,
+  clearUploadError,
+  gymProfileUpdated,
+  clearTrainerActionError,
+  trainersUpdated,
+} = ownerSlice.actions;
 
 export default ownerSlice.reducer;

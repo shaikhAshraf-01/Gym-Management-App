@@ -88,7 +88,10 @@ FitZone Team 💪`;
       message
     )}`;
 
-    window.open(whatsappUrl, "_blank");
+    // Named target (not "_blank") so clicking WhatsApp for multiple
+    // gyms reuses the SAME browser tab instead of stacking up a new
+    // tab every time — same pattern used everywhere else in the app.
+    window.open(whatsappUrl, "FitZoneWhatsAppTab");
   };
 
   return (

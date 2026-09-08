@@ -1,4 +1,4 @@
-import User from "../models/User.js";
+import User, { Trainer } from "../models/User.js";
 import Gym from "../models/Gym.js";
 import GymSubscriptionHistory from "../models/GymSubscriptionHistory.js";
 
@@ -6,6 +6,7 @@ import cloudinary from "../config/cloudinary.js"
 import streamifier from "streamifier"
 import { compressImageBuffer } from "../utils/compressImage.js";
 import { emitToAdmins, emitToGym } from "../socket/index.js";
+import { getFormattedTrainers } from "./gymController.js";
 // ================= GET OWNER / TRAINER PROFILE =================
 // Originally owner-only. Now also serves Trainers (used by
 // TrainerProfile.jsx) — a trainer has no gym logo/subscription
@@ -42,6 +43,14 @@ export const getOwnerProfile = async (req, res) => {
         gymId:gym._id,
         endDate:{$gte:new Date()},
     }).sort({endDate:-1})
+
+    // Trainer roster — needed on the Owner Profile page for the
+    // add/edit/remove trainer section. Trainers themselves don't
+    // need to see the roster on their own profile, so this stays
+    // empty for the trainer branch.
+    const trainers =
+      user.role === "owner" ? await getFormattedTrainers(gym._id) : [];
+
     return res.status(200).json({
       success: true,
       owner: {
@@ -54,6 +63,7 @@ export const getOwnerProfile = async (req, res) => {
       },
       gym,
       currentSubscription,
+      trainers,
     });
   } catch (error) {
     console.error(error);
@@ -291,6 +301,188 @@ export const removeTrainerPhoto = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+    });
+  }
+};
+
+// ================= OWNER: TRAINER MANAGEMENT =================
+// Lets a gym owner manage their own trainers directly (previously
+// only the admin could add/remove trainers). Scoped strictly to the
+// gym the logged-in owner owns — an owner can never touch another
+// gym's trainers, unlike the admin routes which take a gym :id from
+// the URL.
+
+const findOwnedGym = async (ownerId) => {
+  const owner = await User.findById(ownerId);
+  if (!owner || owner.role !== "owner") return { owner: null, gym: null };
+  const gym = await Gym.findOne({ owner: owner._id });
+  return { owner, gym };
+};
+
+// POST /api/owner/trainers
+export const addTrainerOwner = async (req, res) => {
+  try {
+    const { name, mobile, email } = req.body;
+
+    if (!name || !mobile || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Please fill all required trainer fields.",
+      });
+    }
+
+    const { gym } = await findOwnedGym(req.user._id);
+    if (!gym) {
+      return res.status(404).json({
+        success: false,
+        message: "Gym not found.",
+      });
+    }
+
+    const existingUser = await User.findOne({
+      $or: [{ mobile }, { email: email.toLowerCase() }],
+    });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "A user with this mobile number or email already exists.",
+      });
+    }
+
+    await Trainer.create({
+      name,
+      mobile,
+      email: email.toLowerCase(),
+      gymId: gym._id,
+    });
+
+    const trainers = await getFormattedTrainers(gym._id);
+
+    // Realtime: the owner's other devices/tabs, any trainer already
+    // signed in for this gym, and every admin session all stay in
+    // sync without a manual refresh.
+    emitToGym(gym._id, "trainers:updated", { gymId: gym._id, trainers });
+    emitToAdmins("trainers:updated", { gymId: gym._id, trainers });
+
+    return res.status(201).json({
+      success: true,
+      message: "Trainer added successfully.",
+      trainers,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to add trainer.",
+    });
+  }
+};
+
+// PUT /api/owner/trainers/:trainerId
+export const updateTrainerOwner = async (req, res) => {
+  try {
+    const { trainerId } = req.params;
+    const { name, mobile, email } = req.body;
+
+    const { gym } = await findOwnedGym(req.user._id);
+    if (!gym) {
+      return res.status(404).json({
+        success: false,
+        message: "Gym not found.",
+      });
+    }
+
+    const trainer = await Trainer.findOne({ _id: trainerId, gymId: gym._id });
+    if (!trainer) {
+      return res.status(404).json({
+        success: false,
+        message: "Trainer not found for this gym.",
+      });
+    }
+
+    if (mobile !== undefined || email !== undefined) {
+      const existingUser = await User.findOne({
+        _id: { $ne: trainer._id },
+        $or: [
+          ...(mobile !== undefined ? [{ mobile }] : []),
+          ...(email !== undefined ? [{ email: email.toLowerCase() }] : []),
+        ],
+      });
+      if (existingUser) {
+        return res.status(409).json({
+          success: false,
+          message: "A user with this mobile number or email already exists.",
+        });
+      }
+    }
+
+    if (name !== undefined) trainer.name = name;
+    if (mobile !== undefined) trainer.mobile = mobile;
+    if (email !== undefined) trainer.email = email.toLowerCase();
+
+    await trainer.save();
+
+    const trainers = await getFormattedTrainers(gym._id);
+
+    emitToGym(gym._id, "trainers:updated", { gymId: gym._id, trainers });
+    emitToAdmins("trainers:updated", { gymId: gym._id, trainers });
+
+    return res.status(200).json({
+      success: true,
+      message: "Trainer updated successfully.",
+      trainers,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update trainer.",
+    });
+  }
+};
+
+// DELETE /api/owner/trainers/:trainerId
+export const removeTrainerOwner = async (req, res) => {
+  try {
+    const { trainerId } = req.params;
+
+    const { gym } = await findOwnedGym(req.user._id);
+    if (!gym) {
+      return res.status(404).json({
+        success: false,
+        message: "Gym not found.",
+      });
+    }
+
+    const trainer = await Trainer.findOne({ _id: trainerId, gymId: gym._id });
+    if (!trainer) {
+      return res.status(404).json({
+        success: false,
+        message: "Trainer not found for this gym.",
+      });
+    }
+
+    if (trainer.photoPublicId) {
+      await cloudinary.uploader.destroy(trainer.photoPublicId);
+    }
+
+    await Trainer.findByIdAndDelete(trainerId);
+
+    const trainers = await getFormattedTrainers(gym._id);
+
+    emitToGym(gym._id, "trainers:updated", { gymId: gym._id, trainers });
+    emitToAdmins("trainers:updated", { gymId: gym._id, trainers });
+
+    return res.status(200).json({
+      success: true,
+      message: "Trainer removed successfully.",
+      trainers,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to remove trainer.",
     });
   }
 };
