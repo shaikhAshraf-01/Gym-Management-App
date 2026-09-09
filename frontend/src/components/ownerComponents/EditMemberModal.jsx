@@ -45,7 +45,10 @@ export default function EditMemberModal({ member, onSave, onClose }) {
         planAmount: String(planAmount),
         amountPayingToday: String(paidAmount),
         balanceAmount: String(Math.max(0, planAmount - paidAmount)),
-        paymentMode: member.paymentMode || "upi",
+        // "both" was removed as a selectable option — old records saved
+        // with it fall back to "cash" so the dropdown always has a
+        // valid selection.
+        paymentMode: member.paymentMode === "both" ? "cash" : member.paymentMode || "upi",
         joiningDate: member.joiningDate || "",
         expiryDate: member.expiryDate || "",
       });
@@ -427,7 +430,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
               >
                 <option value="upi">UPI</option>
                 <option value="cash">Cash</option>
-                <option value="both">Both (UPI + Cash)</option>
               </select>
             </div>
           </div>

@@ -24,70 +24,244 @@ import {
 } from "../../redux/slices/membersSlice";
 
 // ---------------------------------------------------------------
-// Receipt PDF (jsPDF) — built client-side from a single membership
-// history entry, then shared via the Web Share API (Android/Capacitor
-// share sheet) when available, falling back to a plain download.
+// Receipt / Tax Invoice PDF (jsPDF) — built client-side from a single
+// membership history entry, then shared via the Web Share API
+// (Android/Capacitor share sheet) when available, falling back to a
+// plain download.
+//
+// If the gym has a GSTIN saved (Profile > Gym Details), this renders
+// a proper GST tax invoice with a CGST/SGST breakdown (amount is
+// treated as GST-inclusive, split at 18% = 9% CGST + 9% SGST — the
+// standard slab for fitness/health-club membership services, SAC
+// 999723). With no GSTIN, it falls back to a simple (non-GST)
+// payment receipt. Both share the same header/footer/table styling.
 // ---------------------------------------------------------------
-async function shareReceiptPdf({ gymName, member, entry }) {
+const GST_RATE = 0.18;
+const SAC_CODE = "999723"; // Health club and fitness centre services
+
+// Brand palette — matches the app's dark slate + cyan accent theme.
+const INK = [15, 23, 42]; // slate-900, header band + total bar
+const ACCENT = [34, 211, 238]; // cyan-400, badge + accent lines
+const MUTED = [100, 116, 139]; // slate-500, secondary text
+const LIGHT_BG = [241, 245, 249]; // slate-100, table header fill
+const BORDER = [203, 213, 225]; // slate-300
+
+async function shareReceiptPdf({ gym, member, entry }) {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a5" });
 
   const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 40;
-  let y = 50;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 36;
+  const contentWidth = pageWidth - margin * 2;
 
+  const gstNumber = (gym?.gstNumber || "").trim();
+  const isGstInvoice = Boolean(gstNumber);
+  const gymName = gym?.gymName || "Gym";
+  const totalAmount = Number(entry.amount || 0);
+  const money = (n) =>
+    `Rs. ${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+
+  // ============== HEADER BAND ==============
+  const headerHeight = isGstInvoice ? 92 : 78;
+  doc.setFillColor(...INK);
+  doc.rect(0, 0, pageWidth, headerHeight, "F");
+
+  // Badge (top-right, rounded pill) — measured first so the gym name
+  // knows how much width it has to work with.
+  const badgeLabel = isGstInvoice ? "TAX INVOICE" : "RECEIPT";
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(gymName || "Gym Receipt", pageWidth / 2, y, { align: "center" });
-
-  y += 18;
-  doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text("Payment Receipt", pageWidth / 2, y, { align: "center" });
-  doc.setTextColor(0);
+  const badgeTextWidth = doc.getTextWidth(badgeLabel);
+  const badgeW = badgeTextWidth + 24;
+  const badgeH = 22;
+  const badgeX = pageWidth - margin - badgeW;
+  const badgeY = 24;
 
-  y += 22;
-  doc.setDrawColor(200);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 24;
+  // Gym name — shrink font size to fit the space left of the badge,
+  // then truncate with an ellipsis as a last resort for very long
+  // names, so it never runs under/over the badge.
+  const nameMaxWidth = badgeX - margin - 12;
+  let nameFontSize = 17;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(nameFontSize);
+  let displayName = gymName;
+  while (nameFontSize > 10 && doc.getTextWidth(displayName) > nameMaxWidth) {
+    nameFontSize -= 1;
+    doc.setFontSize(nameFontSize);
+  }
+  if (doc.getTextWidth(displayName) > nameMaxWidth) {
+    while (displayName.length > 1 && doc.getTextWidth(`${displayName}…`) > nameMaxWidth) {
+      displayName = displayName.slice(0, -1);
+    }
+    displayName = `${displayName}…`;
+  }
 
-  const row = (label, value) => {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(label, margin, y);
+  doc.setTextColor(255, 255, 255);
+  doc.text(displayName, margin, 38);
+
+  if (isGstInvoice) {
     doc.setFont("helvetica", "normal");
-    doc.text(String(value ?? "-"), pageWidth - margin, y, { align: "right" });
-    y += 20;
-  };
-
-  row("Receipt ID", entry.id?.slice(-8)?.toUpperCase() || "-");
-  row("Member Name", member.name);
-  row("Mobile", member.mobile);
-  row("Plan", PLAN_LABELS[entry.plan] || entry.plan);
-  row("Membership Period", `${entry.startDate} to ${entry.endDate}`);
-  row("Payment Mode", (entry.paymentMode || "-").toUpperCase());
-  row("Payment Date", entry.date);
-
-  y += 4;
-  doc.setDrawColor(200);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 26;
+    doc.setFontSize(9);
+    doc.setTextColor(203, 213, 225);
+    doc.text(`GSTIN: ${gstNumber}`, margin, 56);
+  }
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.text("Amount Paid", margin, y);
-  doc.text(`Rs. ${Number(entry.amount || 0).toLocaleString("en-IN")}`, pageWidth - margin, y, {
+  doc.setFontSize(10);
+  doc.setFillColor(...ACCENT);
+  doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 11, 11, "F");
+  doc.setTextColor(...INK);
+  doc.text(badgeLabel, badgeX + badgeW / 2, badgeY + badgeH / 2 + 3.5, {
+    align: "center",
+  });
+
+  doc.setTextColor(0, 0, 0);
+  let y = headerHeight + 30;
+
+  // ============== META ROW: Billed To  /  Invoice details ==============
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...MUTED);
+  doc.text("BILLED TO", margin, y);
+
+  doc.text(isGstInvoice ? "INVOICE NO." : "RECEIPT NO.", pageWidth - margin, y, {
     align: "right",
   });
 
-  y += 40;
+  y += 15;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text(member.name || "-", margin, y);
+  doc.text(entry.id?.slice(-8)?.toUpperCase() || "-", pageWidth - margin, y, {
+    align: "right",
+  });
+
+  y += 15;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  doc.setTextColor(...MUTED);
+  doc.text(member.mobile || "-", margin, y);
+  doc.text(`Date: ${entry.date || "-"}`, pageWidth - margin, y, {
+    align: "right",
+  });
+
+  y += 26;
+
+  // ============== ITEM TABLE ==============
+  const col = { desc: margin, period: margin + 220, amt: pageWidth - margin };
+
+  const tableTop = y;
+  const headRowH = 22;
+
+  doc.setFillColor(...LIGHT_BG);
+  doc.rect(margin, tableTop, contentWidth, headRowH, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...MUTED);
+  doc.text("DESCRIPTION", col.desc + 8, tableTop + 14);
+  doc.text("PERIOD", col.period, tableTop + 14);
+  doc.text("AMOUNT", col.amt - 8, tableTop + 14, { align: "right" });
+
+  y = tableTop + headRowH + 20;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  const planLabel = `${PLAN_LABELS[entry.plan] || entry.plan} Membership`;
+  doc.text(planLabel, col.desc + 8, y);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.setTextColor(120);
-  doc.text("Generated by GymOpsFlow", pageWidth / 2, y, { align: "center" });
+  doc.text(`${entry.startDate}`, col.period, y);
+  doc.text(`to ${entry.endDate}`, col.period, y + 12);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text(money(totalAmount), col.amt - 8, y, { align: "right" });
 
-  const fileName = `Receipt-${(member.name || "member").replace(/\s+/g, "_")}-${entry.startDate}.pdf`;
+  y += 24;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...MUTED);
+  const subLine = isGstInvoice
+    ? `Payment mode: ${(entry.paymentMode || "-").toUpperCase()}   •   SAC: ${SAC_CODE}`
+    : `Payment mode: ${(entry.paymentMode || "-").toUpperCase()}`;
+  doc.text(subLine, col.desc + 8, y);
+
+  y += 10;
+  doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.75);
+  doc.rect(margin, tableTop, contentWidth, y - tableTop, "S");
+  doc.line(margin, tableTop + headRowH, pageWidth - margin, tableTop + headRowH);
+
+  y += 22;
+
+  // ============== GST BREAKUP (invoice only) ==============
+  if (isGstInvoice) {
+    const taxableValue = totalAmount / (1 + GST_RATE);
+    const cgst = taxableValue * (GST_RATE / 2);
+    const sgst = taxableValue * (GST_RATE / 2);
+
+    const boxW = 190;
+    const boxX = pageWidth - margin - boxW;
+    const lineH = 18;
+    const boxTop = y;
+
+    const gstRow = (label, value, bold) => {
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(bold ? 0 : MUTED[0], bold ? 0 : MUTED[1], bold ? 0 : MUTED[2]);
+      doc.text(label, boxX + 10, y);
+      doc.text(money(value), pageWidth - margin - 10, y, { align: "right" });
+      y += lineH;
+    };
+
+    gstRow("Taxable Value", taxableValue, false);
+    gstRow("CGST (9%)", cgst, false);
+    gstRow("SGST (9%)", sgst, false);
+
+    doc.setDrawColor(...BORDER);
+    doc.rect(boxX, boxTop - 14, boxW, y - boxTop + 4, "S");
+
+    y += 12;
+  }
+
+  // ============== TOTAL BAR ==============
+  const totalBarH = 34;
+  doc.setFillColor(...INK);
+  doc.rect(margin, y, contentWidth, totalBarH, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text(isGstInvoice ? "TOTAL (incl. GST)" : "AMOUNT PAID", margin + 12, y + totalBarH / 2 + 4);
+  doc.setFontSize(13);
+  doc.text(money(totalAmount), pageWidth - margin - 12, y + totalBarH / 2 + 4.5, {
+    align: "right",
+  });
+
+  y += totalBarH + 26;
+  doc.setTextColor(0, 0, 0);
+
+  // ============== FOOTER ==============
+  const footerY = Math.max(y, pageHeight - 56);
+  doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.5);
+  doc.line(margin, footerY - 16, pageWidth - margin, footerY - 16);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...MUTED);
+  doc.text(
+    isGstInvoice
+      ? "This is a system-generated tax invoice and does not require a signature."
+      : "This is a system-generated receipt and does not require a signature.",
+    pageWidth / 2,
+    footerY,
+    { align: "center" }
+  );
+  doc.text("Generated by GymOpsFlow", pageWidth / 2, footerY + 12, { align: "center" });
+
+  const fileNamePrefix = isGstInvoice ? "Invoice" : "Receipt";
+  const fileName = `${fileNamePrefix}-${(member.name || "member").replace(/\s+/g, "_")}-${entry.startDate}.pdf`;
   const blob = doc.output("blob");
   const file = new File([blob], fileName, { type: "application/pdf" });
 
@@ -96,7 +270,7 @@ async function shareReceiptPdf({ gymName, member, entry }) {
       await navigator.share({
         files: [file],
         title: fileName,
-        text: `Payment receipt for ${member.name}`,
+        text: `Payment ${isGstInvoice ? "invoice" : "receipt"} for ${member.name}`,
       });
       return;
     } catch (err) {
@@ -145,7 +319,7 @@ function daysBetween(fromDateStr, toDateStr) {
 
 export default function MemberProfileModal({ member, onClose, onEdit, onExtend }) {
   const dispatch = useDispatch();
-  const gymName = useSelector((state) => state.owner.gym?.gymName);
+  const gym = useSelector((state) => state.owner.gym);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [confirmingCurrentDelete, setConfirmingCurrentDelete] = useState(false);
   const [sharingReceiptId, setSharingReceiptId] = useState(null);
@@ -213,7 +387,7 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
   const handleShareReceipt = async (entry) => {
     setSharingReceiptId(entry.id);
     try {
-      await shareReceiptPdf({ gymName, member, entry });
+      await shareReceiptPdf({ gym, member, entry });
     } catch (err) {
       alert("Could not generate the receipt. Please try again.");
     } finally {

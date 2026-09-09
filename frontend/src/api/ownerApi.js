@@ -12,6 +12,10 @@ export const uploadGymLogoApi = (formData) =>
 // Remove Logo
 export const removeGymLogoApi = () => api.delete("/owner/logo");
 
+// ================= GST DETAILS =================
+export const updateGymGstDetailsApi = (gstNumber) =>
+  api.patch("/owner/gst-details", { gstNumber });
+
 // ================= TRAINER PROFILE PHOTO =================
 export const uploadTrainerPhotoApi = (formData) =>
   api.patch("/owner/trainer-photo", formData, {

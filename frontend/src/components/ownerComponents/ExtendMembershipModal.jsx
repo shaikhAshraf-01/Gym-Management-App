@@ -117,7 +117,10 @@ export default function ExtendMembershipModal({
       extensionAmount: "",
       amountPayingToday: "",
       balanceAmount: "0",
-      paymentMode: member.paymentMode || "upi",
+      // "both" was removed as a selectable option — old records saved
+      // with it fall back to "cash" so the dropdown always has a
+      // valid selection.
+      paymentMode: member.paymentMode === "both" ? "cash" : member.paymentMode || "upi",
       newStartDate: calculateDefaultStartDate(),
       newExpiryDate: "",
     });
@@ -362,7 +365,6 @@ export default function ExtendMembershipModal({
               >
                 <option value="upi">UPI</option>
                 <option value="cash">Cash</option>
-                <option value="both">Both (UPI + Cash)</option>
               </select>
             </div>
           </div>

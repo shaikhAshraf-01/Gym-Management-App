@@ -507,6 +507,10 @@ export const updateMember = async (req, res) => {
 
           if (paymentMode !== undefined) {
             latestPayment.paymentMode = paymentMode;
+          } else if (latestPayment.paymentMode === "both") {
+            // Legacy value no longer in the enum — normalize before
+            // save() re-validates the whole document.
+            latestPayment.paymentMode = "cash";
           }
 
           await latestPayment.save();

@@ -73,6 +73,62 @@ export const getOwnerProfile = async (req, res) => {
   }
 };
 
+// ================= UPDATE GST DETAILS =================
+// Owner-only. GSTIN is optional — saving an empty string clears it,
+// which switches every future receipt/invoice for this gym back to
+// the plain (non-GST) format. Standard 15-character GSTIN format is
+// validated when a non-empty value is sent.
+const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
+export const updateGymGstDetails = async (req, res) => {
+  try {
+    const owner = await User.findById(req.user._id);
+
+    if (!owner || owner.role !== "owner") {
+      return res.status(404).json({
+        success: false,
+        message: "Owner not found.",
+      });
+    }
+
+    const gym = await Gym.findOne({ owner: owner._id });
+
+    if (!gym) {
+      return res.status(404).json({
+        success: false,
+        message: "Gym not found.",
+      });
+    }
+
+    const gstNumber = String(req.body.gstNumber || "").trim().toUpperCase();
+
+    if (gstNumber && !GSTIN_REGEX.test(gstNumber)) {
+      return res.status(400).json({
+        success: false,
+        message: "That doesn't look like a valid 15-character GSTIN.",
+      });
+    }
+
+    gym.gstNumber = gstNumber;
+    await gym.save();
+
+    emitToGym(gym._id, "gym:updated", { gym });
+    emitToAdmins("gym:updated", { gym });
+
+    return res.status(200).json({
+      success: true,
+      message: gstNumber ? "GST details saved." : "GST details removed.",
+      gym,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
+};
+
 export const uploadGymLogo = async (req, res) => {
   try {
     if (!req.file) {

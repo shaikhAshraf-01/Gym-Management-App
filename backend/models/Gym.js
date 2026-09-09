@@ -24,6 +24,15 @@ const gymSchema= new mongoose.Schema({
         type:String,
         default:""
     },
+    // GST is optional — set by the owner from their profile. When
+    // present, receipts/invoices are generated as GST tax invoices;
+    // when empty, plain (non-GST) receipts are generated instead.
+    gstNumber:{
+        type:String,
+        default:"",
+        trim:true,
+        uppercase:true,
+    },
     owner:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User",

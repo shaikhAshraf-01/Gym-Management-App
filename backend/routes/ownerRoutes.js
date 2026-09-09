@@ -3,6 +3,7 @@ import {
   getOwnerProfile,
   uploadGymLogo,
   removeGymLogo,
+  updateGymGstDetails,
   uploadTrainerPhoto,
   removeTrainerPhoto,
   addTrainerOwner,
@@ -43,6 +44,12 @@ router.patch(
   uploadGymLogo
 );
 router.delete("/logo", authMiddleware, roleMiddleware("owner"), removeGymLogo);
+router.patch(
+  "/gst-details",
+  authMiddleware,
+  roleMiddleware("owner"),
+  updateGymGstDetails
+);
 
 // Trainer's own profile photo — trainer-only, separate from the gym logo.
 router.patch(

@@ -3,6 +3,7 @@ import {
   getOwnerProfileApi,
   uploadGymLogoApi,
   removeGymLogoApi,
+  updateGymGstDetailsApi,
   addTrainerOwnerApi,
   updateTrainerOwnerApi,
   removeTrainerOwnerApi,
@@ -51,6 +52,21 @@ export const removeGymLogo = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to remove logo.",
+      );
+    }
+  },
+);
+
+export const updateGymGstDetails = createAsyncThunk(
+  "owner/updateGymGstDetails",
+  async (gstNumber, { rejectWithValue }) => {
+    try {
+      const response = await updateGymGstDetailsApi(gstNumber);
+
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to save GST details.",
       );
     }
   },
@@ -114,6 +130,8 @@ const initialState = {
   // logo/photo upload failures, shown alongside the already-loaded
   // profile instead of hiding it.
   uploadError: null,
+  gstActionLoading: false,
+  gstActionError: null,
 };
 
 const ownerSlice = createSlice({
@@ -133,6 +151,9 @@ const ownerSlice = createSlice({
     },
     clearTrainerActionError: (state) => {
       state.trainerActionError = null;
+    },
+    clearGstActionError: (state) => {
+      state.gstActionError = null;
     },
     // Realtime (socket.io): fired whenever this gym's trainer roster
     // changes — from the owner's own other device, a trainer's
@@ -187,6 +208,20 @@ const ownerSlice = createSlice({
         state.uploading = false;
         state.uploadError = action.payload;
       })
+      .addCase(updateGymGstDetails.pending, (state) => {
+        state.gstActionLoading = true;
+        state.gstActionError = null;
+      })
+      .addCase(updateGymGstDetails.fulfilled, (state, action) => {
+        state.gstActionLoading = false;
+        if (state.gym) {
+          state.gym.gstNumber = action.payload.gym?.gstNumber ?? "";
+        }
+      })
+      .addCase(updateGymGstDetails.rejected, (state, action) => {
+        state.gstActionLoading = false;
+        state.gstActionError = action.payload;
+      })
       // ---------------- Trainer management ----------------
       .addCase(addOwnerTrainer.pending, (state) => {
         state.trainerActionLoading = true;
@@ -232,6 +267,7 @@ export const {
   clearUploadError,
   gymProfileUpdated,
   clearTrainerActionError,
+  clearGstActionError,
   trainersUpdated,
 } = ownerSlice.actions;
 

@@ -421,10 +421,6 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               <option value="cash">
                 Cash
               </option>
-
-              <option value="both">
-                Both (UPI + Cash)
-              </option>
             </select>
           </div>
 

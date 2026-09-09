@@ -17,6 +17,7 @@ import {
   Pencil,
   X,
   Check,
+  FileText,
 } from "lucide-react";
 
 import { performLogout } from "../../redux/slices/authSlice";
@@ -29,6 +30,8 @@ import {
   updateOwnerTrainer,
   removeOwnerTrainer,
   clearTrainerActionError,
+  updateGymGstDetails,
+  clearGstActionError,
 } from "../../redux/slices/ownerSlice";
 
 const EMPTY_TRAINER_FORM = { name: "", mobile: "", email: "" };
@@ -249,8 +252,11 @@ export default function OwnerProfile() {
 
   const photoInputRef = useRef(null);
 
-  const { owner, gym, currentSubscription, loading, uploading, error, uploadError } =
+  const { owner, gym, currentSubscription, loading, uploading, error, uploadError, gstActionLoading, gstActionError } =
     useSelector((state) => state.owner);
+
+  const [editingGst, setEditingGst] = useState(false);
+  const [gstInput, setGstInput] = useState("");
 
   // Only fetch when the profile hasn't been loaded yet — previously
   // this re-ran on every mount, causing the page to reload every time
@@ -261,6 +267,27 @@ export default function OwnerProfile() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
+
+  const handleStartEditGst = () => {
+    setGstInput(gym?.gstNumber || "");
+    dispatch(clearGstActionError());
+    setEditingGst(true);
+  };
+
+  const handleCancelEditGst = () => {
+    setEditingGst(false);
+    dispatch(clearGstActionError());
+  };
+
+  const handleSaveGst = async () => {
+    try {
+      await dispatch(updateGymGstDetails(gstInput.trim().toUpperCase())).unwrap();
+      setEditingGst(false);
+    } catch {
+      // gstActionError is already set by the rejected case — the form
+      // stays open so the owner can fix and retry.
+    }
+  };
 
   const handleLogout = () => {
     dispatch(performLogout());
@@ -463,6 +490,72 @@ export default function OwnerProfile() {
                 >
                   {gym.status}
                 </span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <FileText size={18} className="mt-0.5 shrink-0 text-blue-600" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-gray-400">GST Number (GSTIN)</p>
+
+                {!editingGst ? (
+                  <div className="mt-0.5 flex items-center justify-between gap-2">
+                    <p className="truncate font-semibold">
+                      {gym.gstNumber || (
+                        <span className="font-normal text-slate-500">
+                          Not added — invoices are non-GST
+                        </span>
+                      )}
+                    </p>
+
+                    <button
+                      onClick={handleStartEditGst}
+                      className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+                      title={gym.gstNumber ? "Edit GST number" : "Add GST number"}
+                    >
+                      <Pencil size={15} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    <input
+                      type="text"
+                      value={gstInput}
+                      onChange={(e) => setGstInput(e.target.value.toUpperCase())}
+                      placeholder="e.g. 27ABCDE1234F1Z5"
+                      maxLength={15}
+                      className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm uppercase tracking-wide text-slate-200 outline-none focus:border-cyan-400"
+                    />
+
+                    {gstActionError && (
+                      <p className="text-xs text-red-400">{gstActionError}</p>
+                    )}
+
+                    <p className="text-[11px] text-slate-500">
+                      Leave blank and save to remove GST — receipts will go back to the non-GST format.
+                    </p>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveGst}
+                        disabled={gstActionLoading}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
+                      >
+                        <Check size={14} />
+                        {gstActionLoading ? "Saving..." : "Save"}
+                      </button>
+
+                      <button
+                        onClick={handleCancelEditGst}
+                        disabled={gstActionLoading}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700"
+                      >
+                        <X size={14} />
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
