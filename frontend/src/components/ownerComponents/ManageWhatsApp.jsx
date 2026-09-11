@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
@@ -126,6 +126,39 @@ export default function ManageWhatsApp() {
       balanceConfirmation: { enabled: false },
       balanceReminder: { enabled: false },
     };
+
+  // Local drafts for the template-name text inputs. Typing updates
+  // only this local state — nothing is saved to the backend until
+  // the input loses focus (onBlur). Saving on every keystroke would
+  // fire an API call per character and risk out-of-order writes if
+  // someone types faster than the network round-trip.
+  const [templateDrafts, setTemplateDrafts] = useState({
+    expiryReminder: settings.expiryReminder.templateName || "",
+    memberWelcome: settings.memberWelcome.templateName || "",
+    extendRenewal: settings.extendRenewal.templateName || "",
+    balanceConfirmation: settings.balanceConfirmation.templateName || "",
+    balanceReminder: settings.balanceReminder.templateName || "",
+  });
+
+  // Keep drafts in sync whenever the saved values change from
+  // elsewhere (initial load, another tab, a teammate's edit via
+  // socket sync) — but this never overwrites what's being typed
+  // mid-edit, since it only runs when the saved value itself changes.
+  useEffect(() => {
+    setTemplateDrafts({
+      expiryReminder: settings.expiryReminder.templateName || "",
+      memberWelcome: settings.memberWelcome.templateName || "",
+      extendRenewal: settings.extendRenewal.templateName || "",
+      balanceConfirmation: settings.balanceConfirmation.templateName || "",
+      balanceReminder: settings.balanceReminder.templateName || "",
+    });
+  }, [
+    settings.expiryReminder.templateName,
+    settings.memberWelcome.templateName,
+    settings.extendRenewal.templateName,
+    settings.balanceConfirmation.templateName,
+    settings.balanceReminder.templateName,
+  ]);
 
   // Manual setup: the gym owner (with our help) creates their OWN
   // WhatsApp Business Account in Meta Business Suite, then copies
@@ -352,20 +385,37 @@ export default function ManageWhatsApp() {
                 onChange={(v) => handleExpiryReminderChange({ enabled: v })}
                 disabled={!settings.enabled}
               >
-                <label className="flex items-center gap-2 text-xs text-slate-400">
-                  Send
-                  <input
-                    type="number"
-                    min={1}
-                    max={14}
-                    value={settings.expiryReminder.daysBefore}
-                    onChange={(e) =>
-                      handleExpiryReminderChange({ daysBefore: Number(e.target.value) })
-                    }
-                    className="w-14 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-center text-slate-100 outline-none focus:border-lime-400"
-                  />
-                  day(s) before expiry
-                </label>
+                <div className="space-y-2.5">
+                  <label className="flex items-center gap-2 text-xs text-slate-400">
+                    Send
+                    <input
+                      type="number"
+                      min={1}
+                      max={14}
+                      value={settings.expiryReminder.daysBefore}
+                      onChange={(e) =>
+                        handleExpiryReminderChange({ daysBefore: Number(e.target.value) })
+                      }
+                      className="w-14 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-center text-slate-100 outline-none focus:border-lime-400"
+                    />
+                    day(s) before expiry
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs text-slate-400">
+                    Meta template name
+                    <input
+                      type="text"
+                      placeholder="e.g. expiry_reminder"
+                      value={templateDrafts.expiryReminder}
+                      onChange={(e) =>
+                        setTemplateDrafts((s) => ({ ...s, expiryReminder: e.target.value }))
+                      }
+                      onBlur={() =>
+                        handleExpiryReminderChange({ templateName: templateDrafts.expiryReminder })
+                      }
+                      className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-slate-100 outline-none focus:border-rose-400"
+                    />
+                  </label>
+                </div>
               </ToggleRow>
 
               <ToggleRow
@@ -376,7 +426,23 @@ export default function ManageWhatsApp() {
                 checked={settings.memberWelcome.enabled}
                 onChange={(v) => handleMemberWelcomeChange({ enabled: v })}
                 disabled={!settings.enabled}
-              />
+              >
+                <label className="flex flex-col gap-1 text-xs text-slate-400">
+                  Meta template name
+                  <input
+                    type="text"
+                    placeholder="e.g. member_welcome"
+                    value={templateDrafts.memberWelcome}
+                    onChange={(e) =>
+                      setTemplateDrafts((s) => ({ ...s, memberWelcome: e.target.value }))
+                    }
+                    onBlur={() =>
+                      handleMemberWelcomeChange({ templateName: templateDrafts.memberWelcome })
+                    }
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-slate-100 outline-none focus:border-cyan-400"
+                  />
+                </label>
+              </ToggleRow>
 
               <ToggleRow
                 icon={RefreshCw}
@@ -386,7 +452,23 @@ export default function ManageWhatsApp() {
                 checked={settings.extendRenewal.enabled}
                 onChange={(v) => handleExtendRenewalChange({ enabled: v })}
                 disabled={!settings.enabled}
-              />
+              >
+                <label className="flex flex-col gap-1 text-xs text-slate-400">
+                  Meta template name
+                  <input
+                    type="text"
+                    placeholder="e.g. membership_renewed"
+                    value={templateDrafts.extendRenewal}
+                    onChange={(e) =>
+                      setTemplateDrafts((s) => ({ ...s, extendRenewal: e.target.value }))
+                    }
+                    onBlur={() =>
+                      handleExtendRenewalChange({ templateName: templateDrafts.extendRenewal })
+                    }
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-slate-100 outline-none focus:border-indigo-400"
+                  />
+                </label>
+              </ToggleRow>
 
               <ToggleRow
                 icon={Wallet}
@@ -396,7 +478,25 @@ export default function ManageWhatsApp() {
                 checked={settings.balanceConfirmation.enabled}
                 onChange={(v) => handleBalanceConfirmationChange({ enabled: v })}
                 disabled={!settings.enabled}
-              />
+              >
+                <label className="flex flex-col gap-1 text-xs text-slate-400">
+                  Meta template name
+                  <input
+                    type="text"
+                    placeholder="e.g. balance_cleared"
+                    value={templateDrafts.balanceConfirmation}
+                    onChange={(e) =>
+                      setTemplateDrafts((s) => ({ ...s, balanceConfirmation: e.target.value }))
+                    }
+                    onBlur={() =>
+                      handleBalanceConfirmationChange({
+                        templateName: templateDrafts.balanceConfirmation,
+                      })
+                    }
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-slate-100 outline-none focus:border-violet-400"
+                  />
+                </label>
+              </ToggleRow>
 
               <ToggleRow
                 icon={BellRing}
@@ -406,7 +506,23 @@ export default function ManageWhatsApp() {
                 checked={settings.balanceReminder.enabled}
                 onChange={(v) => handleBalanceReminderChange({ enabled: v })}
                 disabled={!settings.enabled}
-              />
+              >
+                <label className="flex flex-col gap-1 text-xs text-slate-400">
+                  Meta template name
+                  <input
+                    type="text"
+                    placeholder="e.g. balance_reminder"
+                    value={templateDrafts.balanceReminder}
+                    onChange={(e) =>
+                      setTemplateDrafts((s) => ({ ...s, balanceReminder: e.target.value }))
+                    }
+                    onBlur={() =>
+                      handleBalanceReminderChange({ templateName: templateDrafts.balanceReminder })
+                    }
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-slate-100 outline-none focus:border-amber-400"
+                  />
+                </label>
+              </ToggleRow>
             </div>
           </div>
 

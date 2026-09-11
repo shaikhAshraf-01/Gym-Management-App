@@ -23,6 +23,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
     amountPayingToday: "",
     paymentMode: "upi",
     joiningDate: new Date().toISOString().split("T")[0],
+    admissionType: "normal", // "normal" | "offer"
   });
 
   // ---------------------------------------------------------------
@@ -94,7 +95,17 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
 
   // Handle change
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
+    let { value } = e.target;
+
+    // Name: letters/spaces only, capped at 32 chars
+    if (name === "name") {
+      value = value.replace(/[^a-zA-Z\s]/g, "").slice(0, 32);
+    }
+    // Number-only fields: digits only, no letters/symbols
+    else if (["age", "planAmount", "amountPayingToday", "balanceAmount"].includes(name)) {
+      value = value.replace(/[^0-9]/g, "");
+    }
 
     setFormData((prev) => {
       // Amount Paying Today cannot exceed Plan Amount
@@ -176,6 +187,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
         joiningDate: new Date()
           .toISOString()
           .split("T")[0],
+        admissionType: "normal",
       });
     } finally {
       setIsSubmitting(false);
@@ -209,10 +221,46 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               name="name"
               value={formData.name}
               onChange={handleChange}
+              maxLength={32}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
               placeholder="Enter name"
               required
             />
+          </div>
+
+          {/* Admission Type: Normal vs Offer */}
+          <div className="md:col-span-2">
+            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              Admission Type
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, admissionType: "normal" }))
+                }
+                className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-semibold transition-colors cursor-pointer ${
+                  formData.admissionType === "normal"
+                    ? "border-cyan-500 bg-cyan-500/10 text-cyan-400"
+                    : "border-slate-700 bg-slate-800 text-slate-400"
+                }`}
+              >
+                Normal Membership
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, admissionType: "offer" }))
+                }
+                className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-semibold transition-colors cursor-pointer ${
+                  formData.admissionType === "offer"
+                    ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                    : "border-slate-700 bg-slate-800 text-slate-400"
+                }`}
+              >
+                Offer Admission
+              </button>
+            </div>
           </div>
 
           {/* Mobile */}

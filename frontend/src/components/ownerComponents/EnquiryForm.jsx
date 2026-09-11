@@ -7,8 +7,48 @@ export default function EnquiryForm({ onSave }) {
     whenToJoin: "",
   });
 
+  // Block non-numeric key presses for mobile input
+  const handleNumberKeyDown = (e) => {
+    const allowedKeys = [
+      "Backspace",
+      "Tab",
+      "Enter",
+      "Escape",
+      "ArrowLeft",
+      "ArrowRight",
+      "Delete",
+    ];
+
+    if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+      return;
+    }
+
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  // Block pasting non-numeric text into mobile input
+  const handleNumberPaste = (e) => {
+    const pastedData = e.clipboardData.getData("text");
+    if (!/^\d+$/.test(pastedData)) {
+      e.preventDefault();
+    }
+  };
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
+    let { value } = e.target;
+
+    // Name: letters/spaces only, capped at 32 chars
+    if (name === "name") {
+      value = value.replace(/[^a-zA-Z\s]/g, "").slice(0, 32);
+    }
+    // Mobile: digits only
+    else if (name === "mobile") {
+      value = value.replace(/[^0-9]/g, "");
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -18,10 +58,6 @@ export default function EnquiryForm({ onSave }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Pass form data back up to the parent component (AddSelectionContainer
-    // dispatches addEnquiry from here). id/enquiryAddDate are no longer
-    // generated client-side — the backend stamps its own _id and
-    // createdAt now, so sending fake ones here would just be ignored.
     if (onSave) {
       onSave(formData);
     }
@@ -51,6 +87,7 @@ export default function EnquiryForm({ onSave }) {
             name="name"
             value={formData.name}
             onChange={handleChange}
+            maxLength={32}
             className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition-all placeholder-slate-500"
             placeholder="e.g. John Doe"
             required
@@ -64,11 +101,15 @@ export default function EnquiryForm({ onSave }) {
           </label>
           <input
             type="tel"
+            inputMode="numeric"
             name="mobile"
             value={formData.mobile}
             onChange={handleChange}
+            onKeyDown={handleNumberKeyDown}
+            onPaste={handleNumberPaste}
             maxLength={10}
-minLength={10}
+            minLength={10}
+            pattern="[0-9]{10}"
             className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition-all placeholder-slate-500"
             placeholder="e.g. 9876543210"
             required

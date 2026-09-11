@@ -31,6 +31,15 @@ const memberSubscriptionHistorySchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Was this admission taken under a special offer, or normal
+    // pricing? Drives the blue "Offer" badge in Members/Profile and
+    // the offer-admissions tile in Sales.
+    admissionType: {
+      type: String,
+      enum: ["normal", "offer"],
+      default: "normal",
+    },
+
     // Selected activities for this subscription (workout, cardio, etc.)
     // Must be declared here or Mongoose silently strips it on save.
     activities: {

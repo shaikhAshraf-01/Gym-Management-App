@@ -12,6 +12,7 @@ import cron from "node-cron";
 import connectDB from "./config/db.js";
 import { initSocket } from "./socket/index.js";
 import { ensureExpiryReminderRanToday, runExpiryReminderJob } from "./jobs/expiryReminderJob.js";
+import { ensureOfferBroadcastRanToday, runOfferBroadcastJob } from "./jobs/offerBroadcastJob.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
@@ -125,4 +126,12 @@ httpServer.listen(PORT, () => {
     timezone: "Asia/Kolkata",
   });
   ensureExpiryReminderRanToday();
+
+  // Offer broadcasts: checked hourly so a "scheduled" offer goes out
+  // close to its scheduledDate instead of waiting for the next 9 AM
+  // slot (offers can be scheduled for any day, not just today).
+  cron.schedule("0 * * * *", () => runOfferBroadcastJob(), {
+    timezone: "Asia/Kolkata",
+  });
+  ensureOfferBroadcastRanToday();
 });

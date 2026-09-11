@@ -410,7 +410,13 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
         {/* ---------------------------------------------------
             DETAILS CARD
         --------------------------------------------------- */}
-        <div className="bg-slate-900/60 backdrop-blur-sm border border-cyan-500/10 rounded-xl p-5 mb-4">
+        <div
+          className={`bg-slate-900/60 backdrop-blur-sm rounded-xl p-5 mb-4 ${
+            member.admissionType === "offer"
+              ? "border border-blue-500/40"
+              : "border border-cyan-500/10"
+          }`}
+        >
           <div className="flex items-start gap-4 mb-4">
             <div className="h-16 w-16 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-2xl shrink-0">
               {initials || <UserIcon className="h-7 w-7" />}
@@ -419,7 +425,14 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 flex-1">
               <div>
                 <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Name</p>
-                <p className="font-bold text-white mt-0.5">{member.name}</p>
+                <p className="font-bold text-white mt-0.5 flex items-center gap-1.5">
+                  {member.name}
+                  {member.admissionType === "offer" && (
+                    <span className="whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-400">
+                      Offer
+                    </span>
+                  )}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Mobile</p>
@@ -549,6 +562,11 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
                           {entry.type === "joined" ? <UserPlus className="h-3 w-3" /> : <RefreshCw className="h-3 w-3" />}
                           {entry.type === "joined" ? "Joined" : entry.type === "renewed" ? "Renewed" : "Extended"}
                         </span>
+                        {entry.admissionType === "offer" && (
+                          <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-400">
+                            Offer
+                          </span>
+                        )}
                         </div>
                         <span className="text-xs font-bold text-white">
                           ₹{Number(entry.amount || 0).toLocaleString("en-IN")}

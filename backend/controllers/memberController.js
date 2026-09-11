@@ -68,6 +68,7 @@ const formatMember = async (memberDoc) => {
       gender: memberDoc.gender,
 
       plan: null,
+      admissionType: "normal",
 
       activities: [],
 
@@ -200,6 +201,8 @@ const formatMember = async (memberDoc) => {
 
       plan: sub.plan,
 
+      admissionType: sub.admissionType || "normal",
+
       activities: sub.activities || [],
 
       startDate: toDateStr(sub.joiningDate),
@@ -238,6 +241,10 @@ const formatMember = async (memberDoc) => {
 
     // Current plan
     plan: latest.plan,
+
+    // "normal" or "offer" — whether the CURRENT membership was taken
+    // under a special offer. Drives the blue offer badge in the UI.
+    admissionType: latest.admissionType || "normal",
 
     activities: latest.activities || [],
 
@@ -313,6 +320,7 @@ export const addMember = async (req, res) => {
       expiryDate,
       trainer,
       activities,
+      admissionType,
     } = req.body;
 
     if (
@@ -353,6 +361,8 @@ export const addMember = async (req, res) => {
       expiryDate,
 
       planAmount: Number(planAmount),
+
+      admissionType: admissionType === "offer" ? "offer" : "normal",
 
       balance: Number(balanceAmount || 0),
 

@@ -137,6 +137,13 @@ export const PLAN_LABELS = {
   "1_year": "1 Year",
 };
 
+// Human-readable label for `admissionType` — used for the Offer
+// badge (Members/Profile) and the Sales admission-type breakdown.
+export const ADMISSION_TYPE_LABELS = {
+  normal: "Normal",
+  offer: "Offer",
+};
+
 const initialState = {
   members: [],
   loading: false,

@@ -374,8 +374,24 @@ const buildExtensionMessage = (member) => {
             </thead>
             <tbody className="divide-y divide-slate-800 text-sm">
               {filteredMembers.map((member) => (
-                <tr key={member.id} className="hover:bg-slate-800/50 transition-colors">
-                  <td className="py-3.5 px-4 font-semibold text-white">{member.name}</td>
+                <tr
+                  key={member.id}
+                  className={`hover:bg-slate-800/50 transition-colors ${
+                    member.admissionType === "offer"
+                      ? "border-l-2 border-l-blue-500"
+                      : ""
+                  }`}
+                >
+                  <td className="py-3.5 px-4 font-semibold text-white">
+                    <div className="flex items-center gap-2">
+                      {member.name}
+                      {member.admissionType === "offer" && (
+                        <span className="whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-400">
+                          Offer
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="py-3.5 px-4 text-slate-400">{member.mobile}</td>
                   <td className="py-3.5 px-4">
                     <span className="inline-block whitespace-nowrap bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-md text-xs font-medium">
@@ -473,12 +489,24 @@ const buildExtensionMessage = (member) => {
       {filteredMembers.length > 0 && (
         <div className="block md:hidden space-y-3">
           {filteredMembers.map((member) => (
-            <div key={member.id} className="bg-slate-900/60 backdrop-blur-sm border border-cyan-500/10 rounded-xl p-4">
+            <div
+              key={member.id}
+              className={`bg-slate-900/60 backdrop-blur-sm rounded-xl p-4 ${
+                member.admissionType === "offer"
+                  ? "border border-blue-500/40"
+                  : "border border-cyan-500/10"
+              }`}
+            >
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h4 className="font-bold text-base text-white flex items-center gap-1.5">
                     <User className="h-4 w-4 text-slate-500" />
                     {member.name}
+                    {member.admissionType === "offer" && (
+                      <span className="whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-400">
+                        Offer
+                      </span>
+                    )}
                   </h4>
                   <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
                     <Phone className="h-3.5 w-3.5 text-slate-500" />

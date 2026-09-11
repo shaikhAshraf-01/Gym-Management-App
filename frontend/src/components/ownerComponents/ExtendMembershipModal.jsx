@@ -27,6 +27,33 @@ export default function ExtendMembershipModal({
     newExpiryDate: "",
   });
 
+  const handleNumberKeyDown = (e) => {
+    const allowedKeys = [
+      "Backspace",
+      "Tab",
+      "Enter",
+      "Escape",
+      "ArrowLeft",
+      "ArrowRight",
+      "Delete",
+    ];
+
+    if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+      return;
+    }
+
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const handleNumberPaste = (e) => {
+    const pastedData = e.clipboardData.getData("text");
+    if (!/^\d+$/.test(pastedData)) {
+      e.preventDefault();
+    }
+  };
+
   const handleActivityToggle = (value) => {
     setFormData((prev) => {
       const isSelected = prev.activities.includes(value);
@@ -117,9 +144,6 @@ export default function ExtendMembershipModal({
       extensionAmount: "",
       amountPayingToday: "",
       balanceAmount: "0",
-      // "both" was removed as a selectable option — old records saved
-      // with it fall back to "cash" so the dropdown always has a
-      // valid selection.
       paymentMode: member.paymentMode === "both" ? "cash" : member.paymentMode || "upi",
       newStartDate: calculateDefaultStartDate(),
       newExpiryDate: "",
@@ -143,7 +167,13 @@ export default function ExtendMembershipModal({
   if (!member) return null;
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
+    let { value } = e.target;
+
+    // Number-only fields: digits only, no letters/symbols
+    if (["extensionAmount", "amountPayingToday", "balanceAmount"].includes(name)) {
+      value = value.replace(/[^0-9]/g, "");
+    }
 
     setFormData((prev) => {
       if (name === "amountPayingToday") {
@@ -306,11 +336,13 @@ export default function ExtendMembershipModal({
                 New Membership Fee
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 name="extensionAmount"
                 value={formData.extensionAmount}
                 onChange={handleChange}
-                min="0"
+                onKeyDown={handleNumberKeyDown}
+                onPaste={handleNumberPaste}
                 required
                 placeholder="Enter new fee"
                 className="w-full bg-[#1c273e] border border-slate-700/80 rounded-lg p-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-lime-400"
@@ -323,12 +355,13 @@ export default function ExtendMembershipModal({
                 Amount Paying Today
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 name="amountPayingToday"
                 value={formData.amountPayingToday}
                 onChange={handleChange}
-                min="0"
-                max={formData.extensionAmount || 0}
+                onKeyDown={handleNumberKeyDown}
+                onPaste={handleNumberPaste}
                 required
                 placeholder="Enter payment"
                 className="w-full bg-[#1c273e] border border-slate-700/80 rounded-lg p-3 text-sm text-emerald-400 font-bold placeholder-slate-500 focus:outline-none focus:border-lime-400"
@@ -341,7 +374,8 @@ export default function ExtendMembershipModal({
                 Balance Amount
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 name="balanceAmount"
                 value={formData.balanceAmount}
                 readOnly
