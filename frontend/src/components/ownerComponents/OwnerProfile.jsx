@@ -18,6 +18,9 @@ import {
   X,
   Check,
   FileText,
+  MessageCircle,
+  Lock,
+  ChevronRight,
 } from "lucide-react";
 
 import { performLogout } from "../../redux/slices/authSlice";
@@ -606,6 +609,41 @@ export default function OwnerProfile() {
             </div>
           </div>
         </div>
+
+        {/* ===================== MANAGE WHATSAPP ===================== */}
+        {(() => {
+          const isBasicPlan =
+            subscription.subscriptionPlan === "Basic" || !subscription.subscriptionPlan;
+          return (
+            <button
+              onClick={() => navigate("/owner/whatsapp")}
+              className="mt-6 flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-5 text-left shadow-xl transition hover:border-lime-400/40"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="shrink-0 rounded-xl bg-emerald-500/10 p-2.5 text-emerald-400">
+                  <MessageCircle size={20} />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-100">Manage WhatsApp</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {isBasicPlan
+                      ? "Upgrade to Plus to use WhatsApp automation"
+                      : "Reminders, welcomes, invoices & offers"}
+                  </p>
+                </div>
+              </div>
+
+              {isBasicPlan ? (
+                <span className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-400">
+                  <Lock size={12} />
+                  Plus
+                </span>
+              ) : (
+                <ChevronRight className="shrink-0 text-slate-600" size={18} />
+              )}
+            </button>
+          );
+        })()}
 
         {/* ===================== LOGOUT ===================== */}
 

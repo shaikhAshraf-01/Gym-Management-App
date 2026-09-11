@@ -8,8 +8,10 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "@exortek/express-mongo-sanitize";
+import cron from "node-cron";
 import connectDB from "./config/db.js";
 import { initSocket } from "./socket/index.js";
+import { ensureExpiryReminderRanToday, runExpiryReminderJob } from "./jobs/expiryReminderJob.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
@@ -112,4 +114,15 @@ initSocket(httpServer);
 
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
+  // ---------------- Scheduled jobs ----------------
+  // Runs daily at 9:00 AM IST. Also runs once right here at startup
+  // as a catch-up: if the free-tier server was asleep at 9 AM and
+  // only woke up later (e.g. the cron-job.org ping, or real traffic),
+  // this notices today's run is missing and does it now instead of
+  // silently skipping the day. Cheap no-op if it already ran today.
+  cron.schedule("0 9 * * *", () => runExpiryReminderJob(), {
+    timezone: "Asia/Kolkata",
+  });
+  ensureExpiryReminderRanToday();
 });

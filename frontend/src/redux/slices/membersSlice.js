@@ -7,6 +7,7 @@ import {
   deleteCurrentMembershipApi,
   extendMembershipApi,
 } from "../../api/memberApi";
+import { sendBalanceReminderApi } from "../../api/ownerApi";
 
 // ================= FETCH ALL MEMBERS =================
 
@@ -111,6 +112,22 @@ export const extendMembership = createAsyncThunk(
   },
 );
 
+// Manual "Send Reminder" trigger for a member with a pending balance
+// (Plus/Pro only — see ManageWhatsApp's Balance Reminder toggle).
+export const sendBalanceReminder = createAsyncThunk(
+  "members/sendBalanceReminder",
+  async (memberId, { rejectWithValue }) => {
+    try {
+      await sendBalanceReminderApi(memberId);
+      return memberId;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to send reminder.",
+      );
+    }
+  },
+);
+
 // Human-readable label for the `plan` code, used anywhere the UI
 // wants "3 Months" instead of "3_month".
 export const PLAN_LABELS = {
@@ -128,6 +145,10 @@ const initialState = {
   // the main "Loading members..." full-page state.
   actionLoading: false,
   actionError: null,
+  // Per-member ids currently sending a balance reminder, so only that
+  // row's button shows a spinner (not a global lock).
+  reminderSendingIds: [],
+  reminderError: null,
 };
 
 const membersSlice = createSlice({
@@ -136,6 +157,9 @@ const membersSlice = createSlice({
   reducers: {
     clearMemberActionError: (state) => {
       state.actionError = null;
+    },
+    clearReminderError: (state) => {
+      state.reminderError = null;
     },
     // ---- Real-time (socket.io) reducers ----
     // Fired when ANOTHER device/session on the same gym (owner's other
@@ -255,11 +279,32 @@ const membersSlice = createSlice({
       .addCase(extendMembership.rejected, (state, action) => {
         state.actionLoading = false;
         state.actionError = action.payload;
+      })
+
+      // ---------------- Send Balance Reminder ----------------
+      .addCase(sendBalanceReminder.pending, (state, action) => {
+        state.reminderSendingIds.push(action.meta.arg);
+        state.reminderError = null;
+      })
+      .addCase(sendBalanceReminder.fulfilled, (state, action) => {
+        state.reminderSendingIds = state.reminderSendingIds.filter(
+          (id) => id !== action.payload,
+        );
+      })
+      .addCase(sendBalanceReminder.rejected, (state, action) => {
+        state.reminderSendingIds = state.reminderSendingIds.filter(
+          (id) => id !== action.meta.arg,
+        );
+        state.reminderError = action.payload;
       });
   },
 });
 
-export const { clearMemberActionError, memberUpserted, memberRemoved } =
-  membersSlice.actions;
+export const {
+  clearMemberActionError,
+  clearReminderError,
+  memberUpserted,
+  memberRemoved,
+} = membersSlice.actions;
 
 export default membersSlice.reducer;

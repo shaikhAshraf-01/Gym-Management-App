@@ -2,6 +2,7 @@ import Member from "../models/Member.js";
 import MemberSubscriptionHistory from "../models/MemberSubscriptionHistory.js";
 import MemberPaymentHistory from "../models/MemberPaymentHistory.js";
 import { emitToGym } from "../socket/index.js"; // 👈 ADD THIS LINE
+import { triggerMemberAutomation } from "../utils/sendWhatsappMessage.js";
 
 const PLAN_MONTHS = {
   "1_month": 1,
@@ -380,6 +381,16 @@ export const addMember = async (req, res) => {
     const formatted = await formatMember(member);
     emitToGym(req.user.gymId, "member:created", { member: formatted });
 
+    // Fire-and-forget: don't let a WhatsApp failure fail member
+    // creation. No-ops silently if the gym isn't on Plus/Pro or
+    // hasn't turned this automation on.
+    triggerMemberAutomation({
+      gymId: req.user.gymId,
+      automationKey: "memberWelcome",
+      toPhone: mobile,
+      templateParams: [name, plan],
+    }).catch(() => {});
+
     res.status(201).json({
       success: true,
 
@@ -465,7 +476,11 @@ export const updateMember = async (req, res) => {
       joiningDate: -1,
     });
 
+    let balanceJustCleared = false;
+
     if (latestSub) {
+      const oldBalance = Number(latestSub.balance || 0);
+
       if (plan !== undefined) {
         latestSub.plan = plan;
       }
@@ -475,7 +490,11 @@ export const updateMember = async (req, res) => {
       }
 
       if (balanceAmount !== undefined) {
-        latestSub.balance = Number(balanceAmount);
+        const newBalance = Number(balanceAmount);
+        if (oldBalance > 0 && newBalance === 0) {
+          balanceJustCleared = true;
+        }
+        latestSub.balance = newBalance;
       }
 
       if (activities !== undefined) {
@@ -532,6 +551,17 @@ export const updateMember = async (req, res) => {
 
     const formatted = await formatMember(member);
     emitToGym(req.user.gymId, "member:updated", { member: formatted });
+
+    // Balance just cleared (was > 0, now exactly 0) — fire the
+    // confirmation automation, fire-and-forget.
+    if (balanceJustCleared) {
+      triggerMemberAutomation({
+        gymId: req.user.gymId,
+        automationKey: "balanceConfirmation",
+        toPhone: member.mobile,
+        templateParams: [member.name],
+      }).catch(() => {});
+    }
 
     res.status(200).json({
       success: true,
@@ -868,6 +898,15 @@ export const extendMembership = async (req, res) => {
     // ---------------------------------------------------------------
     const formatted = await formatMember(member);
     emitToGym(req.user.gymId, "member:updated", { member: formatted });
+
+    // Fire-and-forget automation — wasActive tells us "Extended"
+    // (still had time left) vs "Renewed" (had expired) for the message.
+    triggerMemberAutomation({
+      gymId: req.user.gymId,
+      automationKey: "extendRenewal",
+      toPhone: member.mobile,
+      templateParams: [member.name, plan, wasActive ? "Extended" : "Renewed"],
+    }).catch(() => {});
 
     return res.status(200).json({
       success: true,

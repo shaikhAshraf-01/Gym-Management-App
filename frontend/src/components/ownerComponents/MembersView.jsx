@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { CalendarPlus, Phone, User, Search, X, Calendar, CalendarX, MessageCircle, Download } from "lucide-react";
-import { fetchMembers, updateMember, extendMembership, PLAN_LABELS } from "../../redux/slices/membersSlice";
+import { fetchMembers, updateMember, extendMembership, sendBalanceReminder, PLAN_LABELS } from "../../redux/slices/membersSlice";
 import { fetchOwnerProfile } from "../../redux/slices/ownerSlice";
 import EditMemberModal from "./EditMemberModal";
 import ExtendMembershipModal from "./ExtendMembershipModal";
@@ -27,6 +27,15 @@ export default function MembersView() {
     (state) => state.owner.currentSubscription?.subscriptionPlan
   );
   const canUseManualWhatsApp = subscriptionPlan === "Basic";
+  // Plus/Pro: the real "Send Reminder" button, gated on the gym having
+  // both a connected WhatsApp Business Account AND the Balance
+  // Reminder automation turned on in Manage WhatsApp.
+  const gym = useSelector((state) => state.owner.gym);
+  const canSendBalanceReminder =
+    !canUseManualWhatsApp &&
+    !!gym?.whatsappIntegration?.connected &&
+    !!gym?.whatsappAutomationSettings?.balanceReminder?.enabled;
+  const reminderSendingIds = useSelector((state) => state.members.reminderSendingIds);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // all | active | inactive
@@ -369,7 +378,7 @@ const buildExtensionMessage = (member) => {
                   <td className="py-3.5 px-4 font-semibold text-white">{member.name}</td>
                   <td className="py-3.5 px-4 text-slate-400">{member.mobile}</td>
                   <td className="py-3.5 px-4">
-                    <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-md text-xs font-medium">
+                    <span className="inline-block whitespace-nowrap bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-md text-xs font-medium">
                       {PLAN_LABELS[member.plan] || member.plan}
                     </span>
                   </td>
@@ -403,6 +412,17 @@ const buildExtensionMessage = (member) => {
                           title="Send balance reminder via WhatsApp"
                         >
                           <MessageCircle className="h-3 w-3" />
+                        </button>
+                      )}
+                      {Number(member.balanceAmount) > 0 && canSendBalanceReminder && (
+                        <button
+                          onClick={() => dispatch(sendBalanceReminder(member.id))}
+                          disabled={reminderSendingIds.includes(member.id)}
+                          className="inline-flex items-center gap-1 px-1.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-md border border-emerald-500/20 cursor-pointer disabled:opacity-60 text-[10px] font-bold"
+                          title="Send balance reminder (automated WhatsApp)"
+                        >
+                          <MessageCircle className="h-3 w-3" />
+                          {reminderSendingIds.includes(member.id) ? "..." : "Send Reminder"}
                         </button>
                       )}
                     </div>
@@ -477,9 +497,9 @@ const buildExtensionMessage = (member) => {
               </div>
 
               <div className="grid grid-cols-2 gap-2 border-t border-b border-slate-800 py-3 my-3 text-xs">
-                <div>
+                <div className="min-w-0">
                   <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Active Plan</p>
-                  <p className="font-semibold text-cyan-400 mt-0.5">{PLAN_LABELS[member.plan] || member.plan}</p>
+                  <p className="font-semibold text-cyan-400 mt-0.5 whitespace-nowrap">{PLAN_LABELS[member.plan] || member.plan}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Activities</p>
@@ -527,6 +547,16 @@ const buildExtensionMessage = (member) => {
                       >
                         <MessageCircle className="h-3 w-3" />
                         Remind
+                      </button>
+                    )}
+                    {Number(member.balanceAmount) > 0 && canSendBalanceReminder && (
+                      <button
+                        onClick={() => dispatch(sendBalanceReminder(member.id))}
+                        disabled={reminderSendingIds.includes(member.id)}
+                        className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 active:bg-emerald-500/20 text-emerald-400 rounded-md border border-emerald-500/20 cursor-pointer disabled:opacity-60 text-[10px] font-bold"
+                      >
+                        <MessageCircle className="h-3 w-3" />
+                        {reminderSendingIds.includes(member.id) ? "Sending..." : "Send Reminder"}
                       </button>
                     )}
                   </div>

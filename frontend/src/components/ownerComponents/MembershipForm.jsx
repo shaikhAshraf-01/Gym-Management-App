@@ -210,7 +210,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               value={formData.name}
               onChange={handleChange}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
-              placeholder="John Doe"
+              placeholder="Enter name"
               required
             />
           </div>
@@ -230,7 +230,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               minLength={10}
               pattern="[0-9]{10}"
               className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
-              placeholder="e.g. 9876543210"
+              placeholder="**********"
               required
             />
           </div>
@@ -248,7 +248,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
                 value={formData.age}
                 onChange={handleChange}
                 className="no-spinner w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
-                placeholder="24"
+                placeholder="age"
               />
             </div>
 

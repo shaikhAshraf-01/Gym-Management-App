@@ -1,12 +1,15 @@
 import User, { Trainer } from "../models/User.js";
 import Gym from "../models/Gym.js";
 import GymSubscriptionHistory from "../models/GymSubscriptionHistory.js";
+import Member from "../models/Member.js";
+import MemberSubscriptionHistory from "../models/MemberSubscriptionHistory.js";
 
 import cloudinary from "../config/cloudinary.js"
 import streamifier from "streamifier"
 import { compressImageBuffer } from "../utils/compressImage.js";
 import { emitToAdmins, emitToGym } from "../socket/index.js";
 import { getFormattedTrainers } from "./gymController.js";
+import { sendWhatsappTemplateMessage } from "../utils/sendWhatsappMessage.js";
 // ================= GET OWNER / TRAINER PROFILE =================
 // Originally owner-only. Now also serves Trainers (used by
 // TrainerProfile.jsx) — a trainer has no gym logo/subscription
@@ -539,6 +542,248 @@ export const removeTrainerOwner = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to remove trainer.",
+    });
+  }
+};
+
+// ================= WHATSAPP AUTOMATION (Plus / Pro only) =================
+// The gym owner connects THEIR OWN WhatsApp Business Account (via
+// Meta's Embedded Signup on the frontend, which hands back a
+// phoneNumberId/wabaId/accessToken). We never own the number — we
+// just store the credentials to send template messages on the
+// owner's behalf. Plan gating is enforced here, server-side, not
+// just hidden in the UI, since a Basic-plan request could otherwise
+// hit this endpoint directly.
+
+const PLANS_WITH_WHATSAPP_AUTOMATION = ["Plus", "Pro"];
+
+const assertPlusOrProPlan = async (gymId) => {
+  const activeSub = await GymSubscriptionHistory.findOne({
+    gymId,
+    endDate: { $gte: new Date() },
+  }).sort({ endDate: -1 });
+
+  return (
+    !!activeSub &&
+    PLANS_WITH_WHATSAPP_AUTOMATION.includes(activeSub.subscriptionPlan)
+  );
+};
+
+// POST /api/owner/whatsapp/connect
+// Called after the frontend completes Meta's Embedded Signup flow.
+export const connectWhatsappAccount = async (req, res) => {
+  try {
+    const { gym } = await findOwnedGym(req.user._id);
+    if (!gym) {
+      return res.status(404).json({ success: false, message: "Gym not found." });
+    }
+
+    if (!(await assertPlusOrProPlan(gym._id))) {
+      return res.status(403).json({
+        success: false,
+        message: "WhatsApp automation is available on Plus and Pro plans only.",
+      });
+    }
+
+    const { phoneNumberId, wabaId, accessToken } = req.body;
+    if (!phoneNumberId || !wabaId || !accessToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing WhatsApp account details from Meta.",
+      });
+    }
+
+    gym.whatsappIntegration = {
+      connected: true,
+      phoneNumberId,
+      wabaId,
+      accessToken, // select:false — never sent back in responses
+      connectedAt: new Date(),
+    };
+    await gym.save();
+
+    const safeGym = await Gym.findById(gym._id); // re-fetch, drops accessToken (select:false)
+
+    emitToGym(gym._id, "gym:updated", { gym: safeGym });
+    emitToAdmins("gym:updated", { gym: safeGym });
+
+    return res.status(200).json({
+      success: true,
+      message: "WhatsApp Business Account connected.",
+      gym: safeGym,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to connect WhatsApp account.",
+    });
+  }
+};
+
+// DELETE /api/owner/whatsapp/connect
+export const disconnectWhatsappAccount = async (req, res) => {
+  try {
+    const { gym } = await findOwnedGym(req.user._id);
+    if (!gym) {
+      return res.status(404).json({ success: false, message: "Gym not found." });
+    }
+
+    gym.whatsappIntegration = {
+      connected: false,
+      phoneNumberId: "",
+      wabaId: "",
+      accessToken: "",
+      connectedAt: null,
+    };
+    // Automation can't run without a connected account.
+    gym.whatsappAutomationSettings.enabled = false;
+    await gym.save();
+
+    emitToGym(gym._id, "gym:updated", { gym });
+    emitToAdmins("gym:updated", { gym });
+
+    return res.status(200).json({
+      success: true,
+      message: "WhatsApp Business Account disconnected.",
+      gym,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to disconnect WhatsApp account.",
+    });
+  }
+};
+
+// PATCH /api/owner/whatsapp/automation-settings
+// Accepts a partial settings object and merges it in, e.g.:
+// { enabled: true } or { expiryReminder: { enabled: true, daysBefore: 5 } }
+export const updateWhatsappAutomationSettings = async (req, res) => {
+  try {
+    const { gym } = await findOwnedGym(req.user._id);
+    if (!gym) {
+      return res.status(404).json({ success: false, message: "Gym not found." });
+    }
+
+    if (!(await assertPlusOrProPlan(gym._id))) {
+      return res.status(403).json({
+        success: false,
+        message: "WhatsApp automation is available on Plus and Pro plans only.",
+      });
+    }
+
+    if (typeof req.body.enabled === "boolean" && req.body.enabled && !gym.whatsappIntegration?.connected) {
+      return res.status(400).json({
+        success: false,
+        message: "Connect your WhatsApp Business Account before enabling automation.",
+      });
+    }
+
+    const current = gym.whatsappAutomationSettings.toObject();
+    const incoming = req.body || {};
+
+    // Shallow-merge each known sub-section so a partial update (e.g.
+    // just { expiryReminder: { daysBefore: 5 } }) doesn't wipe the
+    // other fields already saved for that sub-section.
+    gym.whatsappAutomationSettings = {
+      enabled:
+        typeof incoming.enabled === "boolean" ? incoming.enabled : current.enabled,
+      expiryReminder: { ...current.expiryReminder, ...(incoming.expiryReminder || {}) },
+      memberWelcome: { ...current.memberWelcome, ...(incoming.memberWelcome || {}) },
+      balanceConfirmation: {
+        ...current.balanceConfirmation,
+        ...(incoming.balanceConfirmation || {}),
+      },
+    };
+    await gym.save();
+
+    emitToGym(gym._id, "gym:updated", { gym });
+    emitToAdmins("gym:updated", { gym });
+
+    return res.status(200).json({
+      success: true,
+      message: "WhatsApp automation settings saved.",
+      gym,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save WhatsApp automation settings.",
+    });
+  }
+};
+
+// POST /api/owner/whatsapp/send-balance-reminder/:memberId
+// Manual, on-demand trigger — owner taps "Send Reminder" next to a
+// member with a pending balance in the Members list. Requires the
+// balanceReminder automation to be turned on (which just unlocks this
+// button; it doesn't run on its own schedule).
+export const sendBalanceReminder = async (req, res) => {
+  try {
+    const { gym } = await findOwnedGym(req.user._id);
+    if (!gym) {
+      return res.status(404).json({ success: false, message: "Gym not found." });
+    }
+
+    if (!(await assertPlusOrProPlan(gym._id))) {
+      return res.status(403).json({
+        success: false,
+        message: "WhatsApp automation is available on Plus and Pro plans only.",
+      });
+    }
+
+    if (!gym.whatsappAutomationSettings?.balanceReminder?.enabled) {
+      return res.status(400).json({
+        success: false,
+        message: "Turn on Balance Reminder in Manage WhatsApp first.",
+      });
+    }
+
+    const member = await Member.findOne({ _id: req.params.memberId, gym: gym._id });
+    if (!member) {
+      return res.status(404).json({ success: false, message: "Member not found." });
+    }
+
+    const latestSub = await MemberSubscriptionHistory.findOne({ member: member._id }).sort({
+      expiryDate: -1,
+    });
+    const balance = Number(latestSub?.balance || 0);
+    if (balance <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "This member has no pending balance.",
+      });
+    }
+
+    // Re-fetch the gym with the access token included — findOwnedGym's
+    // result above has it stripped (select:false).
+    const gymWithToken = await Gym.findById(gym._id).select(
+      "+whatsappIntegration.accessToken"
+    );
+
+    const result = await sendWhatsappTemplateMessage({
+      gym: gymWithToken,
+      toPhone: member.mobile,
+      templateName: gym.whatsappAutomationSettings.balanceReminder.templateName,
+      templateParams: [member.name, String(balance), gym.gymName],
+    });
+
+    if (!result.success) {
+      return res.status(502).json({ success: false, message: result.error });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Balance reminder sent.",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send balance reminder.",
     });
   }
 };

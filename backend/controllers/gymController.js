@@ -424,6 +424,22 @@ export const updateGym = async (req, res) => {
             currentSubscription.endDate,
         });
       }
+
+      // --------------------------------------------------------
+      // Safety net: if the resulting plan is Basic (no longer
+      // Plus/Pro), WhatsApp automation can't legally keep running.
+      // We only pause it (enabled:false) — the connected WhatsApp
+      // Business Account itself stays intact, so re-upgrading to
+      // Plus later doesn't force the owner to reconnect via Meta
+      // again.
+      // --------------------------------------------------------
+      if (
+        currentSubscription.subscriptionPlan === "Basic" &&
+        gym.whatsappAutomationSettings?.enabled
+      ) {
+        gym.whatsappAutomationSettings.enabled = false;
+        await gym.save();
+      }
     }
 
     // ============================================================

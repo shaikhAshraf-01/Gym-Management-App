@@ -9,7 +9,17 @@ import {
   addTrainerOwner,
   updateTrainerOwner,
   removeTrainerOwner,
+  connectWhatsappAccount,
+  disconnectWhatsappAccount,
+  updateWhatsappAutomationSettings,
+  sendBalanceReminder,
 } from "../controllers/ownerController.js";
+import {
+  createOffer,
+  listOffers,
+  getAudienceCount,
+  cancelOffer,
+} from "../controllers/offerController.js";
 import {
   getMembers,
   addMember,
@@ -66,6 +76,35 @@ router.delete("/trainer-photo", authMiddleware, roleMiddleware("trainer"), remov
 router.post("/trainers", authMiddleware, roleMiddleware("owner"), addTrainerOwner);
 router.put("/trainers/:trainerId", authMiddleware, roleMiddleware("owner"), updateTrainerOwner);
 router.delete("/trainers/:trainerId", authMiddleware, roleMiddleware("owner"), removeTrainerOwner);
+
+// ============ WHATSAPP AUTOMATION (owner-only, Plus/Pro gated in controller) ============
+
+router.post("/whatsapp/connect", authMiddleware, roleMiddleware("owner"), connectWhatsappAccount);
+router.delete("/whatsapp/connect", authMiddleware, roleMiddleware("owner"), disconnectWhatsappAccount);
+router.patch(
+  "/whatsapp/automation-settings",
+  authMiddleware,
+  roleMiddleware("owner"),
+  updateWhatsappAutomationSettings
+);
+router.post(
+  "/whatsapp/send-balance-reminder/:memberId",
+  authMiddleware,
+  roleMiddleware("owner"),
+  sendBalanceReminder
+);
+
+// ============ OFFER BROADCASTS (owner-only, Plus/Pro gated in controller) ============
+
+router.post("/whatsapp/offers", authMiddleware, roleMiddleware("owner"), createOffer);
+router.get("/whatsapp/offers", authMiddleware, roleMiddleware("owner"), listOffers);
+router.get(
+  "/whatsapp/offers/audience-count",
+  authMiddleware,
+  roleMiddleware("owner"),
+  getAudienceCount
+);
+router.delete("/whatsapp/offers/:id", authMiddleware, roleMiddleware("owner"), cancelOffer);
 
 // ============ MEMBERS (owner + trainer — same gym data) ============
 

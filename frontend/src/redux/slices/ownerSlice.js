@@ -7,6 +7,9 @@ import {
   addTrainerOwnerApi,
   updateTrainerOwnerApi,
   removeTrainerOwnerApi,
+  connectWhatsappApi,
+  disconnectWhatsappApi,
+  updateWhatsappAutomationSettingsApi,
 } from "../../api/ownerApi";
 
 // ❌ REMOVED: getAuthHeaders() is no longer needed because 
@@ -114,6 +117,51 @@ export const removeOwnerTrainer = createAsyncThunk(
   },
 );
 
+// ---------------- WhatsApp automation ----------------
+
+export const connectWhatsapp = createAsyncThunk(
+  "owner/connectWhatsapp",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response = await connectWhatsappApi(payload);
+      return response.data.gym;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to connect WhatsApp account.",
+      );
+    }
+  },
+);
+
+export const disconnectWhatsapp = createAsyncThunk(
+  "owner/disconnectWhatsapp",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await disconnectWhatsappApi();
+      return response.data.gym;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to disconnect WhatsApp account.",
+      );
+    }
+  },
+);
+
+export const updateWhatsappAutomationSettings = createAsyncThunk(
+  "owner/updateWhatsappAutomationSettings",
+  async (settings, { rejectWithValue }) => {
+    try {
+      const response = await updateWhatsappAutomationSettingsApi(settings);
+      return response.data.gym;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          "Failed to save WhatsApp automation settings.",
+      );
+    }
+  },
+);
+
 const initialState = {
   owner: null,
   gym: null,
@@ -132,6 +180,8 @@ const initialState = {
   uploadError: null,
   gstActionLoading: false,
   gstActionError: null,
+  whatsappActionLoading: false,
+  whatsappActionError: null,
 };
 
 const ownerSlice = createSlice({
@@ -154,6 +204,9 @@ const ownerSlice = createSlice({
     },
     clearGstActionError: (state) => {
       state.gstActionError = null;
+    },
+    clearWhatsappActionError: (state) => {
+      state.whatsappActionError = null;
     },
     // Realtime (socket.io): fired whenever this gym's trainer roster
     // changes — from the owner's own other device, a trainer's
@@ -258,6 +311,52 @@ const ownerSlice = createSlice({
       .addCase(removeOwnerTrainer.rejected, (state, action) => {
         state.trainerActionLoading = false;
         state.trainerActionError = action.payload;
+      })
+      // ---------------- WhatsApp automation ----------------
+      .addCase(connectWhatsapp.pending, (state) => {
+        state.whatsappActionLoading = true;
+        state.whatsappActionError = null;
+      })
+      .addCase(connectWhatsapp.fulfilled, (state, action) => {
+        state.whatsappActionLoading = false;
+        if (state.gym) {
+          state.gym.whatsappIntegration = action.payload.whatsappIntegration;
+        }
+      })
+      .addCase(connectWhatsapp.rejected, (state, action) => {
+        state.whatsappActionLoading = false;
+        state.whatsappActionError = action.payload;
+      })
+      .addCase(disconnectWhatsapp.pending, (state) => {
+        state.whatsappActionLoading = true;
+        state.whatsappActionError = null;
+      })
+      .addCase(disconnectWhatsapp.fulfilled, (state, action) => {
+        state.whatsappActionLoading = false;
+        if (state.gym) {
+          state.gym.whatsappIntegration = action.payload.whatsappIntegration;
+          state.gym.whatsappAutomationSettings =
+            action.payload.whatsappAutomationSettings;
+        }
+      })
+      .addCase(disconnectWhatsapp.rejected, (state, action) => {
+        state.whatsappActionLoading = false;
+        state.whatsappActionError = action.payload;
+      })
+      .addCase(updateWhatsappAutomationSettings.pending, (state) => {
+        state.whatsappActionLoading = true;
+        state.whatsappActionError = null;
+      })
+      .addCase(updateWhatsappAutomationSettings.fulfilled, (state, action) => {
+        state.whatsappActionLoading = false;
+        if (state.gym) {
+          state.gym.whatsappAutomationSettings =
+            action.payload.whatsappAutomationSettings;
+        }
+      })
+      .addCase(updateWhatsappAutomationSettings.rejected, (state, action) => {
+        state.whatsappActionLoading = false;
+        state.whatsappActionError = action.payload;
       });
   },
 });
@@ -268,6 +367,7 @@ export const {
   gymProfileUpdated,
   clearTrainerActionError,
   clearGstActionError,
+  clearWhatsappActionError,
   trainersUpdated,
 } = ownerSlice.actions;
 

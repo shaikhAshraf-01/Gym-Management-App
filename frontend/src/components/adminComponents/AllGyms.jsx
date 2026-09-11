@@ -22,6 +22,16 @@ import {
 import { fetchGyms, updateGym, deleteGym } from "../../redux/slices/gymSlice";
 import WhatsAppRenewMessagePopup from "./WhatsAppRenewMessagePopup";
 
+// Reference pricing shown to the admin while filling the Amount field
+// below — kept in sync with the owner-facing PlanSelectionModal.jsx.
+// Purely a suggestion; the Amount input stays free-form for prorated
+// / custom mid-cycle upgrade amounts.
+const PLAN_PRICE_REFERENCE = {
+  Basic: { 1: 249, 3: 599, 6: 999, 12: 1699 },
+  Plus: { 1: 349, 3: 799, 6: 1399, 12: 2499 },
+  Pro: null, // pricing not finalized yet
+};
+
 export default function AllGyms() {
   const dispatch = useDispatch();
 
@@ -789,6 +799,20 @@ export default function AllGyms() {
                       placeholder="₹ amount"
                       className="w-full bg-white border border-indigo-200 rounded-lg p-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500"
                     />
+                    {(() => {
+                      const suggested =
+                        PLAN_PRICE_REFERENCE[renewPlan]?.[renewDurationMonths];
+                      if (!suggested) return null;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => setRenewAmount(String(suggested))}
+                          className="mt-1 text-[10px] font-semibold text-indigo-600 hover:text-indigo-800"
+                        >
+                          List price: ₹{suggested} · tap to use
+                        </button>
+                      );
+                    })()}
                   </div>
 
                   {/* Payment Mode */}

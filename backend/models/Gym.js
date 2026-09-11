@@ -41,6 +41,48 @@ const gymSchema= new mongoose.Schema({
         type:String,
         enum:["active","inactive"],
         default:"active",
+    },
+    // ===== WhatsApp Business Account (Meta) — owned & managed by the
+    // gym owner themselves, we only orchestrate sends through it. =====
+    whatsappIntegration:{
+        connected:{ type:Boolean, default:false },
+        phoneNumberId:{ type:String, default:"" },
+        wabaId:{ type:String, default:"" },
+        // Encrypted at rest via the User-supplied Mongoose field-level
+        // encryption / KMS layer — never returned in plain API responses.
+        accessToken:{ type:String, default:"", select:false },
+        connectedAt:{ type:Date, default:null },
+    },
+    // ===== WhatsApp automation settings (Plus/Pro only — enforced =====
+    // server-side in the controller, not just hidden in the UI).
+    whatsappAutomationSettings:{
+        enabled:{ type:Boolean, default:false },
+        expiryReminder:{
+            enabled:{ type:Boolean, default:false },
+            daysBefore:{ type:Number, default:3, min:1, max:14 },
+            templateName:{ type:String, default:"" },
+        },
+        memberWelcome:{
+            enabled:{ type:Boolean, default:false },
+            templateName:{ type:String, default:"" },
+        },
+        extendRenewal:{
+            enabled:{ type:Boolean, default:false },
+            templateName:{ type:String, default:"" },
+        },
+        balanceConfirmation:{
+            enabled:{ type:Boolean, default:false },
+            templateName:{ type:String, default:"" },
+        },
+        // Reminder for a member with a PENDING balance (different from
+        // balanceConfirmation above, which fires once it's cleared).
+        // `enabled` just unlocks the manual "Send Reminder" button in
+        // the Members list — it does not, by itself, auto-send anything
+        // on a schedule (owner triggers it per member, when they choose).
+        balanceReminder:{
+            enabled:{ type:Boolean, default:false },
+            templateName:{ type:String, default:"" },
+        },
     }
 },
 {

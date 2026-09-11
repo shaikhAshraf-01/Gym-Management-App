@@ -4,6 +4,7 @@ import gymsReducer from "./slices/gymSlice";
 import membersReducer from "./slices/membersSlice";
 import enquiriesReducer from "./slices/enquiriesSlice";
 import ownerReducer from "./slices/ownerSlice"
+import offersReducer from "./slices/offersSlice"
 import uiReducer from "./slices/uiSlice"
 
 const appReducer = combineReducers({
@@ -12,6 +13,7 @@ const appReducer = combineReducers({
   members: membersReducer,      // ← this key must be exactly "members"
   enquiries: enquiriesReducer,
   owner: ownerReducer,
+  offers: offersReducer,
   ui: uiReducer,
 });
 

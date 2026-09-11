@@ -44,7 +44,7 @@ export default function SubscriptionExpiredOverlay({ gymName, onReturn }) {
       </div>
 
       {showPlanModal && (
-        <PlanSelectionModal onClose={() => setShowPlanModal(false)} />
+        <PlanSelectionModal onClose={() => setShowPlanModal(false)} gymName={gymName} />
       )}
     </div>
   );

@@ -33,3 +33,27 @@ export const updateTrainerOwnerApi = (trainerId, trainerData) =>
 
 export const removeTrainerOwnerApi = (trainerId) =>
   api.delete(`/owner/trainers/${trainerId}`);
+
+// ================= WHATSAPP AUTOMATION =================
+export const connectWhatsappApi = (payload) =>
+  api.post("/owner/whatsapp/connect", payload);
+
+export const disconnectWhatsappApi = () =>
+  api.delete("/owner/whatsapp/connect");
+
+export const updateWhatsappAutomationSettingsApi = (settings) =>
+  api.patch("/owner/whatsapp/automation-settings", settings);
+
+export const sendBalanceReminderApi = (memberId) =>
+  api.post(`/owner/whatsapp/send-balance-reminder/${memberId}`);
+
+// ================= OFFER BROADCASTS =================
+export const createOfferApi = (payload) => api.post("/owner/whatsapp/offers", payload);
+
+export const listOffersApi = () => api.get("/owner/whatsapp/offers");
+
+export const getAudienceCountApi = (audience) =>
+  api.get("/owner/whatsapp/offers/audience-count", { params: { audience } });
+
+export const cancelOfferApi = (offerId) =>
+  api.delete(`/owner/whatsapp/offers/${offerId}`);
