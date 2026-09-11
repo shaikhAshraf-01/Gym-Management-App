@@ -25,34 +25,8 @@ export default function ExtendMembershipModal({
     paymentMode: "upi",
     newStartDate: "",
     newExpiryDate: "",
+    admissionType: "normal", // "normal" | "offer"
   });
-
-  const handleNumberKeyDown = (e) => {
-    const allowedKeys = [
-      "Backspace",
-      "Tab",
-      "Enter",
-      "Escape",
-      "ArrowLeft",
-      "ArrowRight",
-      "Delete",
-    ];
-
-    if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
-      return;
-    }
-
-    if (!/^[0-9]$/.test(e.key)) {
-      e.preventDefault();
-    }
-  };
-
-  const handleNumberPaste = (e) => {
-    const pastedData = e.clipboardData.getData("text");
-    if (!/^\d+$/.test(pastedData)) {
-      e.preventDefault();
-    }
-  };
 
   const handleActivityToggle = (value) => {
     setFormData((prev) => {
@@ -144,9 +118,13 @@ export default function ExtendMembershipModal({
       extensionAmount: "",
       amountPayingToday: "",
       balanceAmount: "0",
+      // "both" was removed as a selectable option — old records saved
+      // with it fall back to "cash" so the dropdown always has a
+      // valid selection.
       paymentMode: member.paymentMode === "both" ? "cash" : member.paymentMode || "upi",
       newStartDate: calculateDefaultStartDate(),
       newExpiryDate: "",
+      admissionType: "normal",
     });
   }, [member]);
 
@@ -220,6 +198,7 @@ export default function ExtendMembershipModal({
         balanceAmount: formData.balanceAmount,
         paymentMode: formData.paymentMode,
         newStartDate: formData.newStartDate,
+        admissionType: formData.admissionType,
       });
     } finally {
       setIsSubmitting(false);
@@ -233,14 +212,9 @@ export default function ExtendMembershipModal({
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 sticky top-0 bg-[#131b2e] z-10">
-          <div>
-            <h2 className="text-base font-extrabold text-lime-400 uppercase tracking-wider">
-              Membership Detail
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {member.name} · {member.mobile}
-            </p>
-          </div>
+          <h2 className="text-base font-extrabold text-lime-400 uppercase tracking-wider">
+            Membership Detail
+          </h2>
 
           <button
             onClick={onClose}
@@ -269,6 +243,41 @@ export default function ExtendMembershipModal({
                 <option value="6_month">6 Months</option>
                 <option value="1_year">1 Year</option>
               </select>
+            </div>
+
+            {/* Admission Type: Normal vs Offer */}
+            <div className="md:col-span-2">
+              <label className="block text-xs uppercase font-bold text-slate-400 mb-1">
+                Admission Type
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, admissionType: "normal" }))
+                  }
+                  className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-semibold transition-colors cursor-pointer ${
+                    formData.admissionType === "normal"
+                      ? "border-lime-400 bg-lime-400/10 text-lime-400"
+                      : "border-slate-700/80 bg-[#1c273e] text-slate-400"
+                  }`}
+                >
+                  Normal Membership
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, admissionType: "offer" }))
+                  }
+                  className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-semibold transition-colors cursor-pointer ${
+                    formData.admissionType === "offer"
+                      ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                      : "border-slate-700/80 bg-[#1c273e] text-slate-400"
+                  }`}
+                >
+                  Offer Admission
+                </button>
+              </div>
             </div>
 
             {/* Activities */}
@@ -336,13 +345,11 @@ export default function ExtendMembershipModal({
                 New Membership Fee
               </label>
               <input
-                type="text"
-                inputMode="numeric"
+                type="number"
                 name="extensionAmount"
                 value={formData.extensionAmount}
                 onChange={handleChange}
-                onKeyDown={handleNumberKeyDown}
-                onPaste={handleNumberPaste}
+                min="0"
                 required
                 placeholder="Enter new fee"
                 className="w-full bg-[#1c273e] border border-slate-700/80 rounded-lg p-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-lime-400"
@@ -355,13 +362,12 @@ export default function ExtendMembershipModal({
                 Amount Paying Today
               </label>
               <input
-                type="text"
-                inputMode="numeric"
+                type="number"
                 name="amountPayingToday"
                 value={formData.amountPayingToday}
                 onChange={handleChange}
-                onKeyDown={handleNumberKeyDown}
-                onPaste={handleNumberPaste}
+                min="0"
+                max={formData.extensionAmount || 0}
                 required
                 placeholder="Enter payment"
                 className="w-full bg-[#1c273e] border border-slate-700/80 rounded-lg p-3 text-sm text-emerald-400 font-bold placeholder-slate-500 focus:outline-none focus:border-lime-400"
@@ -374,8 +380,7 @@ export default function ExtendMembershipModal({
                 Balance Amount
               </label>
               <input
-                type="text"
-                inputMode="numeric"
+                type="number"
                 name="balanceAmount"
                 value={formData.balanceAmount}
                 readOnly

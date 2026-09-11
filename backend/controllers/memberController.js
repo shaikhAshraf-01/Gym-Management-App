@@ -741,6 +741,7 @@ export const extendMembership = async (req, res) => {
       paymentMode,
       newStartDate,
       activities,
+      admissionType,
     } = req.body;
 
     // ---------------------------------------------------------------
@@ -872,6 +873,8 @@ export const extendMembership = async (req, res) => {
       expiryDate: newExpiry,
 
       planAmount: Number(extensionAmount || 0),
+
+      admissionType: admissionType === "offer" ? "offer" : "normal",
 
       balance: Number(balanceAmount || 0),
 

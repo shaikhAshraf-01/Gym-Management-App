@@ -228,41 +228,6 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
             />
           </div>
 
-          {/* Admission Type: Normal vs Offer */}
-          <div className="md:col-span-2">
-            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
-              Admission Type
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData((prev) => ({ ...prev, admissionType: "normal" }))
-                }
-                className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-semibold transition-colors cursor-pointer ${
-                  formData.admissionType === "normal"
-                    ? "border-cyan-500 bg-cyan-500/10 text-cyan-400"
-                    : "border-slate-700 bg-slate-800 text-slate-400"
-                }`}
-              >
-                Normal Membership
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData((prev) => ({ ...prev, admissionType: "offer" }))
-                }
-                className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-semibold transition-colors cursor-pointer ${
-                  formData.admissionType === "offer"
-                    ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                    : "border-slate-700 bg-slate-800 text-slate-400"
-                }`}
-              >
-                Offer Admission
-              </button>
-            </div>
-          </div>
-
           {/* Mobile */}
           <div>
             <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
@@ -347,6 +312,41 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
                 1 Year
               </option>
             </select>
+          </div>
+
+          {/* Admission Type: Normal vs Offer */}
+          <div>
+            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              Admission Type
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, admissionType: "normal" }))
+                }
+                className={`rounded-lg border p-3 text-xs font-semibold transition-colors cursor-pointer ${
+                  formData.admissionType === "normal"
+                    ? "border-cyan-500 bg-cyan-500/10 text-cyan-400"
+                    : "border-slate-700 bg-slate-800 text-slate-400"
+                }`}
+              >
+                Normal
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, admissionType: "offer" }))
+                }
+                className={`rounded-lg border p-3 text-xs font-semibold transition-colors cursor-pointer ${
+                  formData.admissionType === "offer"
+                    ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                    : "border-slate-700 bg-slate-800 text-slate-400"
+                }`}
+              >
+                Offer
+              </button>
+            </div>
           </div>
 
           {/* Activities */}
