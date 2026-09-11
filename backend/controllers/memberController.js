@@ -458,11 +458,16 @@ export const updateMember = async (req, res) => {
     }
 
     if (age !== undefined) {
-      member.age = age;
+      // Empty string from a cleared/optional number field would fail
+      // Number casting — normalize to null instead.
+      member.age = age === "" ? null : age;
     }
 
     if (gender !== undefined) {
-      member.gender = gender;
+      // Empty string ("Select" option, i.e. gender left unset) isn't
+      // a valid enum value — normalize to null so save() doesn't
+      // throw a ValidationError.
+      member.gender = gender === "" ? null : gender;
     }
 
     await member.save();

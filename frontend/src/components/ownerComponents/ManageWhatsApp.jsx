@@ -52,8 +52,8 @@ function ToggleRow({ icon: Icon, iconColor, title, description, checked, onChang
           }`}
         >
           <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-              checked ? "translate-x-5" : "translate-x-0.5"
+            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+              checked ? "translate-x-5" : "translate-x-0"
             }`}
           />
         </button>

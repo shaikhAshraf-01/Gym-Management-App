@@ -692,10 +692,12 @@ export const updateWhatsappAutomationSettings = async (req, res) => {
         typeof incoming.enabled === "boolean" ? incoming.enabled : current.enabled,
       expiryReminder: { ...current.expiryReminder, ...(incoming.expiryReminder || {}) },
       memberWelcome: { ...current.memberWelcome, ...(incoming.memberWelcome || {}) },
+      extendRenewal: { ...current.extendRenewal, ...(incoming.extendRenewal || {}) },
       balanceConfirmation: {
         ...current.balanceConfirmation,
         ...(incoming.balanceConfirmation || {}),
       },
+      balanceReminder: { ...current.balanceReminder, ...(incoming.balanceReminder || {}) },
     };
     await gym.save();
 
