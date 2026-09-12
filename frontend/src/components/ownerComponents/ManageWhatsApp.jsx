@@ -13,7 +13,6 @@ import {
   CheckCircle2,
   Loader2,
   RefreshCw,
-  BellRing,
 } from "lucide-react";
 import PlanSelectionModal from "./PlanSelectionModal";
 import { testSendWhatsappAutomationApi } from "../../api/ownerApi";
@@ -189,7 +188,6 @@ export default function ManageWhatsApp() {
       memberWelcome: { enabled: false },
       extendRenewal: { enabled: false },
       balanceConfirmation: { enabled: false },
-      balanceReminder: { enabled: false },
     };
 
   // Manual setup: the gym owner (with our help) creates their OWN
@@ -250,14 +248,6 @@ export default function ManageWhatsApp() {
     dispatch(
       updateWhatsappAutomationSettings({
         balanceConfirmation: { ...settings.balanceConfirmation, ...patch },
-      })
-    );
-  };
-
-  const handleBalanceReminderChange = (patch) => {
-    dispatch(
-      updateWhatsappAutomationSettings({
-        balanceReminder: { ...settings.balanceReminder, ...patch },
       })
     );
   };
@@ -491,24 +481,6 @@ export default function ManageWhatsApp() {
                   templateName={settings.balanceConfirmation.templateName}
                   onTemplateNameChange={(templateName) =>
                     handleBalanceConfirmationChange({ templateName })
-                  }
-                />
-              </ToggleRow>
-
-              <ToggleRow
-                icon={BellRing}
-                iconColor="bg-amber-500/10 text-amber-400"
-                title="Balance Reminder"
-                description="Unlocks a 'Send Reminder' button next to members with a pending balance, in the Members list."
-                checked={settings.balanceReminder.enabled}
-                onChange={(v) => handleBalanceReminderChange({ enabled: v })}
-                disabled={!settings.enabled}
-              >
-                <TemplateTestField
-                  automation="balanceReminder"
-                  templateName={settings.balanceReminder.templateName}
-                  onTemplateNameChange={(templateName) =>
-                    handleBalanceReminderChange({ templateName })
                   }
                 />
               </ToggleRow>

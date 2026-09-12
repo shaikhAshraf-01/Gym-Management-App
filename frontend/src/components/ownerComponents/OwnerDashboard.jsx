@@ -17,7 +17,6 @@ import {
   fetchMembers,
   deleteMember,
   extendMembership,
-  sendBalanceReminder,
 } from "../../redux/slices/membersSlice";
 
 import { fetchOwnerProfile } from "../../redux/slices/ownerSlice";
@@ -112,17 +111,6 @@ export default function OwnerDashboard() {
   // Manual WhatsApp is available only for Basic
   const canUseManualWhatsApp =
     subscriptionPlan === "Basic";
-
-  // Plus/Pro: real automated reminder, gated on connected account +
-  // the Balance Reminder toggle in Manage WhatsApp.
-  const gym = useSelector((state) => state.owner.gym);
-  const canSendBalanceReminder =
-    !canUseManualWhatsApp &&
-    !!gym?.whatsappIntegration?.connected &&
-    !!gym?.whatsappAutomationSettings?.balanceReminder?.enabled;
-  const reminderSendingIds = useSelector(
-    (state) => state.members.reminderSendingIds
-  );
 
   // ---------------------------------------------------------
   // Local State
@@ -695,18 +683,6 @@ ${gym} Team 💪`;
 
                           <span>
                             WhatsApp
-                          </span>
-                        </button>
-                      ) : canSendBalanceReminder ? (
-                        <button
-                          onClick={() => dispatch(sendBalanceReminder(member.id))}
-                          disabled={reminderSendingIds.includes(member.id)}
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium hover:bg-emerald-500/20 transition-colors cursor-pointer disabled:opacity-60"
-                        >
-                          <MessageCircle className="h-3.5 w-3.5" />
-
-                          <span>
-                            {reminderSendingIds.includes(member.id) ? "Sending..." : "Send Reminder"}
                           </span>
                         </button>
                       ) : (

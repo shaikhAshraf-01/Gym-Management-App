@@ -44,9 +44,6 @@ export const disconnectWhatsappApi = () =>
 export const updateWhatsappAutomationSettingsApi = (settings) =>
   api.patch("/owner/whatsapp/automation-settings", settings);
 
-export const sendBalanceReminderApi = (memberId) =>
-  api.post(`/owner/whatsapp/send-balance-reminder/${memberId}`);
-
 export const testSendWhatsappAutomationApi = (automation, toPhone) =>
   api.post("/owner/whatsapp/test-send", { automation, toPhone });
 

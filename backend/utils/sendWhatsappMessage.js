@@ -142,7 +142,7 @@ export const uploadWhatsappMedia = async ({ gym, fileBuffer, filename }) => {
 // result (or just log it), same as the addMember/extendMembership
 // hooks below do.
 //
-// automationKey: "expiryReminder" | "memberWelcome" | "extendRenewal" | "balanceConfirmation" | "balanceReminder"
+// automationKey: "expiryReminder" | "memberWelcome" | "extendRenewal" | "balanceConfirmation"
 export const triggerMemberAutomation = async ({
   gymId,
   automationKey,

@@ -10,7 +10,6 @@ import {
   restoreMemberApi,
   permanentDeleteMemberApi,
 } from "../../api/memberApi";
-import { sendBalanceReminderApi } from "../../api/ownerApi";
 
 // ================= FETCH ALL MEMBERS =================
 
@@ -159,22 +158,6 @@ export const permanentDeleteMember = createAsyncThunk(
   },
 );
 
-// Manual "Send Reminder" trigger for a member with a pending balance
-// (Plus/Pro only — see ManageWhatsApp's Balance Reminder toggle).
-export const sendBalanceReminder = createAsyncThunk(
-  "members/sendBalanceReminder",
-  async (memberId, { rejectWithValue }) => {
-    try {
-      await sendBalanceReminderApi(memberId);
-      return memberId;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to send reminder.",
-      );
-    }
-  },
-);
-
 // Human-readable label for the `plan` code, used anywhere the UI
 // wants "3 Months" instead of "3_month".
 export const PLAN_LABELS = {
@@ -199,10 +182,6 @@ const initialState = {
   // the main "Loading members..." full-page state.
   actionLoading: false,
   actionError: null,
-  // Per-member ids currently sending a balance reminder, so only that
-  // row's button shows a spinner (not a global lock).
-  reminderSendingIds: [],
-  reminderError: null,
   // ---- Deleted Members (owner only, Profile page) ----
   deletedMembers: [],
   deletedLoading: false,
@@ -400,23 +379,6 @@ const membersSlice = createSlice({
       .addCase(permanentDeleteMember.rejected, (state, action) => {
         state.deletedActionLoading = false;
         state.deletedActionError = action.payload;
-      })
-
-      // ---------------- Send Balance Reminder ----------------
-      .addCase(sendBalanceReminder.pending, (state, action) => {
-        state.reminderSendingIds.push(action.meta.arg);
-        state.reminderError = null;
-      })
-      .addCase(sendBalanceReminder.fulfilled, (state, action) => {
-        state.reminderSendingIds = state.reminderSendingIds.filter(
-          (id) => id !== action.payload,
-        );
-      })
-      .addCase(sendBalanceReminder.rejected, (state, action) => {
-        state.reminderSendingIds = state.reminderSendingIds.filter(
-          (id) => id !== action.meta.arg,
-        );
-        state.reminderError = action.payload;
       });
   },
 });

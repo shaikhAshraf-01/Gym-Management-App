@@ -12,7 +12,6 @@ import {
   connectWhatsappAccount,
   disconnectWhatsappAccount,
   updateWhatsappAutomationSettings,
-  sendBalanceReminder,
   testSendWhatsappAutomation,
 } from "../controllers/ownerController.js";
 import {
@@ -90,12 +89,6 @@ router.patch(
   authMiddleware,
   roleMiddleware("owner"),
   updateWhatsappAutomationSettings
-);
-router.post(
-  "/whatsapp/send-balance-reminder/:memberId",
-  authMiddleware,
-  roleMiddleware("owner"),
-  sendBalanceReminder
 );
 router.post(
   "/whatsapp/test-send",

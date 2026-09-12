@@ -8,6 +8,7 @@ import cloudinary from "../config/cloudinary.js"
 import streamifier from "streamifier"
 import { compressImageBuffer } from "../utils/compressImage.js";
 import { emitToAdmins, emitToGym } from "../socket/index.js";
+import { hasActivePlusOrProPlan } from "../utils/planCheck.js";
 import { getFormattedTrainers } from "./gymController.js";
 import { sendWhatsappTemplateMessage } from "../utils/sendWhatsappMessage.js";
 // ================= GET OWNER / TRAINER PROFILE =================
@@ -555,19 +556,7 @@ export const removeTrainerOwner = async (req, res) => {
 // just hidden in the UI, since a Basic-plan request could otherwise
 // hit this endpoint directly.
 
-const PLANS_WITH_WHATSAPP_AUTOMATION = ["Plus", "Pro"];
-
-const assertPlusOrProPlan = async (gymId) => {
-  const activeSub = await GymSubscriptionHistory.findOne({
-    gymId,
-    endDate: { $gte: new Date() },
-  }).sort({ endDate: -1 });
-
-  return (
-    !!activeSub &&
-    PLANS_WITH_WHATSAPP_AUTOMATION.includes(activeSub.subscriptionPlan)
-  );
-};
+const assertPlusOrProPlan = hasActivePlusOrProPlan;
 
 // POST /api/owner/whatsapp/connect
 // Called after the frontend completes Meta's Embedded Signup flow.
@@ -697,7 +686,6 @@ export const updateWhatsappAutomationSettings = async (req, res) => {
         ...current.balanceConfirmation,
         ...(incoming.balanceConfirmation || {}),
       },
-      balanceReminder: { ...current.balanceReminder, ...(incoming.balanceReminder || {}) },
     };
     await gym.save();
 
@@ -718,78 +706,6 @@ export const updateWhatsappAutomationSettings = async (req, res) => {
   }
 };
 
-// POST /api/owner/whatsapp/send-balance-reminder/:memberId
-// Manual, on-demand trigger — owner taps "Send Reminder" next to a
-// member with a pending balance in the Members list. Requires the
-// balanceReminder automation to be turned on (which just unlocks this
-// button; it doesn't run on its own schedule).
-export const sendBalanceReminder = async (req, res) => {
-  try {
-    const { gym } = await findOwnedGym(req.user._id);
-    if (!gym) {
-      return res.status(404).json({ success: false, message: "Gym not found." });
-    }
-
-    if (!(await assertPlusOrProPlan(gym._id))) {
-      return res.status(403).json({
-        success: false,
-        message: "WhatsApp automation is available on Plus and Pro plans only.",
-      });
-    }
-
-    if (!gym.whatsappAutomationSettings?.balanceReminder?.enabled) {
-      return res.status(400).json({
-        success: false,
-        message: "Turn on Balance Reminder in Manage WhatsApp first.",
-      });
-    }
-
-    const member = await Member.findOne({ _id: req.params.memberId, gym: gym._id });
-    if (!member) {
-      return res.status(404).json({ success: false, message: "Member not found." });
-    }
-
-    const latestSub = await MemberSubscriptionHistory.findOne({ member: member._id }).sort({
-      expiryDate: -1,
-    });
-    const balance = Number(latestSub?.balance || 0);
-    if (balance <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "This member has no pending balance.",
-      });
-    }
-
-    // Re-fetch the gym with the access token included — findOwnedGym's
-    // result above has it stripped (select:false).
-    const gymWithToken = await Gym.findById(gym._id).select(
-      "+whatsappIntegration.accessToken"
-    );
-
-    const result = await sendWhatsappTemplateMessage({
-      gym: gymWithToken,
-      toPhone: member.mobile,
-      templateName: gym.whatsappAutomationSettings.balanceReminder.templateName,
-      templateParams: [member.name, String(balance), gym.gymName],
-    });
-
-    if (!result.success) {
-      return res.status(502).json({ success: false, message: result.error });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Balance reminder sent.",
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to send balance reminder.",
-    });
-  }
-};
-
 // POST /api/owner/whatsapp/test-send
 // Owner-triggered dry run — sends ONE real message, straight from the
 // app, using whatever template name is currently saved for the given
@@ -804,7 +720,6 @@ const TEST_SAMPLE_PARAMS = {
   memberWelcome: (gym) => ["Test Member", "Monthly"],
   extendRenewal: (gym) => ["Test Member", "Monthly", "Renewed"],
   balanceConfirmation: (gym) => ["Test Member", "0", gym.gymName],
-  balanceReminder: (gym) => ["Test Member", "500", gym.gymName],
 };
 
 export const testSendWhatsappAutomation = async (req, res) => {

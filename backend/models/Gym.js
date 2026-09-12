@@ -74,15 +74,6 @@ const gymSchema= new mongoose.Schema({
             enabled:{ type:Boolean, default:false },
             templateName:{ type:String, default:"" },
         },
-        // Reminder for a member with a PENDING balance (different from
-        // balanceConfirmation above, which fires once it's cleared).
-        // `enabled` just unlocks the manual "Send Reminder" button in
-        // the Members list — it does not, by itself, auto-send anything
-        // on a schedule (owner triggers it per member, when they choose).
-        balanceReminder:{
-            enabled:{ type:Boolean, default:false },
-            templateName:{ type:String, default:"" },
-        },
     }
 },
 {
