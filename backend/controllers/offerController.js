@@ -1,18 +1,9 @@
 import Gym from "../models/Gym.js";
 import GymOffer from "../models/GymOffer.js";
-import GymSubscriptionHistory from "../models/GymSubscriptionHistory.js";
 import { resolveAudience } from "../utils/resolveAudience.js";
+import { hasActivePlusOrProPlan } from "../utils/planCheck.js";
 
-const PLANS_WITH_WHATSAPP_AUTOMATION = ["Plus", "Pro"];
-
-const assertPlusOrProPlan = async (gymId) => {
-  const activeSub = await GymSubscriptionHistory.findOne({
-    gymId,
-    endDate: { $gte: new Date() },
-  }).sort({ endDate: -1 });
-
-  return !!activeSub && PLANS_WITH_WHATSAPP_AUTOMATION.includes(activeSub.subscriptionPlan);
-};
+const assertPlusOrProPlan = hasActivePlusOrProPlan;
 
 // POST /api/owner/whatsapp/offers
 export const createOffer = async (req, res) => {
