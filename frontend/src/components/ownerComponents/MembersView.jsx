@@ -383,10 +383,10 @@ const buildExtensionMessage = (member) => {
                   }`}
                 >
                   <td className="py-3.5 px-4 font-semibold text-slate-800 dark:text-white">
-                    <div className="flex items-center gap-2">
-                      {member.name}
+                    <div className="flex min-w-0 max-w-48 items-center gap-2">
+                      <span className="truncate">{member.name}</span>
                       {member.admissionType === "offer" && (
-                        <span className="whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-400">
+                        <span className="shrink-0 whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-400">
                           Offer
                         </span>
                       )}
@@ -491,29 +491,29 @@ const buildExtensionMessage = (member) => {
           {filteredMembers.map((member) => (
             <div
               key={member.id}
-              className={`bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl p-4 ${
+              className={`relative bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl p-4 ${
                 member.admissionType === "offer"
                   ? "border border-blue-500/40"
                   : "border border-cyan-500/10"
               }`}
             >
+              {member.admissionType === "offer" && (
+                <span className="absolute -top-2 right-3 rounded-full border border-blue-500/30 bg-blue-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                  Offer
+                </span>
+              )}
               <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h4 className="font-bold text-base text-slate-800 dark:text-white flex items-center gap-1.5">
-                    <User className="h-4 w-4 text-slate-600 dark:text-slate-500" />
-                    {member.name}
-                    {member.admissionType === "offer" && (
-                      <span className="whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-400">
-                        Offer
-                      </span>
-                    )}
+                <div className="min-w-0">
+                  <h4 className="font-bold text-base text-slate-800 dark:text-white flex items-center gap-1.5 min-w-0">
+                    <User className="h-4 w-4 shrink-0 text-slate-600 dark:text-slate-500" />
+                    <span className="break-words">{member.name}</span>
                   </h4>
                   <p className="text-xs text-slate-600 dark:text-slate-500 mt-0.5 flex items-center gap-1.5">
                     <Phone className="h-3.5 w-3.5 text-slate-600 dark:text-slate-500" />
                     {member.mobile}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 shrink-0">
                     <a href={`tel:${member.mobile}`} className="p-2 bg-slate-50 dark:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg cursor-pointer shrink-0 border border-slate-200 dark:border-slate-700" aria-label="Call member">
                       <Phone className="h-3.5 w-3.5" />
                     </a>

@@ -47,6 +47,9 @@ export const updateWhatsappAutomationSettingsApi = (settings) =>
 export const sendBalanceReminderApi = (memberId) =>
   api.post(`/owner/whatsapp/send-balance-reminder/${memberId}`);
 
+export const testSendWhatsappAutomationApi = (automation, toPhone) =>
+  api.post("/owner/whatsapp/test-send", { automation, toPhone });
+
 // ================= OFFER BROADCASTS =================
 export const createOfferApi = (payload) => api.post("/owner/whatsapp/offers", payload);
 

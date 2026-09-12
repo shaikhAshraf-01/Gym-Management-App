@@ -16,6 +16,7 @@ import {
   BellRing,
 } from "lucide-react";
 import PlanSelectionModal from "./PlanSelectionModal";
+import { testSendWhatsappAutomationApi } from "../../api/ownerApi";
 import {
   connectWhatsapp,
   disconnectWhatsapp,
@@ -88,6 +89,70 @@ function LockedUpsell({ onUpgrade }) {
         <Sparkles size={16} />
         Upgrade to Plus
       </button>
+    </div>
+  );
+}
+
+// Small "template name" input + "Send Test" mini-form, dropped into
+// any automation's ToggleRow. Sends ONE real message via the app
+// itself (backend fills realistic sample values) so the owner can
+// confirm a freshly-approved Meta template actually delivers,
+// without waiting for a real member to hit the trigger.
+function TemplateTestField({ automation, templateName, onTemplateNameChange }) {
+  const [testPhone, setTestPhone] = useState("");
+  const [status, setStatus] = useState(null); // { loading, success, message }
+
+  const handleTestSend = async () => {
+    setStatus({ loading: true, success: null, message: "" });
+    try {
+      const response = await testSendWhatsappAutomationApi(automation, testPhone);
+      setStatus({ loading: false, success: true, message: response.data.message });
+    } catch (err) {
+      setStatus({
+        loading: false,
+        success: false,
+        message: err?.response?.data?.message || "Could not send test message.",
+      });
+    }
+  };
+
+  return (
+    <div className="mt-3 space-y-2 border-t border-slate-200 dark:border-slate-800 pt-3">
+      <label className="block text-xs text-slate-600 dark:text-slate-400">
+        Approved Meta template name
+        <input
+          type="text"
+          placeholder="e.g. gym_membership_expiry_reminder"
+          value={templateName || ""}
+          onChange={(e) => onTemplateNameChange(e.target.value.trim())}
+          className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-sm text-slate-700 dark:text-slate-100 outline-none focus:border-lime-400"
+        />
+      </label>
+
+      <div className="flex gap-2">
+        <input
+          type="tel"
+          placeholder="10-digit test number"
+          value={testPhone}
+          maxLength={10}
+          onChange={(e) => setTestPhone(e.target.value.replace(/\D/g, ""))}
+          className="w-36 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-sm text-slate-700 dark:text-slate-100 outline-none focus:border-lime-400"
+        />
+        <button
+          type="button"
+          disabled={!templateName || testPhone.length !== 10 || status?.loading}
+          onClick={handleTestSend}
+          className="rounded-lg bg-cyan-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {status?.loading ? "Sending..." : "Send Test"}
+        </button>
+      </div>
+
+      {status && !status.loading && (
+        <p className={`text-xs font-medium ${status.success ? "text-emerald-400" : "text-rose-400"}`}>
+          {status.message}
+        </p>
+      )}
     </div>
   );
 }
@@ -366,6 +431,14 @@ export default function ManageWhatsApp() {
                   />
                   day(s) before expiry
                 </label>
+
+                <TemplateTestField
+                  automation="expiryReminder"
+                  templateName={settings.expiryReminder.templateName}
+                  onTemplateNameChange={(templateName) =>
+                    handleExpiryReminderChange({ templateName })
+                  }
+                />
               </ToggleRow>
 
               <ToggleRow
@@ -376,7 +449,15 @@ export default function ManageWhatsApp() {
                 checked={settings.memberWelcome.enabled}
                 onChange={(v) => handleMemberWelcomeChange({ enabled: v })}
                 disabled={!settings.enabled}
-              />
+              >
+                <TemplateTestField
+                  automation="memberWelcome"
+                  templateName={settings.memberWelcome.templateName}
+                  onTemplateNameChange={(templateName) =>
+                    handleMemberWelcomeChange({ templateName })
+                  }
+                />
+              </ToggleRow>
 
               <ToggleRow
                 icon={RefreshCw}
@@ -386,7 +467,15 @@ export default function ManageWhatsApp() {
                 checked={settings.extendRenewal.enabled}
                 onChange={(v) => handleExtendRenewalChange({ enabled: v })}
                 disabled={!settings.enabled}
-              />
+              >
+                <TemplateTestField
+                  automation="extendRenewal"
+                  templateName={settings.extendRenewal.templateName}
+                  onTemplateNameChange={(templateName) =>
+                    handleExtendRenewalChange({ templateName })
+                  }
+                />
+              </ToggleRow>
 
               <ToggleRow
                 icon={Wallet}
@@ -396,7 +485,15 @@ export default function ManageWhatsApp() {
                 checked={settings.balanceConfirmation.enabled}
                 onChange={(v) => handleBalanceConfirmationChange({ enabled: v })}
                 disabled={!settings.enabled}
-              />
+              >
+                <TemplateTestField
+                  automation="balanceConfirmation"
+                  templateName={settings.balanceConfirmation.templateName}
+                  onTemplateNameChange={(templateName) =>
+                    handleBalanceConfirmationChange({ templateName })
+                  }
+                />
+              </ToggleRow>
 
               <ToggleRow
                 icon={BellRing}
@@ -406,7 +503,15 @@ export default function ManageWhatsApp() {
                 checked={settings.balanceReminder.enabled}
                 onChange={(v) => handleBalanceReminderChange({ enabled: v })}
                 disabled={!settings.enabled}
-              />
+              >
+                <TemplateTestField
+                  automation="balanceReminder"
+                  templateName={settings.balanceReminder.templateName}
+                  onTemplateNameChange={(templateName) =>
+                    handleBalanceReminderChange({ templateName })
+                  }
+                />
+              </ToggleRow>
             </div>
           </div>
 

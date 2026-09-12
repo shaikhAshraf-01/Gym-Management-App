@@ -13,6 +13,7 @@ import {
   disconnectWhatsappAccount,
   updateWhatsappAutomationSettings,
   sendBalanceReminder,
+  testSendWhatsappAutomation,
 } from "../controllers/ownerController.js";
 import {
   createOffer,
@@ -95,6 +96,12 @@ router.post(
   authMiddleware,
   roleMiddleware("owner"),
   sendBalanceReminder
+);
+router.post(
+  "/whatsapp/test-send",
+  authMiddleware,
+  roleMiddleware("owner"),
+  testSendWhatsappAutomation
 );
 
 // ============ OFFER BROADCASTS (owner-only, Plus/Pro gated in controller) ============

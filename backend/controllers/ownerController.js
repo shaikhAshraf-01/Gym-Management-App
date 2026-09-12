@@ -789,3 +789,96 @@ export const sendBalanceReminder = async (req, res) => {
     });
   }
 };
+
+// POST /api/owner/whatsapp/test-send
+// Owner-triggered dry run — sends ONE real message, straight from the
+// app, using whatever template name is currently saved for the given
+// automation, filled with realistic sample values (not a real
+// member). Lets the owner confirm a freshly-approved Meta template
+// actually delivers before it goes live on the real cron/triggers.
+const TEST_SAMPLE_PARAMS = {
+  expiryReminder: (gym, settings) => [
+    "Test Member",
+    String(settings.expiryReminder?.daysBefore || 3),
+  ],
+  memberWelcome: (gym) => ["Test Member", "Monthly"],
+  extendRenewal: (gym) => ["Test Member", "Monthly", "Renewed"],
+  balanceConfirmation: (gym) => ["Test Member", "0", gym.gymName],
+  balanceReminder: (gym) => ["Test Member", "500", gym.gymName],
+};
+
+export const testSendWhatsappAutomation = async (req, res) => {
+  try {
+    const { automation, toPhone } = req.body;
+
+    if (!TEST_SAMPLE_PARAMS[automation]) {
+      return res.status(400).json({
+        success: false,
+        message: "Unknown automation type.",
+      });
+    }
+
+    const cleanPhone = String(toPhone || "").replace(/\D/g, "");
+    if (cleanPhone.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter a valid 10-digit mobile number to test with.",
+      });
+    }
+
+    const { gym } = await findOwnedGym(req.user._id);
+    if (!gym) {
+      return res.status(404).json({ success: false, message: "Gym not found." });
+    }
+
+    if (!(await assertPlusOrProPlan(gym._id))) {
+      return res.status(403).json({
+        success: false,
+        message: "WhatsApp automation is available on Plus and Pro plans only.",
+      });
+    }
+
+    if (!gym.whatsappIntegration?.connected) {
+      return res.status(400).json({
+        success: false,
+        message: "Connect your WhatsApp Business Account first.",
+      });
+    }
+
+    const templateName = gym.whatsappAutomationSettings?.[automation]?.templateName;
+    if (!templateName) {
+      return res.status(400).json({
+        success: false,
+        message: "Save a template name for this automation before testing it.",
+      });
+    }
+
+    // Re-fetch with the access token included — findOwnedGym's result
+    // above has it stripped (select:false).
+    const gymWithToken = await Gym.findById(gym._id).select(
+      "+whatsappIntegration.accessToken"
+    );
+
+    const result = await sendWhatsappTemplateMessage({
+      gym: gymWithToken,
+      toPhone: cleanPhone,
+      templateName,
+      templateParams: TEST_SAMPLE_PARAMS[automation](gym, gym.whatsappAutomationSettings),
+    });
+
+    if (!result.success) {
+      return res.status(502).json({ success: false, message: result.error });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Test "${automation}" message sent using template "${templateName}".`,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send test message.",
+    });
+  }
+};

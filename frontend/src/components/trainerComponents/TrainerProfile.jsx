@@ -72,10 +72,10 @@ export default function TrainerProfile() {
             )}
           </div>
         <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-cyan-400">Trainer profile</p>
-        <h1 className="mt-2 text-2xl font-extrabold text-slate-800 dark:text-white md:text-3xl">
+        <h1 className="mt-2 break-words text-2xl font-extrabold text-slate-800 dark:text-white md:text-3xl">
           {trainer.name}
         </h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{gym.gymName}</p>
+        <p className="mt-1 break-words text-sm text-slate-600 dark:text-slate-400">{gym.gymName}</p>
       </div>
       <div className="mt-6 space-y-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xl">
 
@@ -83,7 +83,7 @@ export default function TrainerProfile() {
             <p className="text-xs uppercase tracking-wider text-slate-600 dark:text-slate-500">
             Trainer name
           </p>
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-100">
+          <p className="break-words text-sm font-semibold text-slate-700 dark:text-slate-100">
             {trainer.name}
           </p>
         </div>

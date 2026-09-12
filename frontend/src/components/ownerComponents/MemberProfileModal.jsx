@@ -67,8 +67,7 @@ async function shareReceiptPdf({ gym, member, entry }) {
   doc.setFillColor(...INK);
   doc.rect(0, 0, pageWidth, headerHeight, "F");
 
-  // Badge (top-right, rounded pill) — measured first so the gym name
-  // knows how much width it has to work with.
+  // Badge (top-right, rounded pill)
   const badgeLabel = isGstInvoice ? "TAX INVOICE" : "RECEIPT";
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
@@ -78,9 +77,7 @@ async function shareReceiptPdf({ gym, member, entry }) {
   const badgeX = pageWidth - margin - badgeW;
   const badgeY = 24;
 
-  // Gym name — shrink font size to fit the space left of the badge,
-  // then truncate with an ellipsis as a last resort for very long
-  // names, so it never runs under/over the badge.
+  // Gym name
   const nameMaxWidth = badgeX - margin - 12;
   let nameFontSize = 17;
   doc.setFont("helvetica", "bold");
@@ -119,7 +116,7 @@ async function shareReceiptPdf({ gym, member, entry }) {
   doc.setTextColor(0, 0, 0);
   let y = headerHeight + 30;
 
-  // ============== META ROW: Billed To  /  Invoice details ==============
+  // ============== META ROW: Billed To / Invoice details ==============
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
   doc.setTextColor(...MUTED);
@@ -274,8 +271,6 @@ async function shareReceiptPdf({ gym, member, entry }) {
       });
       return;
     } catch (err) {
-      // User cancelled the share sheet, or share failed — fall back
-      // to a plain download instead of leaving them with nothing.
       if (err?.name === "AbortError") return;
     }
   }
@@ -283,10 +278,6 @@ async function shareReceiptPdf({ gym, member, entry }) {
   doc.save(fileName);
 }
 
-// ---------------------------------------------------------------
-// Same gap-formatting helpers as the old MemberHistoryModal — history
-// now lives here instead of in its own separate modal.
-// ---------------------------------------------------------------
 function formatGap(days) {
   if (!days || days <= 0) return null;
 
@@ -350,7 +341,6 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
   const activities = member.activities || [];
   const history = [...(member.membershipHistory || [])].reverse();
 
-  // Same native-app-first WhatsApp deep link used across the app.
   const handleOpenWhatsAppChat = (mobile) => {
     const cleanPhone = String(mobile || "").replace(/\D/g, "");
     if (cleanPhone.length !== 10) return;
@@ -407,36 +397,21 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
 
       <div className="p-4 max-w-2xl mx-auto pb-10">
 
-        {/* ---------------------------------------------------
-            DETAILS CARD
-        --------------------------------------------------- */}
-        <div
-          className={`bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl p-5 mb-4 ${
-            member.admissionType === "offer"
-              ? "border border-blue-500/40"
-              : "border border-cyan-500/10"
-          }`}
-        >
+        {/* DETAILS CARD */}
+        <div className="relative bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl p-5 mb-4 border border-cyan-500/10">
           <div className="flex items-start gap-4 mb-4">
             <div className="h-16 w-16 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-2xl shrink-0">
               {initials || <UserIcon className="h-7 w-7" />}
             </div>
 
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3 flex-1">
-              <div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3 flex-1 min-w-0">
+              <div className="col-span-2 sm:col-span-1 min-w-0">
                 <p className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-500 tracking-wider">Name</p>
-                <p className="font-bold text-slate-800 dark:text-white mt-0.5 flex items-center gap-1.5">
-                  {member.name}
-                  {member.admissionType === "offer" && (
-                    <span className="whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-400">
-                      Offer
-                    </span>
-                  )}
-                </p>
+                <p className="break-words font-bold text-slate-800 dark:text-white mt-0.5">{member.name}</p>
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1 min-w-0">
                 <p className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-500 tracking-wider">Mobile</p>
-                <p className="font-semibold text-slate-700 dark:text-slate-200 mt-0.5">{member.mobile}</p>
+                <p className="break-words font-semibold text-slate-700 dark:text-slate-200 mt-0.5">{member.mobile}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-500 tracking-wider">Age</p>
@@ -481,9 +456,7 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
           </div>
         </div>
 
-        {/* ---------------------------------------------------
-            CURRENT PLAN SUMMARY
-        --------------------------------------------------- */}
+        {/* CURRENT PLAN SUMMARY */}
         <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm border border-cyan-500/10 rounded-xl p-5 mb-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">Current Plan</p>
@@ -524,93 +497,130 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
           </div>
         </div>
 
-        {/* ---------------------------------------------------
-            MEMBERSHIP HISTORY (embedded — no separate modal now)
-        --------------------------------------------------- */}
+        {/* MEMBERSHIP HISTORY (Cleaned Card Layout) */}
         <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm border border-cyan-500/10 rounded-xl p-5 mb-4">
-          <p className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-1">Membership History</p>
+          <p className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-1">
+            Membership History
+          </p>
           <p className="text-xs text-slate-600 dark:text-slate-500 mb-4">
-            <span className="font-semibold text-slate-600 dark:text-slate-400">{member.addedBy || "Unknown"}</span> originally added this member.
+            <span className="font-semibold text-slate-600 dark:text-slate-400">
+              {member.addedBy || "Unknown"}
+            </span>{" "}
+            originally added this member.
           </p>
 
           {history.length === 0 ? (
-            <p className="text-center text-xs text-slate-600 dark:text-slate-500 py-6">No membership history recorded yet.</p>
+            <p className="text-center text-xs text-slate-600 dark:text-slate-500 py-6">
+              No membership history recorded yet.
+            </p>
           ) : (
-            <div className="space-y-0">
+            <div className="space-y-3">
               {history.map((entry, idx) => {
                 const olderEntry = history[idx + 1];
-                const gapDays = olderEntry ? daysBetween(olderEntry.endDate, entry.startDate) : 0;
+                const gapDays = olderEntry
+                  ? daysBetween(olderEntry.endDate, entry.startDate)
+                  : 0;
                 const gapLabel = gapDays > 1 ? formatGap(gapDays) : null;
 
                 return (
                   <React.Fragment key={entry.id}>
-                    <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 mb-3 bg-white dark:bg-slate-900/40">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1.5">
-                        {idx === 0 && (
-                          <span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                            Current
+                    <div
+                      className={`border rounded-xl p-4 bg-white dark:bg-slate-900/40 space-y-3 ${
+                        entry.admissionType === "offer"
+                          ? "border-blue-500/40"
+                          : "border-slate-200 dark:border-slate-800"
+                      }`}
+                    >
+                      {/* Row 1: Badges & Amount */}
+                      <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/60 pb-2.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {idx === 0 && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                              Current
+                            </span>
+                          )}
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              entry.type === "joined"
+                                ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                : entry.type === "renewed"
+                                ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                                : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            }`}
+                          >
+                            {entry.type === "joined" ? (
+                              <UserPlus className="h-3 w-3" />
+                            ) : (
+                              <RefreshCw className="h-3 w-3" />
+                            )}
+                            {entry.type === "joined"
+                              ? "Joined"
+                              : entry.type === "renewed"
+                              ? "Renewed"
+                              : "Extended"}
                           </span>
-                        )}
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          entry.type === "joined"
-                            ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                            : entry.type === "renewed"
-                            ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-                            : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                        }`}>
-                          {entry.type === "joined" ? <UserPlus className="h-3 w-3" /> : <RefreshCw className="h-3 w-3" />}
-                          {entry.type === "joined" ? "Joined" : entry.type === "renewed" ? "Renewed" : "Extended"}
-                        </span>
-                        {entry.admissionType === "offer" && (
-                          <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-400">
-                            Offer
-                          </span>
-                        )}
+
+                          {entry.admissionType === "offer" && (
+                            <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-400">
+                              Offer
+                            </span>
+                          )}
                         </div>
-                        <span className="text-xs font-bold text-slate-800 dark:text-white">
+
+                        <span className="text-sm font-bold text-slate-800 dark:text-white shrink-0">
                           ₹{Number(entry.amount || 0).toLocaleString("en-IN")}
                         </span>
                       </div>
 
-                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                        {PLAN_LABELS[entry.plan] || entry.plan}
-                      </p>
+                      {/* Row 2: Plan Name & Date Duration */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                          {PLAN_LABELS[entry.plan] || entry.plan} Membership
+                        </span>
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                          {entry.startDate} <span className="text-slate-400">→</span> {entry.endDate}
+                        </span>
+                      </div>
+
+                      {/* Row 3: Activities (Only if present) */}
                       {entry.activities?.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
                           {entry.activities.map((activity) => (
                             <span
                               key={activity}
-                              className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full text-[10px] font-medium capitalize"
+                              className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-md text-[10px] font-medium capitalize"
                             >
                               {activity}
                             </span>
                           ))}
                         </div>
                       )}
-                      <p className="text-xs text-slate-600 dark:text-slate-500 mt-0.5">
-                        {entry.startDate} → {entry.endDate}
-                      </p>
-                      <div className="flex items-center justify-between mt-1.5">
-                        <p className="text-[11px] text-slate-600 dark:text-slate-500 flex items-center gap-1">
-                          <UserIcon className="h-3 w-3" />
-                          Added by <span className="font-medium text-slate-600 dark:text-slate-300">{entry.by}</span> on {entry.date}
+
+                      {/* Row 4: Added By Info & Receipt Action */}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/60 text-xs">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 min-w-0 truncate">
+                          <UserIcon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                          <span className="truncate">
+                            Added by <strong className="font-semibold text-slate-700 dark:text-slate-300">{entry.by}</strong> on {entry.date}
+                          </span>
                         </p>
+
                         <button
                           onClick={() => handleShareReceipt(entry)}
                           disabled={sharingReceiptId === entry.id}
-                          className="flex items-center gap-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 px-2 py-1 text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/20 disabled:opacity-60 shrink-0 cursor-pointer"
+                          className="flex items-center gap-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1 text-[11px] font-bold text-cyan-400 hover:bg-cyan-500/20 disabled:opacity-60 shrink-0 cursor-pointer transition-colors ml-2"
                         >
-                          <FileText className="h-3 w-3" />
+                          <FileText className="h-3.5 w-3.5" />
                           {sharingReceiptId === entry.id ? "Preparing..." : "Receipt"}
                         </button>
                       </div>
                     </div>
 
+                    {/* Gap Indicator */}
                     {gapLabel && (
-                      <div className="flex items-center gap-2 pl-1 mb-3 -mt-1">
-                        <div className="w-px h-4 bg-amber-500/30 ml-3" />
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-0.5">
+                      <div className="flex items-center gap-2 pl-3 my-2">
+                        <div className="w-0.5 h-4 bg-amber-500/30 ml-2" />
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">
                           <Hourglass className="h-2.5 w-2.5" />
                           {gapLabel} gap before renewing
                         </span>
@@ -623,9 +633,7 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
           )}
         </div>
 
-        {/* ---------------------------------------------------
-            DELETE (moved here from the old ⋮ dropdown)
-        --------------------------------------------------- */}
+        {/* DELETE ACTIONS */}
         <div className="border-t border-slate-200 dark:border-slate-800 pt-4 space-y-2">
           {confirmingCurrentDelete ? (
             <div className="border border-amber-500/20 bg-amber-500/5 rounded-lg p-3">

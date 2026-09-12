@@ -532,7 +532,7 @@ export default function OwnerProfile() {
           )}
 
           <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-cyan-400">Owner profile</p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-800 dark:text-white">{gym.gymName}</h1>
+          <h1 className="mt-1 break-words text-2xl font-bold text-slate-800 dark:text-white">{gym.gymName}</h1>
 
           <p className="mt-1 flex items-center gap-1 text-sm text-slate-400">
             <Building2 size={14} />
@@ -548,18 +548,18 @@ export default function OwnerProfile() {
 
           <div className="space-y-5">
             <div className="flex items-center gap-3">
-              <User size={18} className="text-blue-600" />
-              <div>
+              <User size={18} className="shrink-0 text-blue-600" />
+              <div className="min-w-0">
                 <p className="text-xs text-slate-500">Owner Name</p>
-                <p className="font-semibold text-slate-700 dark:text-slate-100">{owner.name}</p>
+                <p className="break-words font-semibold text-slate-700 dark:text-slate-100">{owner.name}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <Phone size={18} className="text-blue-600" />
-              <div>
+              <Phone size={18} className="shrink-0 text-blue-600" />
+              <div className="min-w-0">
                 <p className="text-xs text-slate-500">Mobile Number</p>
-                <p className="font-semibold text-slate-700 dark:text-slate-100">{owner.mobile}</p>
+                <p className="break-words font-semibold text-slate-700 dark:text-slate-100">{owner.mobile}</p>
               </div>
             </div>
 
