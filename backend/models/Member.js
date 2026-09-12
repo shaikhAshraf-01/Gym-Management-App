@@ -38,6 +38,21 @@ const memberSchema = new mongoose.Schema(
       ref: "Trainer",
       default: null,
     },
+
+    // ---- Soft delete ----
+    // Instead of removing a member outright, "Delete" now just flags
+    // them here so the owner can review/restore from Profile ->
+    // Deleted Members before anything is permanently removed.
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

@@ -30,7 +30,7 @@ export default function OwnerLayout() {
   };
 
   return ( 
-    <div className="flex min-h-[100dvh] flex-col bg-slate-950 relative md:flex-row"> 
+    <div className="flex min-h-[100dvh] flex-col bg-slate-50 dark:bg-slate-950 relative md:flex-row"> 
       {/* Sidebar remains interactive or visually present in the background */}
       <OwnerSidebar /> 
 

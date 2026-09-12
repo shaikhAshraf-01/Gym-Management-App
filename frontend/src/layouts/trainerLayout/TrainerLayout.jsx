@@ -35,7 +35,7 @@ export default function TrainerLayout() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-slate-950 relative md:flex-row">
+    <div className="flex min-h-[100dvh] flex-col bg-slate-50 dark:bg-slate-950 relative md:flex-row">
       <TrainerSidebar />
 
       <div className="min-h-[100dvh] min-w-0 flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:ml-64 md:pb-8">

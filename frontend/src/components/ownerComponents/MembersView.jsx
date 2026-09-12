@@ -272,22 +272,22 @@ const buildExtensionMessage = (member) => {
   };
 
   return (
-    <div className="w-full text-slate-400 animate-in fade-in duration-200">
+    <div className="w-full text-slate-600 dark:text-slate-400 animate-in fade-in duration-200">
       
       {/* 🔍 SEARCH BAR */}
       <div className="relative mb-3 w-full">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-4 w-4 text-slate-500" />
+          <Search className="h-4 w-4 text-slate-600 dark:text-slate-500" />
         </div>
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search members by name or mobile number..."
-          className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg pl-10 pr-10 py-2.5 text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:bg-slate-800 transition-all shadow-sm"
+          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg pl-10 pr-10 py-2.5 text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:bg-slate-50 dark:focus:bg-slate-800 transition-all shadow-sm"
         />
         {searchQuery && (
-          <button onClick={() => setSearchQuery("")} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer">
+          <button onClick={() => setSearchQuery("")} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-600 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer">
             <X className="h-4 w-4" />
           </button>
         )}
@@ -295,7 +295,7 @@ const buildExtensionMessage = (member) => {
 
       {/* 🧰 STATUS FILTER + SORT + CSV */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
-        <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-lg">
+        <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-lg">
           {[
             { value: "all", label: "All", count: allCount },
             { value: "active", label: "Active", count: activeCount },
@@ -306,8 +306,8 @@ const buildExtensionMessage = (member) => {
               onClick={() => setStatusFilter(opt.value)}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                 statusFilter === opt.value
-                  ? "bg-slate-700 text-white shadow-sm"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
               }`}
             >
               {opt.label} ({opt.count})
@@ -319,12 +319,12 @@ const buildExtensionMessage = (member) => {
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
-            className="appearance-none pl-3 pr-8 py-2 rounded-lg text-xs font-medium border border-slate-700 bg-slate-800 text-slate-200 cursor-pointer hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="appearance-none pl-3 pr-8 py-2 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
           >
             <option value="newest">Newest to Oldest</option>
             <option value="oldest">Oldest to Newest</option>
           </select>
-          <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-600 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
@@ -334,7 +334,7 @@ const buildExtensionMessage = (member) => {
           onClick={handleDownloadCsv}
           disabled={filteredMembers.length === 0}
           title="Download CSV of the current view"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           <Download className="h-3.5 w-3.5" />
           <span>CSV</span>
@@ -343,14 +343,14 @@ const buildExtensionMessage = (member) => {
 
       {/* LOADING STATE */}
       {loading && (
-        <div className="text-center py-12 text-slate-500 border border-dashed border-slate-800 rounded-xl">
+        <div className="text-center py-12 text-slate-600 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
           <p className="text-sm font-medium">Loading members...</p>
         </div>
       )}
 
       {/* FALLBACK NO RESULTS */}
       {!loading && filteredMembers.length === 0 && (
-        <div className="text-center py-12 text-slate-500 border border-dashed border-slate-800 rounded-xl">
+        <div className="text-center py-12 text-slate-600 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
           <p className="text-sm font-medium">No members match your search criteria.</p>
         </div>
       )}
@@ -360,7 +360,7 @@ const buildExtensionMessage = (member) => {
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-800 bg-slate-900/80 text-slate-500 text-xs font-bold uppercase tracking-wider">
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 text-slate-600 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">
                 <th className="py-3 px-4">Name</th>
                 <th className="py-3 px-4">Mobile No.</th>
                 <th className="py-3 px-4">Plan</th>
@@ -372,17 +372,17 @@ const buildExtensionMessage = (member) => {
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800 text-sm">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
               {filteredMembers.map((member) => (
                 <tr
                   key={member.id}
-                  className={`hover:bg-slate-800/50 transition-colors ${
+                  className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${
                     member.admissionType === "offer"
                       ? "border-l-2 border-l-blue-500"
                       : ""
                   }`}
                 >
-                  <td className="py-3.5 px-4 font-semibold text-white">
+                  <td className="py-3.5 px-4 font-semibold text-slate-800 dark:text-white">
                     <div className="flex items-center gap-2">
                       {member.name}
                       {member.admissionType === "offer" && (
@@ -392,7 +392,7 @@ const buildExtensionMessage = (member) => {
                       )}
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-slate-400">{member.mobile}</td>
+                  <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400">{member.mobile}</td>
                   <td className="py-3.5 px-4">
                     <span className="inline-block whitespace-nowrap bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-md text-xs font-medium">
                       {PLAN_LABELS[member.plan] || member.plan}
@@ -413,9 +413,9 @@ const buildExtensionMessage = (member) => {
                       )}
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-slate-400">{member.joiningDate}</td>
-                  <td className="py-3.5 px-4 text-slate-400">{member.expiryDate}</td>
-                  <td className="py-3.5 px-4 font-medium text-white">₹{member.planAmount}</td>
+                  <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400">{member.joiningDate}</td>
+                  <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400">{member.expiryDate}</td>
+                  <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-white">₹{member.planAmount}</td>
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-1.5">
                       <span className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-400" : "text-emerald-400"}`}>
@@ -445,13 +445,13 @@ const buildExtensionMessage = (member) => {
                   </td>
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex justify-end items-center gap-2">
-                      <a href={`tel:${member.mobile}`} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md border border-slate-700 transition-colors cursor-pointer" title="Call Member">
+                      <a href={`tel:${member.mobile}`} className="p-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" title="Call Member">
                         <Phone className="h-3.5 w-3.5" />
                       </a>
                       <button onClick={() => handleOpenWhatsAppChat(member.mobile)} className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-md border border-emerald-500/20 transition-colors cursor-pointer" title="Open WhatsApp chat">
                         <MessageCircle className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => handleViewProfile(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-xs font-semibold rounded-md border border-cyan-500/20 transition-colors cursor-pointer">
+                      <button onClick={() => handleViewProfile(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-400 hover:bg-gray-500 text-white dark:bg-cyan-500/10 dark:hover:bg-cyan-500/20 dark:text-cyan-400 dark:border-cyan-500/20 text-xs font-semibold rounded-md dark:border transition-colors cursor-pointer">
                         <User className="h-3.5 w-3.5" />
                         <span>Profile</span>
                       </button>
@@ -472,7 +472,7 @@ const buildExtensionMessage = (member) => {
                           }}
                         />
                       ) : (
-                        <button onClick={() => handleExtend(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-md border border-emerald-500/20 transition-colors cursor-pointer">
+                        <button onClick={() => handleExtend(member)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/20 text-xs font-semibold rounded-md dark:border transition-colors cursor-pointer">
                           <CalendarPlus className="h-3.5 w-3.5" />
                           <span>Extend</span>
                         </button>
@@ -491,7 +491,7 @@ const buildExtensionMessage = (member) => {
           {filteredMembers.map((member) => (
             <div
               key={member.id}
-              className={`bg-slate-900/60 backdrop-blur-sm rounded-xl p-4 ${
+              className={`bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl p-4 ${
                 member.admissionType === "offer"
                   ? "border border-blue-500/40"
                   : "border border-cyan-500/10"
@@ -499,8 +499,8 @@ const buildExtensionMessage = (member) => {
             >
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <h4 className="font-bold text-base text-white flex items-center gap-1.5">
-                    <User className="h-4 w-4 text-slate-500" />
+                  <h4 className="font-bold text-base text-slate-800 dark:text-white flex items-center gap-1.5">
+                    <User className="h-4 w-4 text-slate-600 dark:text-slate-500" />
                     {member.name}
                     {member.admissionType === "offer" && (
                       <span className="whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-400">
@@ -508,13 +508,13 @@ const buildExtensionMessage = (member) => {
                       </span>
                     )}
                   </h4>
-                  <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5 text-slate-500" />
+                  <p className="text-xs text-slate-600 dark:text-slate-500 mt-0.5 flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5 text-slate-600 dark:text-slate-500" />
                     {member.mobile}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <a href={`tel:${member.mobile}`} className="p-2 bg-slate-800 active:bg-slate-700 text-slate-300 rounded-lg cursor-pointer shrink-0 border border-slate-700" aria-label="Call member">
+                    <a href={`tel:${member.mobile}`} className="p-2 bg-slate-50 dark:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg cursor-pointer shrink-0 border border-slate-200 dark:border-slate-700" aria-label="Call member">
                       <Phone className="h-3.5 w-3.5" />
                     </a>
 
@@ -524,13 +524,13 @@ const buildExtensionMessage = (member) => {
                   </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 border-t border-b border-slate-800 py-3 my-3 text-xs">
+              <div className="grid grid-cols-2 gap-2 border-t border-b border-slate-200 dark:border-slate-800 py-3 my-3 text-xs">
                 <div className="min-w-0">
-                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Active Plan</p>
+                  <p className="text-slate-600 dark:text-slate-500 uppercase font-bold tracking-wider text-[10px]">Active Plan</p>
                   <p className="font-semibold text-cyan-400 mt-0.5 whitespace-nowrap">{PLAN_LABELS[member.plan] || member.plan}</p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Activities</p>
+                  <p className="text-slate-600 dark:text-slate-500 uppercase font-bold tracking-wider text-[10px]">Activities</p>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {(member.activities || []).length > 0 ? (
                       member.activities.map((activity) => (
@@ -547,23 +547,23 @@ const buildExtensionMessage = (member) => {
                   </div>
                 </div>
                 <div>
-                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px] flex items-center gap-1">
+                  <p className="text-slate-600 dark:text-slate-500 uppercase font-bold tracking-wider text-[10px] flex items-center gap-1">
                     <Calendar className="h-3 w-3" /> Start Date
                   </p>
-                  <p className="font-semibold text-slate-300 mt-0.5">{member.joiningDate}</p>
+                  <p className="font-semibold text-slate-600 dark:text-slate-300 mt-0.5">{member.joiningDate}</p>
                 </div>
                 <div>
-                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px] flex items-center gap-1">
+                  <p className="text-slate-600 dark:text-slate-500 uppercase font-bold tracking-wider text-[10px] flex items-center gap-1">
                     <CalendarX className="h-3 w-3" /> End Date
                   </p>
-                  <p className="font-semibold text-slate-300 mt-0.5">{member.expiryDate}</p>
+                  <p className="font-semibold text-slate-600 dark:text-slate-300 mt-0.5">{member.expiryDate}</p>
                 </div>
                 <div className="pt-1.5">
-                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Total Fees</p>
-                  <p className="font-semibold text-white mt-0.5">₹{member.planAmount}</p>
+                  <p className="text-slate-600 dark:text-slate-500 uppercase font-bold tracking-wider text-[10px]">Total Fees</p>
+                  <p className="font-semibold text-slate-800 dark:text-white mt-0.5">₹{member.planAmount}</p>
                 </div>
                 <div className="pt-1.5">
-                  <p className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Balance Outstanding</p>
+                  <p className="text-slate-600 dark:text-slate-500 uppercase font-bold tracking-wider text-[10px]">Balance Outstanding</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <p className={`font-bold ${Number(member.balanceAmount) > 0 ? "text-red-400" : "text-emerald-400"}`}>
                       ₹{member.balanceAmount}
@@ -592,7 +592,7 @@ const buildExtensionMessage = (member) => {
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-1">
-                <button onClick={() => handleViewProfile(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-cyan-500/10 active:bg-cyan-500/20 text-cyan-400 font-bold text-xs uppercase tracking-wider rounded-lg border border-cyan-500/20 cursor-pointer">
+                <button onClick={() => handleViewProfile(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-gray-400 active:bg-gray-500 text-white dark:bg-cyan-500/10 dark:active:bg-cyan-500/20 dark:text-cyan-400 dark:border-cyan-500/20 font-bold text-xs uppercase tracking-wider rounded-lg dark:border cursor-pointer">
                   <User className="h-3.5 w-3.5" />
                   <span>Profile</span>
                 </button>
@@ -613,7 +613,7 @@ const buildExtensionMessage = (member) => {
                           }}
                   />
                 ) : (
-                  <button onClick={() => handleExtend(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm cursor-pointer">
+                  <button onClick={() => handleExtend(member)} className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-green-500 active:bg-green-600 dark:bg-emerald-600 dark:active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm cursor-pointer">
                     <CalendarPlus className="h-3.5 w-3.5" />
                     <span>Extend</span>
                   </button>

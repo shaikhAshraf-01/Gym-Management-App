@@ -12,3 +12,10 @@ export const deleteCurrentMembershipApi = (id) =>
 	api.delete(`/owner/members/${id}/current-membership`);
 
 export const extendMembershipApi = (id, data) => api.post(`/owner/members/${id}/extend`, data);
+
+// ---- Deleted Members (owner only) ----
+export const getDeletedMembersApi = () => api.get("/owner/members/deleted");
+
+export const restoreMemberApi = (id) => api.patch(`/owner/members/${id}/restore`);
+
+export const permanentDeleteMemberApi = (id) => api.delete(`/owner/members/${id}/permanent`);

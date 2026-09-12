@@ -21,9 +21,14 @@ import {
   MessageCircle,
   Lock,
   ChevronRight,
+  Sun,
+  Moon,
+  RotateCcw,
+  UserX,
 } from "lucide-react";
 
 import { performLogout } from "../../redux/slices/authSlice";
+import { useTheme } from "../../context/ThemeContext";
 import {
   fetchOwnerProfile,
   uploadGymLogo,
@@ -36,6 +41,12 @@ import {
   updateGymGstDetails,
   clearGstActionError,
 } from "../../redux/slices/ownerSlice";
+import {
+  fetchDeletedMembers,
+  restoreMember,
+  permanentDeleteMember,
+  PLAN_LABELS,
+} from "../../redux/slices/membersSlice";
 
 const EMPTY_TRAINER_FORM = { name: "", mobile: "", email: "" };
 
@@ -53,21 +64,21 @@ function TrainerForm({ initial, onCancel, onSubmit, submitting }) {
         e.preventDefault();
         onSubmit(form);
       }}
-      className="space-y-2.5 rounded-xl border border-slate-800 bg-slate-950 p-3.5"
+      className="space-y-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3.5"
     >
       <input
         required
         placeholder="Trainer name"
         value={form.name}
         onChange={handleChange("name")}
-        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"
+        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-100 outline-none focus:border-cyan-400"
       />
       <input
         required
         placeholder="Mobile number"
         value={form.mobile}
         onChange={handleChange("mobile")}
-        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"
+        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-100 outline-none focus:border-cyan-400"
       />
       <input
         required
@@ -75,7 +86,7 @@ function TrainerForm({ initial, onCancel, onSubmit, submitting }) {
         placeholder="Email address"
         value={form.email}
         onChange={handleChange("email")}
-        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"
+        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-100 outline-none focus:border-cyan-400"
       />
       <div className="flex gap-2 pt-1">
         <button
@@ -88,7 +99,7 @@ function TrainerForm({ initial, onCancel, onSubmit, submitting }) {
         <button
           type="button"
           onClick={onCancel}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-800 py-2 text-sm font-bold text-slate-300 hover:bg-slate-700"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 py-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
         >
           <X size={14} /> Cancel
         </button>
@@ -134,7 +145,7 @@ function TrainersSection() {
   };
 
   return (
-    <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+    <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xl">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-sm font-bold uppercase text-slate-500">
           <Users size={16} className="text-cyan-400" /> Trainers
@@ -196,10 +207,10 @@ function TrainersSection() {
             ) : (
               <div
                 key={trainer.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3.5"
+                className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3.5"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-slate-100">{trainer.name}</p>
+                  <p className="truncate font-semibold text-slate-700 dark:text-slate-100">{trainer.name}</p>
                   <p className="truncate text-xs text-slate-500">
                     {trainer.mobile} · {trainer.email}
                   </p>
@@ -216,7 +227,7 @@ function TrainersSection() {
                     </button>
                     <button
                       onClick={() => setConfirmingDeleteId(null)}
-                      className="rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700"
+                      className="rounded-lg bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
                       Cancel
                     </button>
@@ -249,9 +260,116 @@ function TrainersSection() {
   );
 }
 
+// Members that were soft-deleted from the Members list land here —
+// the owner can bring them back with Restore, or clear them out for
+// good with Delete Permanently (which needs a Confirm tap, since
+// that one can't be undone).
+function DeletedMembersSection() {
+  const dispatch = useDispatch();
+  const { deletedMembers, deletedLoading, deletedActionLoading, deletedActionError } =
+    useSelector((state) => state.members);
+
+  const [confirmingPermanentId, setConfirmingPermanentId] = useState(null);
+
+  useEffect(() => {
+    dispatch(fetchDeletedMembers());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
+
+  const handleRestore = (id) => {
+    dispatch(restoreMember(id));
+  };
+
+  const handlePermanentDelete = async (id) => {
+    try {
+      await dispatch(permanentDeleteMember(id)).unwrap();
+    } finally {
+      setConfirmingPermanentId(null);
+    }
+  };
+
+  if (!deletedLoading && deletedMembers.length === 0) return null;
+
+  return (
+    <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xl">
+      <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase text-slate-500">
+        <UserX size={16} className="text-rose-400" /> Deleted Members
+      </h2>
+
+      {deletedActionError && (
+        <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 dark:border-rose-900/60 dark:bg-rose-950/40 p-3">
+          <p className="text-sm font-medium text-rose-600 dark:text-rose-300">
+            {deletedActionError}
+          </p>
+        </div>
+      )}
+
+      {deletedLoading ? (
+        <p className="py-4 text-center text-xs text-slate-500">Loading...</p>
+      ) : (
+        <div className="space-y-2.5">
+          {deletedMembers.map((member) => (
+            <div
+              key={member.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3.5"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-slate-700 dark:text-slate-100">
+                  {member.name}
+                </p>
+                <p className="truncate text-xs text-slate-600 dark:text-slate-500">
+                  {member.mobile} · {PLAN_LABELS[member.plan] || member.plan}
+                </p>
+              </div>
+
+              {confirmingPermanentId === member.id ? (
+                <div className="flex shrink-0 gap-1.5">
+                  <button
+                    onClick={() => handlePermanentDelete(member.id)}
+                    disabled={deletedActionLoading}
+                    className="rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-60"
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => setConfirmingPermanentId(null)}
+                    className="rounded-lg bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="flex shrink-0 gap-1.5">
+                  <button
+                    onClick={() => handleRestore(member.id)}
+                    disabled={deletedActionLoading}
+                    title="Restore member"
+                    className="flex items-center gap-1 rounded-lg bg-green-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-green-600 disabled:opacity-60 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/20"
+                  >
+                    <RotateCcw size={14} />
+                    Restore
+                  </button>
+                  <button
+                    onClick={() => setConfirmingPermanentId(member.id)}
+                    title="Delete permanently"
+                    className="rounded-lg bg-red-500/10 border border-red-500/20 p-2 text-red-400 hover:bg-red-500/20"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function OwnerProfile() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const photoInputRef = useRef(null);
 
@@ -348,7 +466,7 @@ export default function OwnerProfile() {
   const subscription = currentSubscription || {};
 
   return (
-    <div className="min-h-screen bg-slate-950 p-4 pb-20 text-slate-100 md:p-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 pb-20 text-slate-700 dark:text-slate-100 md:p-8">
       <div className="max-w-xl mx-auto">
         {/* ===================== UPLOAD ERROR BANNER ===================== */}
         {uploadError && (
@@ -367,7 +485,7 @@ export default function OwnerProfile() {
 
         <div className="flex flex-col items-center text-center">
           <div className="relative">
-            <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-xl">
+            <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl">
               {logo ? (
                 <img
                   src={logo}
@@ -414,7 +532,7 @@ export default function OwnerProfile() {
           )}
 
           <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-cyan-400">Owner profile</p>
-          <h1 className="mt-1 text-2xl font-bold text-white">{gym.gymName}</h1>
+          <h1 className="mt-1 text-2xl font-bold text-slate-800 dark:text-white">{gym.gymName}</h1>
 
           <p className="mt-1 flex items-center gap-1 text-sm text-slate-400">
             <Building2 size={14} />
@@ -423,7 +541,7 @@ export default function OwnerProfile() {
         </div>
         {/* ===================== OWNER DETAILS ===================== */}
 
-        <div className="mt-8 rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+        <div className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xl">
           <h2 className="mb-5 text-sm font-bold uppercase text-slate-500">
             Owner Details
           </h2>
@@ -433,7 +551,7 @@ export default function OwnerProfile() {
               <User size={18} className="text-blue-600" />
               <div>
                 <p className="text-xs text-slate-500">Owner Name</p>
-                <p className="font-semibold text-slate-100">{owner.name}</p>
+                <p className="font-semibold text-slate-700 dark:text-slate-100">{owner.name}</p>
               </div>
             </div>
 
@@ -441,7 +559,7 @@ export default function OwnerProfile() {
               <Phone size={18} className="text-blue-600" />
               <div>
                 <p className="text-xs text-slate-500">Mobile Number</p>
-                <p className="font-semibold text-slate-100">{owner.mobile}</p>
+                <p className="font-semibold text-slate-700 dark:text-slate-100">{owner.mobile}</p>
               </div>
             </div>
 
@@ -449,7 +567,7 @@ export default function OwnerProfile() {
               <Mail size={18} className="text-blue-600" />
               <div>
                 <p className="text-xs text-slate-500">Email Address</p>
-                <p className="break-all font-semibold text-slate-100">{owner.email}</p>
+                <p className="break-all font-semibold text-slate-700 dark:text-slate-100">{owner.email}</p>
               </div>
             </div>
           </div>
@@ -457,7 +575,7 @@ export default function OwnerProfile() {
 
         {/* ===================== GYM DETAILS ===================== */}
 
-        <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+        <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xl">
           <h2 className="mb-5 text-sm font-bold uppercase text-slate-500">
             Gym Details
           </h2>
@@ -513,7 +631,7 @@ export default function OwnerProfile() {
 
                     <button
                       onClick={handleStartEditGst}
-                      className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+                      className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
                       title={gym.gstNumber ? "Edit GST number" : "Add GST number"}
                     >
                       <Pencil size={15} />
@@ -527,7 +645,7 @@ export default function OwnerProfile() {
                       onChange={(e) => setGstInput(e.target.value.toUpperCase())}
                       placeholder="e.g. 27ABCDE1234F1Z5"
                       maxLength={15}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm uppercase tracking-wide text-slate-200 outline-none focus:border-cyan-400"
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-2.5 text-sm uppercase tracking-wide text-slate-700 dark:text-slate-200 outline-none focus:border-cyan-400"
                     />
 
                     {gstActionError && (
@@ -551,7 +669,7 @@ export default function OwnerProfile() {
                       <button
                         onClick={handleCancelEditGst}
                         disabled={gstActionLoading}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                       >
                         <X size={14} />
                         Cancel
@@ -566,9 +684,12 @@ export default function OwnerProfile() {
         {/* ===================== TRAINERS ===================== */}
         <TrainersSection />
 
+        {/* ===================== DELETED MEMBERS ===================== */}
+        <DeletedMembersSection />
+
         {/* ===================== SUBSCRIPTION DETAILS ===================== */}
 
-        <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+        <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xl">
           <h2 className="mb-5 text-sm font-bold uppercase text-slate-500">
             Subscription Details
           </h2>
@@ -578,7 +699,7 @@ export default function OwnerProfile() {
               <BadgeCheck size={18} className="text-emerald-400" />
               <div>
                 <p className="text-xs text-slate-500">Current Plan</p>
-                <p className="font-semibold text-slate-100">
+                <p className="font-semibold text-slate-700 dark:text-slate-100">
                   {subscription.subscriptionPlan || "No Active Plan"}
                 </p>
               </div>
@@ -588,7 +709,7 @@ export default function OwnerProfile() {
               <CalendarDays size={18} className="text-cyan-400" />
               <div>
                 <p className="text-xs text-slate-500">Start Date</p>
-                <p className="font-semibold text-slate-100">
+                <p className="font-semibold text-slate-700 dark:text-slate-100">
                   {subscription.startDate
                     ? new Date(subscription.startDate).toLocaleDateString()
                     : "--"}
@@ -600,7 +721,7 @@ export default function OwnerProfile() {
               <CalendarDays size={18} className="text-rose-400" />
               <div>
                 <p className="text-xs text-slate-500">Expiry Date</p>
-                <p className="font-semibold text-slate-100">
+                <p className="font-semibold text-slate-700 dark:text-slate-100">
                   {subscription.endDate
                     ? new Date(subscription.endDate).toLocaleDateString()
                     : "--"}
@@ -617,14 +738,14 @@ export default function OwnerProfile() {
           return (
             <button
               onClick={() => navigate("/owner/whatsapp")}
-              className="mt-6 flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-5 text-left shadow-xl transition hover:border-lime-400/40"
+              className="mt-6 flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-left shadow-xl transition hover:border-lime-400/40"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="shrink-0 rounded-xl bg-emerald-500/10 p-2.5 text-emerald-400">
                   <MessageCircle size={20} />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-slate-100">Manage WhatsApp</p>
+                  <p className="font-semibold text-slate-700 dark:text-slate-100">Manage WhatsApp</p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {isBasicPlan
                       ? "Upgrade to Plus to use WhatsApp automation"
@@ -634,7 +755,7 @@ export default function OwnerProfile() {
               </div>
 
               {isBasicPlan ? (
-                <span className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-400">
+                <span className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-400">
                   <Lock size={12} />
                   Plus
                 </span>
@@ -644,6 +765,40 @@ export default function OwnerProfile() {
             </button>
           );
         })()}
+
+        {/* ===================== APPEARANCE ===================== */}
+
+        <div className="mt-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5">
+          <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+            Appearance
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => theme !== "light" && toggleTheme()}
+              className={`flex items-center justify-center gap-2 rounded-lg border p-2.5 text-sm font-semibold transition-colors cursor-pointer ${
+                theme === "light"
+                  ? "border-cyan-500 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"
+                  : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+              }`}
+            >
+              <Sun size={16} />
+              White Mode
+            </button>
+            <button
+              type="button"
+              onClick={() => theme !== "dark" && toggleTheme()}
+              className={`flex items-center justify-center gap-2 rounded-lg border p-2.5 text-sm font-semibold transition-colors cursor-pointer ${
+                theme === "dark"
+                  ? "border-cyan-500 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"
+                  : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+              }`}
+            >
+              <Moon size={16} />
+              Black Mode
+            </button>
+          </div>
+        </div>
 
         {/* ===================== LOGOUT ===================== */}
 

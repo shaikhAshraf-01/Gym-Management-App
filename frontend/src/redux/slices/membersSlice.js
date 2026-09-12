@@ -6,6 +6,9 @@ import {
   deleteMemberApi,
   deleteCurrentMembershipApi,
   extendMembershipApi,
+  getDeletedMembersApi,
+  restoreMemberApi,
+  permanentDeleteMemberApi,
 } from "../../api/memberApi";
 import { sendBalanceReminderApi } from "../../api/ownerApi";
 
@@ -112,6 +115,50 @@ export const extendMembership = createAsyncThunk(
   },
 );
 
+// ================= DELETED MEMBERS (owner only, Profile page) =================
+
+export const fetchDeletedMembers = createAsyncThunk(
+  "members/fetchDeletedMembers",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await getDeletedMembersApi();
+      return response.data.members;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch deleted members.",
+      );
+    }
+  },
+);
+
+export const restoreMember = createAsyncThunk(
+  "members/restoreMember",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await restoreMemberApi(id);
+      return response.data.member;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to restore member.",
+      );
+    }
+  },
+);
+
+export const permanentDeleteMember = createAsyncThunk(
+  "members/permanentDeleteMember",
+  async (id, { rejectWithValue }) => {
+    try {
+      await permanentDeleteMemberApi(id);
+      return id;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to permanently delete member.",
+      );
+    }
+  },
+);
+
 // Manual "Send Reminder" trigger for a member with a pending balance
 // (Plus/Pro only — see ManageWhatsApp's Balance Reminder toggle).
 export const sendBalanceReminder = createAsyncThunk(
@@ -156,6 +203,12 @@ const initialState = {
   // row's button shows a spinner (not a global lock).
   reminderSendingIds: [],
   reminderError: null,
+  // ---- Deleted Members (owner only, Profile page) ----
+  deletedMembers: [],
+  deletedLoading: false,
+  deletedError: null,
+  deletedActionLoading: false,
+  deletedActionError: null,
 };
 
 const membersSlice = createSlice({
@@ -185,6 +238,15 @@ const membersSlice = createSlice({
     },
     memberRemoved: (state, action) => {
       state.members = state.members.filter((m) => m.id !== action.payload);
+    },
+    // Fired (via socket) when a member is restored from another
+    // device/session — drop them from the Deleted Members list here;
+    // the existing memberUpserted flow (member:restored also carries
+    // the member) puts them back into the main list.
+    deletedMemberRemoved: (state, action) => {
+      state.deletedMembers = state.deletedMembers.filter(
+        (m) => m.id !== action.payload,
+      );
     },
   },
   extraReducers: (builder) => {
@@ -288,6 +350,58 @@ const membersSlice = createSlice({
         state.actionError = action.payload;
       })
 
+      // ---------------- Fetch Deleted Members ----------------
+      .addCase(fetchDeletedMembers.pending, (state) => {
+        state.deletedLoading = true;
+        state.deletedError = null;
+      })
+      .addCase(fetchDeletedMembers.fulfilled, (state, action) => {
+        state.deletedLoading = false;
+        state.deletedMembers = action.payload;
+      })
+      .addCase(fetchDeletedMembers.rejected, (state, action) => {
+        state.deletedLoading = false;
+        state.deletedError = action.payload;
+      })
+
+      // ---------------- Restore Member ----------------
+      .addCase(restoreMember.pending, (state) => {
+        state.deletedActionLoading = true;
+        state.deletedActionError = null;
+      })
+      .addCase(restoreMember.fulfilled, (state, action) => {
+        state.deletedActionLoading = false;
+        state.deletedMembers = state.deletedMembers.filter(
+          (m) => m.id !== action.payload.id,
+        );
+        const index = state.members.findIndex((m) => m.id === action.payload.id);
+        if (index !== -1) {
+          state.members[index] = action.payload;
+        } else {
+          state.members.unshift(action.payload);
+        }
+      })
+      .addCase(restoreMember.rejected, (state, action) => {
+        state.deletedActionLoading = false;
+        state.deletedActionError = action.payload;
+      })
+
+      // ---------------- Permanent Delete Member ----------------
+      .addCase(permanentDeleteMember.pending, (state) => {
+        state.deletedActionLoading = true;
+        state.deletedActionError = null;
+      })
+      .addCase(permanentDeleteMember.fulfilled, (state, action) => {
+        state.deletedActionLoading = false;
+        state.deletedMembers = state.deletedMembers.filter(
+          (m) => m.id !== action.payload,
+        );
+      })
+      .addCase(permanentDeleteMember.rejected, (state, action) => {
+        state.deletedActionLoading = false;
+        state.deletedActionError = action.payload;
+      })
+
       // ---------------- Send Balance Reminder ----------------
       .addCase(sendBalanceReminder.pending, (state, action) => {
         state.reminderSendingIds.push(action.meta.arg);
@@ -312,6 +426,7 @@ export const {
   clearReminderError,
   memberUpserted,
   memberRemoved,
+  deletedMemberRemoved,
 } = membersSlice.actions;
 
 export default membersSlice.reducer;

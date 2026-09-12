@@ -27,6 +27,9 @@ import {
   deleteMember,
   deleteCurrentMembership,
   extendMembership,
+  getDeletedMembers,
+  restoreMember,
+  permanentDeleteMember,
 } from "../controllers/memberController.js";
 import {
   getInquiries,
@@ -112,6 +115,10 @@ router.get("/members", authMiddleware, roleMiddleware("owner", "trainer"), getMe
 router.post("/members", authMiddleware, roleMiddleware("owner", "trainer"), addMember);
 router.put("/members/:id", authMiddleware, roleMiddleware("owner", "trainer"), updateMember);
 router.delete("/members/:id", authMiddleware, roleMiddleware("owner", "trainer"), deleteMember);
+// Deleted Members review — owner only, shown on the Owner Profile page.
+router.get("/members/deleted", authMiddleware, roleMiddleware("owner"), getDeletedMembers);
+router.patch("/members/:id/restore", authMiddleware, roleMiddleware("owner"), restoreMember);
+router.delete("/members/:id/permanent", authMiddleware, roleMiddleware("owner"), permanentDeleteMember);
 router.delete("/members/:id/current-membership", authMiddleware, roleMiddleware("owner", "trainer"), deleteCurrentMembership);
 router.post(
   "/members/:id/extend",

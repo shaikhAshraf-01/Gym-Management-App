@@ -197,11 +197,11 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex h-full min-h-0 w-full flex-col overflow-hidden text-slate-200"
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden text-slate-700 dark:text-slate-200"
     >
       {/* Header */}
       <div className="flex-shrink-0 px-4 pt-4">
-        <h2 className="text-base font-bold text-white mb-4 uppercase tracking-wider border-b border-slate-800 pb-2">
+        <h2 className="text-base font-bold text-slate-800 dark:text-white mb-4 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 pb-2">
           New Membership Form
         </h2>
       </div>
@@ -212,7 +212,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
 
           {/* Name */}
           <div className="md:col-span-2">
-            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
               Full Client Name
             </label>
 
@@ -222,7 +222,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               value={formData.name}
               onChange={handleChange}
               maxLength={32}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-cyan-500"
               placeholder="Enter name"
               required
             />
@@ -230,7 +230,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
 
           {/* Mobile */}
           <div>
-            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
               Mobile Number
             </label>
 
@@ -242,7 +242,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               maxLength={10}
               minLength={10}
               pattern="[0-9]{10}"
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-cyan-500"
               placeholder="**********"
               required
             />
@@ -251,7 +251,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
           {/* Age + Gender — side by side, even on mobile */}
           <div className="grid grid-cols-2 gap-4 md:col-span-2">
             <div>
-              <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
                 Age
               </label>
 
@@ -260,13 +260,13 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
                 name="age"
                 value={formData.age}
                 onChange={handleChange}
-                className="no-spinner w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+                className="no-spinner w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-cyan-500"
                 placeholder="age"
               />
             </div>
 
             <div>
-              <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+              <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
                 Gender
               </label>
 
@@ -274,7 +274,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-cyan-500"
               >
                 <option value="">Select</option>
                 <option value="Male">Male</option>
@@ -286,7 +286,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
 
           {/* Plan */}
           <div>
-            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
               Select Plan Option
             </label>
 
@@ -294,7 +294,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               name="plan"
               value={formData.plan}
               onChange={handleChange}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-cyan-500"
             >
               <option value="1_month">
                 1 Month
@@ -316,7 +316,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
 
           {/* Admission Type: Normal vs Offer */}
           <div>
-            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
               Admission Type
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -328,7 +328,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
                 className={`rounded-lg border p-3 text-xs font-semibold transition-colors cursor-pointer ${
                   formData.admissionType === "normal"
                     ? "border-cyan-500 bg-cyan-500/10 text-cyan-400"
-                    : "border-slate-700 bg-slate-800 text-slate-400"
+                    : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                 }`}
               >
                 Normal
@@ -341,7 +341,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
                 className={`rounded-lg border p-3 text-xs font-semibold transition-colors cursor-pointer ${
                   formData.admissionType === "offer"
                     ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                    : "border-slate-700 bg-slate-800 text-slate-400"
+                    : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                 }`}
               >
                 Offer
@@ -351,7 +351,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
 
           {/* Activities */}
           <div className="md:col-span-2">
-            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
               Activities
             </label>
 
@@ -366,7 +366,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
                       isSelected
                         ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
-                        : "bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700"
+                        : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
                     }`}
                   >
                     {opt.label}
@@ -378,7 +378,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
 
           {/* Joining Date */}
           <div>
-            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
               Joining Date
             </label>
 
@@ -388,7 +388,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               value={formData.joiningDate}
               onChange={handleChange}
               min={getMinJoiningDate()}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-cyan-500"
               required
             />
 
@@ -399,7 +399,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
 
           {/* Plan Amount */}
           <div>
-            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
               Plan Amount
             </label>
 
@@ -409,7 +409,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               value={formData.planAmount}
               onChange={handleChange}
               min="0"
-              className="no-spinner w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+              className="no-spinner w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-cyan-500"
               placeholder="Enter total package price"
               required
             />
@@ -417,7 +417,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
 
           {/* Amount Paying Today */}
           <div>
-            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
               Amount Paying Today
             </label>
 
@@ -428,7 +428,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               onChange={handleChange}
               min="0"
               max={formData.planAmount || undefined}
-              className="no-spinner w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-emerald-400 font-bold focus:outline-none focus:border-cyan-500"
+              className="no-spinner w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-emerald-400 font-bold focus:outline-none focus:border-cyan-500"
               placeholder="Enter collected payment"
               required
             />
@@ -436,7 +436,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
 
           {/* Balance */}
           <div>
-            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
               Balance Amount
             </label>
 
@@ -445,14 +445,14 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               name="balanceAmount"
               value={calculatedBalance}
               readOnly
-              className="no-spinner w-full bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-sm text-red-400 font-bold cursor-not-allowed outline-none"
+              className="no-spinner w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-red-400 font-bold cursor-not-allowed outline-none"
               placeholder="Calculated automatically"
             />
           </div>
 
           {/* Payment Mode */}
           <div>
-            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
               Payment Mode
             </label>
 
@@ -460,7 +460,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               name="paymentMode"
               value={formData.paymentMode}
               onChange={handleChange}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-cyan-500"
             >
               <option value="upi">
                 UPI
@@ -489,18 +489,18 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               name="expiryDate"
               value={calculatedExpiry}
               readOnly
-              className="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-sm text-cyan-400 font-semibold cursor-not-allowed outline-none"
+              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-cyan-400 font-semibold cursor-not-allowed outline-none"
             />
           </div>
 
         </div>
-        <div className="border-t border-slate-800 bg-slate-900/90 py-4">
+        <div className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 py-4">
         <div className="flex flex-row gap-2 sm:justify-end">
           <button
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="flex-1 rounded-lg border border-slate-700 bg-slate-800 p-3 text-sm font-semibold uppercase tracking-wider text-slate-300 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 sm:max-w-xs"
+            className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-sm font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 sm:max-w-xs"
           >
             Cancel
           </button>

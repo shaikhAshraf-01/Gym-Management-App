@@ -24,14 +24,14 @@ export default function SubscriptionExpiredOverlay({ gymName, onReturn }) {
         {/* Primary action: renew via plan selection */}
         <button
           onClick={() => setShowPlanModal(true)}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-800 dark:text-white shadow hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-900 focus:ring-offset-2"
         >
           <ClipboardList className="h-4 w-4" />
           Select Plan
         </button>
 
         {/* Fallback: contact support if payment doesn't go through */}
-        <p className="text-xs text-slate-400 mt-4">
+        <p className="text-xs text-slate-600 dark:text-slate-400 mt-4">
           Payment issue? Contact support at{" "}
           <a
             href="tel:9172001155"

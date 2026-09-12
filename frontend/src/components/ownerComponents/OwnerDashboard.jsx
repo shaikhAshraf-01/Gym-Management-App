@@ -444,20 +444,20 @@ ${gym} Team 💪`;
   // ---------------------------------------------------------
 
   return (
-    <div className="md:p-6 max-w-7xl mx-auto bg-slate-950 min-h-screen pb-24 md:pb-6 text-slate-400">
+    <div className="md:p-6 max-w-7xl mx-auto bg-slate-50 dark:bg-slate-950 min-h-screen pb-24 md:pb-6 text-slate-600 dark:text-slate-400">
 
       {/* Main Container Card */}
-      <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl shadow-sm border border-cyan-500/10 p-4 md:p-6">
+      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl shadow-sm border border-cyan-500/10 p-4 md:p-6">
 
         {/* -------------------------------------------------
             Header (title left, filter dropdown fixed right)
         ------------------------------------------------- */}
-        <div className="sticky top-0 z-20 bg-slate-900/90 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-3 mb-6 py-2 -mx-4 px-4 md:-mx-6 md:px-6 border-b border-slate-800">
+        <div className="sticky top-0 z-20 bg-white dark:bg-slate-900/90 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-3 mb-6 py-2 -mx-4 px-4 md:-mx-6 md:px-6 border-b border-slate-200 dark:border-slate-800">
 
           <div className="flex items-center gap-3">
             <CalendarClock className="h-6 w-6 text-cyan-400 shrink-0" />
 
-            <h3 className="text-lg font-bold text-white tracking-tight">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white tracking-tight">
               Membership Status
             </h3>
           </div>
@@ -472,7 +472,7 @@ ${gym} Team 💪`;
                 onChange={(e) =>
                   setExpiryFilter(e.target.value)
                 }
-                className="w-full appearance-none pl-3 pr-8 py-2 rounded-lg text-sm font-medium border border-slate-700 bg-slate-800 text-slate-200 cursor-pointer hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                className="w-full appearance-none pl-3 pr-8 py-2 rounded-lg text-sm font-medium border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
               >
                 {filterOptions.map((option) => (
                   <option
@@ -486,7 +486,7 @@ ${gym} Team 💪`;
 
               {/* Dropdown chevron */}
               <svg
-                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500"
+                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600 dark:text-slate-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -507,7 +507,7 @@ ${gym} Team 💪`;
               onClick={handleDownloadCsv}
               disabled={expiringMembers.length === 0}
               title="Download CSV of the current view"
-              className="shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <Download className="h-4 w-4" />
               <span className="hidden md:inline">CSV</span>
@@ -520,7 +520,7 @@ ${gym} Team 💪`;
             Loading
         ------------------------------------------------- */}
         {loading && (
-          <div className="text-center py-10 text-slate-500 border border-dashed border-slate-800 rounded-xl">
+          <div className="text-center py-10 text-slate-600 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
             <p className="text-sm font-medium">
               Loading members...
             </p>
@@ -532,7 +532,7 @@ ${gym} Team 💪`;
         ------------------------------------------------- */}
         {!loading &&
           expiringMembers.length === 0 && (
-            <div className="text-center py-10 text-slate-500 border border-dashed border-slate-800 rounded-xl">
+            <div className="text-center py-10 text-slate-600 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
               <p className="text-sm font-medium">
                 {expiryFilter === "days" &&
                   "No memberships expiring in the next 7 days."}
@@ -559,7 +559,7 @@ ${gym} Team 💪`;
           expiringMembers.length > 0 && (
             <>
               {/* Desktop Header */}
-              <div className="hidden md:grid grid-cols-7 gap-4 px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-900/80 border border-slate-800 rounded-t-xl">
+              <div className="hidden md:grid grid-cols-7 gap-4 px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-500 uppercase tracking-wider bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-t-xl">
 
                 <div>Name</div>
 
@@ -586,19 +586,19 @@ ${gym} Team 💪`;
               </div>
 
               {/* Dynamic List */}
-              <div className="divide-y divide-slate-800 border-x border-b border-slate-800 rounded-b-xl overflow-hidden bg-slate-900/40">
+              <div className="divide-y divide-slate-200 dark:divide-slate-800 border-x border-b border-slate-200 dark:border-slate-800 rounded-b-xl overflow-hidden bg-white dark:bg-slate-900/40">
 
                 {expiringMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="flex flex-col md:grid md:grid-cols-7 gap-2 md:gap-4 p-4 px-4 items-start md:items-center hover:bg-slate-800/50 transition-colors"
+                    className="flex flex-col md:grid md:grid-cols-7 gap-2 md:gap-4 p-4 px-4 items-start md:items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
 
                     {/* ---------------------------------------
                         Member Name
                     --------------------------------------- */}
-                    <div className="flex items-center gap-2 font-medium text-white">
-                      <User className="h-4 w-4 text-slate-500 md:hidden" />
+                    <div className="flex items-center gap-2 font-medium text-slate-800 dark:text-white">
+                      <User className="h-4 w-4 text-slate-600 dark:text-slate-500 md:hidden" />
 
                       <span>
                         {member.name}
@@ -608,8 +608,8 @@ ${gym} Team 💪`;
                     {/* ---------------------------------------
                         Mobile
                     --------------------------------------- */}
-                    <div className="flex items-center gap-2 text-sm text-slate-400">
-                      <Smartphone className="h-4 w-4 text-slate-500 md:hidden" />
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                      <Smartphone className="h-4 w-4 text-slate-600 dark:text-slate-500 md:hidden" />
 
                       <span>
                         {member.mobile}
@@ -624,7 +624,7 @@ ${gym} Team 💪`;
                       {/* Cold */}
                       {member.expiryInfo.type ===
                       "cold" ? (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                           Cold Expired · {member.expiryInfo.expiredDays}d ago
                         </span>
                       ) : member.expiryInfo.type ===
@@ -713,7 +713,7 @@ ${gym} Team 💪`;
                         <button
                           type="button"
                           disabled
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-slate-800/50 text-slate-600 border border-slate-800 text-xs font-medium cursor-not-allowed"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-600 border border-slate-200 dark:border-slate-800 text-xs font-medium cursor-not-allowed"
                         >
                           <MessageCircle className="h-3.5 w-3.5" />
 
@@ -783,7 +783,7 @@ ${gym} Team 💪`;
                                 null
                               )
                             }
-                            className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-slate-700 text-slate-200 text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-slate-600"
+                            className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-slate-200 dark:hover:bg-slate-600"
                           >
                             <X className="h-3 w-3" />
 

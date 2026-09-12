@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { connectSocket, disconnectSocket } from "../socket.js";
-import { memberUpserted, memberRemoved } from "../redux/slices/membersSlice";
+import { memberUpserted, memberRemoved, deletedMemberRemoved, fetchMembers } from "../redux/slices/membersSlice";
 import { enquiryUpserted, enquiryRemoved } from "../redux/slices/enquiriesSlice";
 import { gymProfileUpdated, trainersUpdated } from "../redux/slices/ownerSlice";
 import { gymUpserted, gymRemoved, gymTrainersUpdated } from "../redux/slices/gymSlice";
@@ -30,6 +30,13 @@ export default function useRealtimeSync() {
       socket.on("member:created", ({ member }) => dispatch(memberUpserted(member)));
       socket.on("member:updated", ({ member }) => dispatch(memberUpserted(member)));
       socket.on("member:deleted", ({ id }) => dispatch(memberRemoved(id)));
+      // Restored (from another device's Deleted Members screen) —
+      // put them back in the main list and drop them from Deleted.
+      socket.on("member:restored", ({ member }) => {
+        dispatch(memberUpserted(member));
+        dispatch(deletedMemberRemoved(member.id));
+      });
+      socket.on("member:permanently-deleted", ({ id }) => dispatch(deletedMemberRemoved(id)));
 
       socket.on("enquiry:created", ({ enquiry }) => dispatch(enquiryUpserted(enquiry)));
       socket.on("enquiry:updated", ({ enquiry }) => dispatch(enquiryUpserted(enquiry)));
@@ -42,6 +49,11 @@ export default function useRealtimeSync() {
       socket.on("gym:updated", (payload) => {
         dispatch(gymProfileUpdated(payload));
         if (payload?.gym) dispatch(gymUpserted(payload.gym));
+
+        // Admin-side edit (plan upgrade, status change, etc.) — pull
+        // fresh members straight from the server so Dashboard/Sales/
+        // MembersView never show stale data without a manual refresh.
+        dispatch(fetchMembers());
       });
       socket.on("gym:created", (payload) => {
         if (payload?.gym) dispatch(gymUpserted(payload.gym));

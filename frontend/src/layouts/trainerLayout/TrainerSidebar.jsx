@@ -33,9 +33,9 @@ export default function TrainerSidebar() {
             </div>
             <div className="flex flex-col gap-4">
               <button
-                onClick={() => { 
-                  dispatch(closeDrawer()); 
-                  navigate("/trainer/add", { state: { type: "membership" } }); 
+                onClick={() => {
+                  dispatch(closeDrawer());
+                  navigate("/trainer/add", { state: { type: "membership" } });
                 }}
                 className="flex items-center gap-4 w-full p-4 bg-slate-900 border border-slate-800 rounded-2xl text-left text-white hover:border-lime-400/50 transition-all cursor-pointer"
               >
@@ -47,9 +47,9 @@ export default function TrainerSidebar() {
               </button>
 
               <button
-                onClick={() => { 
-                  dispatch(closeDrawer()); 
-                  navigate("/trainer/add", { state: { type: "enquiry" } }); 
+                onClick={() => {
+                  dispatch(closeDrawer());
+                  navigate("/trainer/add", { state: { type: "enquiry" } });
                 }}
                 className="flex items-center gap-4 w-full p-4 bg-slate-900 border border-slate-800 rounded-2xl text-left text-white hover:border-lime-400/50 transition-all cursor-pointer"
               >
@@ -64,7 +64,7 @@ export default function TrainerSidebar() {
         </div>
       )}
 
-      {/* Bottom Nav Bar — all 4 items sit evenly in one row now, no raised
+      {/* Bottom Nav Bar — all 4 items sit evenly in one row, no raised
           center button, since 4 items already align cleanly on their own. */}
       <div
         className="block md:hidden w-full bg-slate-950 text-white fixed bottom-0 left-0 z-50 shadow-2xl border-t border-slate-900"

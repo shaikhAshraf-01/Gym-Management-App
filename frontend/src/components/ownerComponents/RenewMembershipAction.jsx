@@ -71,7 +71,7 @@ export default function RenewMembershipAction({
       {variant === "mobile" ? (
         <button
           onClick={() => setRenewingMember(member)}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-purple-50 active:bg-purple-100 text-purple-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-purple-200 cursor-pointer"
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-400 active:bg-blue-500 text-white dark:bg-purple-50 dark:active:bg-purple-100 dark:text-purple-700 dark:border-purple-200 font-bold text-xs uppercase tracking-wider rounded-lg dark:border cursor-pointer"
         >
           <RefreshCw className="h-3.5 w-3.5" />
           <span>Renew</span>
@@ -79,7 +79,7 @@ export default function RenewMembershipAction({
       ) : (
         <button
           onClick={() => setRenewingMember(member)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold rounded-md border border-purple-200 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-400 hover:bg-blue-500 text-white dark:bg-purple-50 dark:hover:bg-purple-100 dark:text-purple-700 dark:border-purple-200 text-xs font-semibold rounded-md dark:border transition-colors cursor-pointer"
         >
           <RefreshCw className="h-3.5 w-3.5" />
           <span>Renew</span>

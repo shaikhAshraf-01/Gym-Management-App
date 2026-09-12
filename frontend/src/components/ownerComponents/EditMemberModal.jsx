@@ -45,6 +45,9 @@ export default function EditMemberModal({ member, onSave, onClose }) {
         planAmount: String(planAmount),
         amountPayingToday: String(paidAmount),
         balanceAmount: String(Math.max(0, planAmount - paidAmount)),
+        // "both" was removed as a selectable option — old records saved
+        // with it fall back to "cash" so the dropdown always has a
+        // valid selection.
         paymentMode: member.paymentMode === "both" ? "cash" : member.paymentMode || "upi",
         joiningDate: member.joiningDate || "",
         expiryDate: member.expiryDate || "",
@@ -67,35 +70,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
   }, [member]);
 
   if (!member) return null;
-
-  // Strict check key presses for numeric fields
-  const handleNumberKeyDown = (e) => {
-    const allowedKeys = [
-      "Backspace",
-      "Tab",
-      "Enter",
-      "Escape",
-      "ArrowLeft",
-      "ArrowRight",
-      "Delete",
-    ];
-
-    if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
-      return;
-    }
-
-    if (!/^[0-9]$/.test(e.key)) {
-      e.preventDefault();
-    }
-  };
-
-  // Prevent pasting non-numeric text into numeric fields
-  const handleNumberPaste = (e) => {
-    const pastedData = e.clipboardData.getData("text");
-    if (!/^\d+$/.test(pastedData)) {
-      e.preventDefault();
-    }
-  };
 
   const getMinJoiningDate = () => {
     const sixMonthsAgo = new Date();
@@ -154,7 +128,7 @@ export default function EditMemberModal({ member, onSave, onClose }) {
       value = value.replace(/[^a-zA-Z\s]/g, "").slice(0, 32);
     }
     // Number-only fields: digits only, no letters/symbols
-    else if (["age", "planAmount", "amountPayingToday", "mobile"].includes(name)) {
+    else if (["age", "planAmount", "amountPayingToday"].includes(name)) {
       value = value.replace(/[^0-9]/g, "");
     }
 
@@ -234,284 +208,271 @@ export default function EditMemberModal({ member, onSave, onClose }) {
   };
 
   const inputClass =
-    "w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all disabled:opacity-50";
+    "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-sm text-slate-700 dark:text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all disabled:opacity-50";
 
   const labelClass =
-    "block text-xs uppercase font-bold tracking-wider text-slate-400 mb-1.5";
+    "block text-xs uppercase font-bold tracking-wider text-slate-600 dark:text-slate-400 mb-1.5";
 
   return createPortal((
-    <div className="fixed inset-0 z-100 isolate h-dvh min-h-svh w-full overflow-y-auto overscroll-contain bg-slate-950/80 p-3 backdrop-blur-md [touch-action:pan-y] sm:p-4">
+    <div className="fixed inset-0 z-100 isolate h-dvh min-h-svh w-full overflow-y-auto overscroll-contain bg-slate-50 dark:bg-slate-950/80 p-3 backdrop-blur-md [touch-action:pan-y] sm:p-4">
       <div className="flex min-h-full items-start justify-center sm:items-center">
-        <div className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl shadow-black/60 sm:max-h-[calc(100dvh-2rem)]">
-          {/* HEADER */}
-          <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400 mb-0.5">
-                Member Management
-              </p>
-              <h2 className="text-base md:text-lg font-black text-white uppercase tracking-wider">
-                Edit Member
-              </h2>
+      <div className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl shadow-black/60 sm:max-h-[calc(100dvh-2rem)]">
+        {/* HEADER */}
+        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 z-10">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400 mb-0.5">
+              Member Management
+            </p>
+            <h2 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-wider">
+              Edit Member
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="p-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer transition-colors disabled:opacity-50"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* FORM */}
+        <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* NAME */}
+            <div className="md:col-span-2">
+              <label className={labelClass}>Full Client Name</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                maxLength={32}
+                className={inputClass}
+                disabled={isSubmitting}
+                required
+              />
             </div>
 
+            {/* MOBILE */}
+            <div>
+              <label className={labelClass}>Mobile Number</label>
+              <input
+                type="tel"
+                name="mobile"
+                value={formData.mobile}
+                onChange={handleChange}
+                className={inputClass}
+                disabled={isSubmitting}
+                required
+              />
+            </div>
+
+            {/* AGE */}
+            <div>
+              <label className={labelClass}>Age</label>
+              <input
+                type="number"
+                name="age"
+                value={formData.age}
+                onChange={handleChange}
+                className={inputClass}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {/* GENDER */}
+            <div>
+              <label className={labelClass}>Gender</label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                className={inputClass}
+                disabled={isSubmitting}
+              >
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            {/* PLAN */}
+            <div>
+              <label className={labelClass}>Select Plan</label>
+              <select
+                name="plan"
+                value={formData.plan}
+                onChange={handleChange}
+                className={inputClass}
+                disabled={isSubmitting}
+              >
+                <option value="1_month">1 Month</option>
+                <option value="3_month">3 Months</option>
+                <option value="6_month">6 Months</option>
+                <option value="1_year">1 Year</option>
+              </select>
+            </div>
+
+            {/* ACTIVITIES */}
+            <div className="md:col-span-2">
+              <label className={labelClass}>Activities</label>
+              <div className="flex flex-wrap gap-2">
+                {ACTIVITY_OPTIONS.map((opt) => {
+                  const isSelected = formData.activities.includes(opt.value);
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => handleActivityToggle(opt.value)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide border transition-all cursor-pointer disabled:opacity-50 ${
+                        isSelected
+                          ? "bg-cyan-500/20 border-cyan-500 text-cyan-400 shadow-sm"
+                          : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-200"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* JOINING DATE */}
+            <div>
+              <label className={labelClass}>Joining Date</label>
+              <input
+                type="date"
+                name="joiningDate"
+                value={formData.joiningDate}
+                onChange={handleChange}
+                min={getMinJoiningDate()}
+                className={inputClass}
+                disabled={isSubmitting}
+                required
+              />
+              <p className="text-[10px] text-slate-600 dark:text-slate-500 mt-1">
+                Up to 6 months back, or any date onwards
+              </p>
+            </div>
+
+            {/* EXPIRY DATE */}
+            <div>
+              <label className={labelClass}>Expiry Date</label>
+              <input
+                type="date"
+                name="expiryDate"
+                value={formData.expiryDate}
+                onChange={handleChange}
+                className={`${inputClass} text-cyan-400 font-semibold`}
+                disabled={isSubmitting}
+                required
+              />
+            </div>
+
+            {/* PLAN AMOUNT */}
+            <div>
+              <label className={labelClass}>This Period's Plan Amount</label>
+              <input
+                type="number"
+                name="planAmount"
+                min="0"
+                value={formData.planAmount}
+                onChange={handleChange}
+                className={inputClass}
+                disabled={isSubmitting}
+                required
+              />
+              <p className="text-[10px] text-slate-600 dark:text-slate-500 mt-1">
+                Current plan fee only
+              </p>
+            </div>
+
+            {/* AMOUNT PAID */}
+            <div>
+              <label className={labelClass}>This Period's Amount Paid</label>
+              <input
+                type="number"
+                name="amountPayingToday"
+                min="0"
+                max={formData.planAmount || 0}
+                value={formData.amountPayingToday}
+                onChange={handleChange}
+                className={`${inputClass} text-emerald-400 font-bold`}
+                disabled={isSubmitting}
+              />
+              <p className="text-[10px] text-slate-600 dark:text-slate-500 mt-1">
+                Cannot exceed plan amount
+              </p>
+            </div>
+
+            {/* BALANCE */}
+            <div>
+              <label className={labelClass}>Balance Amount</label>
+              <input
+                type="number"
+                name="balanceAmount"
+                min="0"
+                max={formData.planAmount || 0}
+                value={formData.balanceAmount}
+                onChange={handleBalanceChange}
+                className={`${inputClass} text-red-400 font-bold`}
+                disabled={isSubmitting}
+                required
+              />
+              <p className="text-[10px] text-slate-600 dark:text-slate-500 mt-1">
+                Plan Amount − Amount Paid
+              </p>
+            </div>
+
+            {/* PAYMENT MODE */}
+            <div>
+              <label className={labelClass}>Payment Mode</label>
+              <select
+                name="paymentMode"
+                value={formData.paymentMode}
+                onChange={handleChange}
+                className={inputClass}
+                disabled={isSubmitting}
+              >
+                <option value="upi">UPI</option>
+                <option value="cash">Cash</option>
+              </select>
+            </div>
+          </div>
+
+          {/* BUTTONS */}
+          <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 rounded-lg cursor-pointer transition-colors disabled:opacity-50"
+              className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-wider py-2.5 px-4 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <X className="h-5 w-5" />
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold uppercase tracking-wider py-2.5 px-4 rounded-lg transition-all cursor-pointer shadow-sm shadow-cyan-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </button>
           </div>
-
-          {/* FORM */}
-          <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* NAME */}
-              <div className="md:col-span-2">
-                <label className={labelClass}>Full Client Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  maxLength={32}
-                  className={inputClass}
-                  disabled={isSubmitting}
-                  required
-                />
-              </div>
-
-              {/* MOBILE */}
-              <div>
-                <label className={labelClass}>Mobile Number</label>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  name="mobile"
-                  value={formData.mobile}
-                  onChange={handleChange}
-                  onKeyDown={handleNumberKeyDown}
-                  onPaste={handleNumberPaste}
-                  maxLength={10}
-                  minLength={10}
-                  className={inputClass}
-                  disabled={isSubmitting}
-                  required
-                />
-              </div>
-
-              {/* AGE */}
-              <div>
-                <label className={labelClass}>Age</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  name="age"
-                  value={formData.age}
-                  onChange={handleChange}
-                  onKeyDown={handleNumberKeyDown}
-                  onPaste={handleNumberPaste}
-                  maxLength={3}
-                  className={inputClass}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              {/* GENDER */}
-              <div>
-                <label className={labelClass}>Gender</label>
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className={inputClass}
-                  disabled={isSubmitting}
-                >
-                  <option value="">Select</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              {/* PLAN */}
-              <div>
-                <label className={labelClass}>Select Plan</label>
-                <select
-                  name="plan"
-                  value={formData.plan}
-                  onChange={handleChange}
-                  className={inputClass}
-                  disabled={isSubmitting}
-                >
-                  <option value="1_month">1 Month</option>
-                  <option value="3_month">3 Months</option>
-                  <option value="6_month">6 Months</option>
-                  <option value="1_year">1 Year</option>
-                </select>
-              </div>
-
-              {/* ACTIVITIES */}
-              <div className="md:col-span-2">
-                <label className={labelClass}>Activities</label>
-                <div className="flex flex-wrap gap-2">
-                  {ACTIVITY_OPTIONS.map((opt) => {
-                    const isSelected = formData.activities.includes(opt.value);
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        disabled={isSubmitting}
-                        onClick={() => handleActivityToggle(opt.value)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide border transition-all cursor-pointer disabled:opacity-50 ${
-                          isSelected
-                            ? "bg-cyan-500/20 border-cyan-500 text-cyan-400 shadow-sm"
-                            : "bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* JOINING DATE */}
-              <div>
-                <label className={labelClass}>Joining Date</label>
-                <input
-                  type="date"
-                  name="joiningDate"
-                  value={formData.joiningDate}
-                  onChange={handleChange}
-                  min={getMinJoiningDate()}
-                  className={inputClass}
-                  disabled={isSubmitting}
-                  required
-                />
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Up to 6 months back, or any date onwards
-                </p>
-              </div>
-
-              {/* EXPIRY DATE */}
-              <div>
-                <label className={labelClass}>Expiry Date</label>
-                <input
-                  type="date"
-                  name="expiryDate"
-                  value={formData.expiryDate}
-                  onChange={handleChange}
-                  className={`${inputClass} text-cyan-400 font-semibold`}
-                  disabled={isSubmitting}
-                  required
-                />
-              </div>
-
-              {/* PLAN AMOUNT */}
-              <div>
-                <label className={labelClass}>This Period's Plan Amount</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  name="planAmount"
-                  value={formData.planAmount}
-                  onChange={handleChange}
-                  onKeyDown={handleNumberKeyDown}
-                  onPaste={handleNumberPaste}
-                  className={inputClass}
-                  disabled={isSubmitting}
-                  required
-                />
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Current plan fee only
-                </p>
-              </div>
-
-              {/* AMOUNT PAID */}
-              <div>
-                <label className={labelClass}>This Period's Amount Paid</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  name="amountPayingToday"
-                  value={formData.amountPayingToday}
-                  onChange={handleChange}
-                  onKeyDown={handleNumberKeyDown}
-                  onPaste={handleNumberPaste}
-                  className={`${inputClass} text-emerald-400 font-bold`}
-                  disabled={isSubmitting}
-                />
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Cannot exceed plan amount
-                </p>
-              </div>
-
-              {/* BALANCE */}
-              <div>
-                <label className={labelClass}>Balance Amount</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  name="balanceAmount"
-                  value={formData.balanceAmount}
-                  onChange={handleBalanceChange}
-                  onKeyDown={handleNumberKeyDown}
-                  onPaste={handleNumberPaste}
-                  className={`${inputClass} text-red-400 font-bold`}
-                  disabled={isSubmitting}
-                  required
-                />
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Plan Amount − Amount Paid
-                </p>
-              </div>
-
-              {/* PAYMENT MODE */}
-              <div>
-                <label className={labelClass}>Payment Mode</label>
-                <select
-                  name="paymentMode"
-                  value={formData.paymentMode}
-                  onChange={handleChange}
-                  className={inputClass}
-                  disabled={isSubmitting}
-                >
-                  <option value="upi">UPI</option>
-                  <option value="cash">Cash</option>
-                </select>
-              </div>
-            </div>
-
-            {/* BUTTONS */}
-            <div className="flex gap-3 pt-4 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-bold uppercase tracking-wider py-2.5 px-4 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold uppercase tracking-wider py-2.5 px-4 rounded-lg transition-all cursor-pointer shadow-sm shadow-cyan-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
+        </form>
+      </div>
       </div>
     </div>
   ), document.body);

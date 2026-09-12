@@ -281,6 +281,7 @@ export const getMembers = async (req, res) => {
   try {
     const members = await Member.find({
       gym: req.user.gymId,
+      isDeleted: { $ne: true },
     }).sort({
       createdAt: -1,
     });
@@ -296,6 +297,34 @@ export const getMembers = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch members.",
+    });
+  }
+};
+
+// =====================================================================
+// GET DELETED MEMBERS (soft-deleted, owner only)
+// =====================================================================
+
+export const getDeletedMembers = async (req, res) => {
+  try {
+    const members = await Member.find({
+      gym: req.user.gymId,
+      isDeleted: true,
+    }).sort({
+      deletedAt: -1,
+    });
+
+    const formatted = await Promise.all(members.map(formatMember));
+
+    res.status(200).json({
+      success: true,
+      members: formatted,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch deleted members.",
     });
   }
 };
@@ -615,6 +644,95 @@ export const deleteMember = async (req, res) => {
       });
     }
 
+    // Soft delete — member (and their payment/subscription history)
+    // stay in the database untouched, just hidden from the main list
+    // and moved to Profile -> Deleted Members, where the owner can
+    // restore or permanently delete them.
+    member.isDeleted = true;
+    member.deletedAt = new Date();
+    await member.save();
+
+    emitToGym(req.user.gymId, "member:deleted", { id });
+
+    res.status(200).json({
+      success: true,
+
+      message: "Member moved to deleted members.",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+
+      message: "Failed to delete member.",
+    });
+  }
+};
+
+// =====================================================================
+// RESTORE MEMBER (undo a soft delete, owner only)
+// =====================================================================
+
+export const restoreMember = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const member = await Member.findOne({
+      _id: id,
+      gym: req.user.gymId,
+      isDeleted: true,
+    });
+
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: "Deleted member not found.",
+      });
+    }
+
+    member.isDeleted = false;
+    member.deletedAt = null;
+    await member.save();
+
+    const formatted = await formatMember(member);
+    emitToGym(req.user.gymId, "member:restored", { member: formatted });
+
+    res.status(200).json({
+      success: true,
+      message: "Member restored successfully.",
+      member: formatted,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to restore member.",
+    });
+  }
+};
+
+// =====================================================================
+// PERMANENT DELETE MEMBER (owner only — only allowed once already
+// soft-deleted, as a safety check against skipping the review step)
+// =====================================================================
+
+export const permanentDeleteMember = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const member = await Member.findOne({
+      _id: id,
+      gym: req.user.gymId,
+      isDeleted: true,
+    });
+
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: "Deleted member not found.",
+      });
+    }
+
     const subscriptions = await MemberSubscriptionHistory.find({
       member: member._id,
     });
@@ -635,19 +753,17 @@ export const deleteMember = async (req, res) => {
 
     // Delete member
     await Member.findByIdAndDelete(id);
-    emitToGym(req.user.gymId, "member:deleted", { id });
+    emitToGym(req.user.gymId, "member:permanently-deleted", { id });
 
     res.status(200).json({
       success: true,
-
-      message: "Member deleted successfully.",
+      message: "Member permanently deleted.",
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-
-      message: "Failed to delete member.",
+      message: "Failed to permanently delete member.",
     });
   }
 };

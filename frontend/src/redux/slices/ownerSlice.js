@@ -196,7 +196,19 @@ const ownerSlice = createSlice({
     },
     gymProfileUpdated: (state, action) => {
       if (state.gym && action.payload?.gym?._id === state.gym._id) {
-        state.gym = action.payload.gym;
+        const updatedGym = action.payload.gym;
+        state.gym = updatedGym;
+
+        // The payload carries the fresh subscription/trainers too
+        // (e.g. admin just upgraded Basic -> Plus) — without this,
+        // plan-gated UI (WhatsApp automation, Sales, etc.) stayed
+        // stale until a manual page refresh re-fetched the profile.
+        if (updatedGym.currentSubscription !== undefined) {
+          state.currentSubscription = updatedGym.currentSubscription;
+        }
+        if (updatedGym.trainers !== undefined) {
+          state.trainers = updatedGym.trainers;
+        }
       }
     },
     clearTrainerActionError: (state) => {

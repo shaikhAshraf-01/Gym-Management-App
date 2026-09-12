@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Tailwind v4 defaults `dark:` to the OS prefers-color-scheme media
+   query. We want a manual toggle instead (see ThemeContext.jsx, which
+   adds/removes the `dark` class on <html>), so redefine the variant
+   to key off that class. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 html,
 body,
 #root {
@@ -8,11 +14,19 @@ body,
 }
 
 html {
-    background: #020617;
+    background: #f8fafc;
     overscroll-behavior-y: none;
 }
 
+html.dark {
+    background: #020617;
+}
+
 body {
+    background: #f8fafc;
+}
+
+html.dark body {
     background: #020617;
 }
 

@@ -64,10 +64,10 @@ function PlanCard({ plan, selectedPlanId, selectedMonths, onSelect }) {
     <div
       className={`rounded-xl border p-4 transition-all relative ${
         plan.comingSoon
-          ? "opacity-60 border-slate-800 bg-[#1c273e]"
+          ? "opacity-60 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1c273e]"
           : isSelectedPlan
           ? "border-cyan-400 bg-cyan-500/10 shadow-lg shadow-cyan-500/10"
-          : "border-slate-700/80 bg-[#1c273e]"
+          : "border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#1c273e]"
       }`}
     >
       {plan.highlight && !plan.comingSoon && (
@@ -77,18 +77,18 @@ function PlanCard({ plan, selectedPlanId, selectedMonths, onSelect }) {
         </span>
       )}
       {plan.comingSoon && (
-        <span className="absolute -top-2.5 right-4 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-700 text-slate-300">
+        <span className="absolute -top-2.5 right-4 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
           <Lock className="h-3 w-3" />
           Coming Soon
         </span>
       )}
 
-      <p className="text-sm font-bold text-white mb-1">{plan.label}</p>
-      <p className="text-xs text-slate-400 mb-3">{plan.tagline}</p>
+      <p className="text-sm font-bold text-slate-800 dark:text-white mb-1">{plan.label}</p>
+      <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">{plan.tagline}</p>
 
       <ul className="space-y-1.5 mb-4">
         {plan.features.map((f) => (
-          <li key={f} className="flex items-start gap-1.5 text-xs text-slate-300">
+          <li key={f} className="flex items-start gap-1.5 text-xs text-slate-600 dark:text-slate-300">
             <Check className="h-3.5 w-3.5 text-cyan-400 mt-0.5 flex-shrink-0" />
             <span>{f}</span>
           </li>
@@ -97,11 +97,11 @@ function PlanCard({ plan, selectedPlanId, selectedMonths, onSelect }) {
 
       {/* ===== Clear per-duration pricing table ===== */}
       {plan.comingSoon ? (
-        <p className="text-center text-xs text-slate-500 py-4 border-t border-slate-800">
+        <p className="text-center text-xs text-slate-600 dark:text-slate-500 py-4 border-t border-slate-200 dark:border-slate-800">
           Pricing announced soon
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-2 border-t border-slate-800 pt-3">
+        <div className="grid grid-cols-2 gap-2 border-t border-slate-200 dark:border-slate-800 pt-3">
           {DURATIONS.map((d) => {
             const price = plan.prices[d.months];
             const savings = savingsFor(plan, d.months);
@@ -115,13 +115,13 @@ function PlanCard({ plan, selectedPlanId, selectedMonths, onSelect }) {
                 className={`rounded-lg border px-2.5 py-2 text-left transition-all cursor-pointer ${
                   isChosen
                     ? "bg-cyan-500 border-cyan-400 text-slate-950"
-                    : "bg-[#131b2e] border-slate-700 hover:border-slate-500"
+                    : "bg-white dark:bg-[#131b2e] border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-500"
                 }`}
               >
                 <div className="flex items-center justify-between gap-1">
                   <span
                     className={`text-[10px] font-bold uppercase ${
-                      isChosen ? "text-slate-800" : "text-slate-400"
+                      isChosen ? "text-slate-800" : "text-slate-600 dark:text-slate-400"
                     }`}
                   >
                     {d.short}
@@ -130,7 +130,7 @@ function PlanCard({ plan, selectedPlanId, selectedMonths, onSelect }) {
                 </div>
                 <p
                   className={`text-sm font-extrabold ${
-                    isChosen ? "text-slate-950" : "text-white"
+                    isChosen ? "text-slate-950" : "text-slate-800 dark:text-white"
                   }`}
                 >
                   ₹{price}
@@ -183,14 +183,14 @@ export default function PlanSelectionModal({ onClose, gymName }) {
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
-      <div className="bg-[#131b2e] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto text-slate-100">
+      <div className="bg-white dark:bg-[#131b2e] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto text-slate-700 dark:text-slate-100">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 sticky top-0 bg-[#131b2e] z-10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white dark:bg-[#131b2e] z-10">
           <div>
             <h2 className="text-base font-extrabold text-cyan-400 uppercase tracking-wider">
               Plans &amp; Pricing
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
               Pick a plan and a billing period, then contact us to switch
             </p>
           </div>
@@ -218,13 +218,13 @@ export default function PlanSelectionModal({ onClose, gymName }) {
           </div>
 
           {/* Summary + Contact Admin */}
-          <div className="rounded-xl border border-slate-800 bg-[#1c273e] p-4">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1c273e] p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   {selectedPlan.label} · {selectedDuration.label}
                 </p>
-                <p className="text-lg font-extrabold text-white">
+                <p className="text-lg font-extrabold text-slate-800 dark:text-white">
                   ₹{totalAmount}
                 </p>
               </div>
@@ -245,7 +245,7 @@ export default function PlanSelectionModal({ onClose, gymName }) {
               <MessageCircle className="h-4 w-4" />
               Contact Admin to Upgrade
             </button>
-            <p className="mt-2 text-center text-[11px] text-slate-500">
+            <p className="mt-2 text-center text-[11px] text-slate-600 dark:text-slate-500">
               We'll confirm the amount &amp; payment over WhatsApp — your plan
               updates as soon as it's received.
             </p>

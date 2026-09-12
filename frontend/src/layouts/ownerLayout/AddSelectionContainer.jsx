@@ -199,7 +199,7 @@ export default function AddSelectionContainer() {
       overflow-hidden prevents the outer page from scrolling.
     */
     <div
-      className={`overflow-hidden bg-slate-950 text-slate-200 ${
+      className={`overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-200 ${
         selectedType === "membership"
           ? "h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] md:h-dvh"
           : "h-dvh"
@@ -220,7 +220,7 @@ export default function AddSelectionContainer() {
 
             {selectedType ? (
               <div className="flex items-center justify-between mb-2">
-                <h1 className="text-base font-bold text-white">
+                <h1 className="text-base font-bold text-slate-800 dark:text-white">
                   {selectedType === "membership"
                     ? "Add Membership"
                     : "Add Enquiry"}
@@ -229,18 +229,18 @@ export default function AddSelectionContainer() {
                 <button
                   onClick={handleClose}
                   aria-label="Close"
-                  className="flex items-center justify-center h-9 w-9 rounded-full bg-slate-800 border border-slate-700 shadow-sm text-slate-300 active:scale-95 cursor-pointer"
+                  className="flex items-center justify-center h-9 w-9 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm text-slate-600 dark:text-slate-300 active:scale-95 cursor-pointer"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
             ) : (
-              <div className="border-b border-slate-800 pb-2 mb-4">
-                <h1 className="text-xl font-bold text-white">
+              <div className="border-b border-slate-200 dark:border-slate-800 pb-2 mb-4">
+                <h1 className="text-xl font-bold text-slate-800 dark:text-white">
                   Management Entry Portal
                 </h1>
 
-                <p className="text-slate-500 text-xs mt-1">
+                <p className="text-slate-600 dark:text-slate-500 text-xs mt-1">
                   Select entry type below to open
                   administrative data workflows.
                 </p>
@@ -252,14 +252,14 @@ export default function AddSelectionContainer() {
           {/* --------------------------------------------------
               DESKTOP HEADER
           -------------------------------------------------- */}
-          <div className={`shrink-0 hidden md:flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-800 pb-2 mb-6 pt-6 gap-4 ${selectedType === "membership" ? "md:hidden" : ""}`}>
+          <div className={`shrink-0 hidden md:flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-200 dark:border-slate-800 pb-2 mb-6 pt-6 gap-4 ${selectedType === "membership" ? "md:hidden" : ""}`}>
 
             <div>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
                 Management Entry Portal
               </h1>
 
-              <p className="text-slate-500 text-sm mt-0.5">
+              <p className="text-slate-600 dark:text-slate-500 text-sm mt-0.5">
                 Select entry type below to open
                 administrative data workflows.
               </p>
@@ -296,8 +296,8 @@ export default function AddSelectionContainer() {
 
                 ${
                   selectedType === "membership"
-                    ? "bg-slate-900/60 text-cyan-400 border-cyan-500/40 font-semibold shadow-md"
-                    : "bg-slate-900/60 text-slate-300 border-slate-800 hover:border-slate-700 shadow-sm"
+                    ? "bg-white dark:bg-slate-900/60 text-cyan-400 border-cyan-500/40 font-semibold shadow-md"
+                    : "bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 shadow-sm"
                 }
               `}
             >
@@ -309,7 +309,7 @@ export default function AddSelectionContainer() {
                   ${
                     selectedType === "membership"
                       ? "bg-cyan-500/10 text-cyan-400"
-                      : "bg-slate-800 text-slate-400 group-hover:bg-slate-700"
+                      : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-slate-100 dark:group-hover:bg-slate-700"
                   }
                 `}
               >
@@ -317,11 +317,11 @@ export default function AddSelectionContainer() {
               </div>
 
               <div>
-                <h3 className="text-base font-bold text-white">
+                <h3 className="text-base font-bold text-slate-800 dark:text-white">
                   Add Membership
                 </h3>
 
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-600 dark:text-slate-500 mt-0.5">
                   Establish new accounts and packages.
                 </p>
               </div>
@@ -342,8 +342,8 @@ export default function AddSelectionContainer() {
 
                 ${
                   selectedType === "enquiry"
-                    ? "bg-slate-900/60 text-cyan-400 border-cyan-500/40 font-semibold shadow-md"
-                    : "bg-slate-900/60 text-slate-300 border-slate-800 hover:border-slate-700 shadow-sm"
+                    ? "bg-white dark:bg-slate-900/60 text-cyan-400 border-cyan-500/40 font-semibold shadow-md"
+                    : "bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 shadow-sm"
                 }
               `}
             >
@@ -355,7 +355,7 @@ export default function AddSelectionContainer() {
                   ${
                     selectedType === "enquiry"
                       ? "bg-cyan-500/10 text-cyan-400"
-                      : "bg-slate-800 text-slate-400 group-hover:bg-slate-700"
+                      : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-slate-100 dark:group-hover:bg-slate-700"
                   }
                 `}
               >
@@ -363,11 +363,11 @@ export default function AddSelectionContainer() {
               </div>
 
               <div>
-                <h3 className="text-base font-bold text-white">
+                <h3 className="text-base font-bold text-slate-800 dark:text-white">
                   Add Enquiry
                 </h3>
 
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-600 dark:text-slate-500 mt-0.5">
                   Log potential client prospect interests.
                 </p>
               </div>
@@ -405,7 +405,7 @@ export default function AddSelectionContainer() {
               min-h-0
               w-full
 
-              ${selectedType === "membership" ? "" : "bg-slate-900/60 backdrop-blur-sm rounded-xl shadow-sm border border-cyan-500/10"}
+              ${selectedType === "membership" ? "" : "bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl shadow-sm border border-cyan-500/10"}
 
               overflow-hidden
 
@@ -432,7 +432,7 @@ export default function AddSelectionContainer() {
             )}
 
             {!selectedType && (
-              <div className="w-full h-full items-center justify-center text-center p-8 text-slate-500 hidden md:flex">
+              <div className="w-full h-full items-center justify-center text-center p-8 text-slate-600 dark:text-slate-500 hidden md:flex">
                 <div>
                   <p className="text-sm font-medium">
                     No system form entry channel selected.

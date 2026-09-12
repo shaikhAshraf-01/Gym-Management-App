@@ -22,7 +22,7 @@ const STATUS_STYLES = {
   scheduled: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   sent: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   failed: "bg-rose-500/10 text-rose-400 border-rose-500/20",
-  cancelled: "bg-slate-700/30 text-slate-400 border-slate-700",
+  cancelled: "bg-slate-100 dark:bg-slate-700/30 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700",
 };
 
 // Scheduling for "today" risks landing after that day's cron already
@@ -83,20 +83,20 @@ export default function OfferBroadcasts() {
       <div className="mx-auto max-w-lg px-4 py-6">
         <button
           onClick={() => navigate(-1)}
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
         >
           <ArrowLeft size={16} />
           Back
         </button>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center shadow-xl">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 text-center shadow-xl">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-lime-400/10">
             <Lock className="h-6 w-6 text-lime-400" />
           </div>
-          <h2 className="text-base font-bold text-slate-100 mb-2">
+          <h2 className="text-base font-bold text-slate-700 dark:text-slate-100 mb-2">
             Offer Broadcasts is a Plus feature
           </h2>
-          <p className="text-sm leading-6 text-slate-400 mb-6">
+          <p className="text-sm leading-6 text-slate-600 dark:text-slate-400 mb-6">
             Schedule a WhatsApp offer to your members or enquiries in one go.
             Upgrade to Plus to unlock it.
           </p>
@@ -120,7 +120,7 @@ export default function OfferBroadcasts() {
     <div className="mx-auto max-w-2xl px-4 py-6">
       <button
         onClick={() => navigate(-1)}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
       >
         <ArrowLeft size={16} />
         Back
@@ -131,8 +131,8 @@ export default function OfferBroadcasts() {
           <Megaphone size={20} />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-slate-100">Offer Broadcasts</h1>
-          <p className="text-xs text-slate-500">Schedule a WhatsApp offer to your audience</p>
+          <h1 className="text-lg font-bold text-slate-700 dark:text-slate-100">Offer Broadcasts</h1>
+          <p className="text-xs text-slate-600 dark:text-slate-500">Schedule a WhatsApp offer to your audience</p>
         </div>
       </div>
 
@@ -151,10 +151,10 @@ export default function OfferBroadcasts() {
       {/* ===== Schedule form ===== */}
       <form
         onSubmit={handleSubmit}
-        className="mb-6 space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl"
+        className="mb-6 space-y-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xl"
       >
         <div>
-          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+          <label className="block text-[10px] uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
             Template Name
           </label>
           <input
@@ -162,16 +162,16 @@ export default function OfferBroadcasts() {
             placeholder="e.g. diwali_offer_2026"
             value={templateName}
             onChange={(e) => setTemplateName(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400"
+            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-sm text-slate-700 dark:text-slate-100 outline-none focus:border-amber-400"
           />
-          <p className="mt-1 text-[10px] text-slate-500">
+          <p className="mt-1 text-[10px] text-slate-600 dark:text-slate-500">
             The exact name of a Meta-approved template on your connected account.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-[10px] uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
               Send Date
             </label>
             <input
@@ -179,18 +179,18 @@ export default function OfferBroadcasts() {
               min={tomorrowDateInputValue()}
               value={scheduledDate}
               onChange={(e) => setScheduledDate(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400"
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-sm text-slate-700 dark:text-slate-100 outline-none focus:border-amber-400"
             />
           </div>
 
           <div>
-            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-[10px] uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
               Audience
             </label>
             <select
               value={audience}
               onChange={(e) => setAudience(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400"
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-sm text-slate-700 dark:text-slate-100 outline-none focus:border-amber-400"
             >
               {AUDIENCE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -201,13 +201,13 @@ export default function OfferBroadcasts() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+        <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
           <Users size={13} />
           {audienceCountLoading ? (
             <span>Counting recipients...</span>
           ) : (
             <span>
-              Reaches ~<span className="font-bold text-slate-200">{audienceCount ?? "-"}</span>{" "}
+              Reaches ~<span className="font-bold text-slate-700 dark:text-slate-200">{audienceCount ?? "-"}</span>{" "}
               {audienceCount === 1 ? "person" : "people"}
             </span>
           )}
@@ -224,24 +224,24 @@ export default function OfferBroadcasts() {
       </form>
 
       {/* ===== Past / upcoming offers ===== */}
-      <h2 className="mb-2.5 text-xs font-bold uppercase text-slate-500">Offers</h2>
+      <h2 className="mb-2.5 text-xs font-bold uppercase text-slate-600 dark:text-slate-500">Offers</h2>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading...</p>
+        <p className="text-sm text-slate-600 dark:text-slate-500">Loading...</p>
       ) : offers.length === 0 ? (
-        <p className="text-sm text-slate-500">No offers scheduled yet.</p>
+        <p className="text-sm text-slate-600 dark:text-slate-500">No offers scheduled yet.</p>
       ) : (
         <div className="space-y-2.5">
           {offers.map((offer) => (
             <div
               key={offer._id}
-              className="rounded-xl border border-slate-800 bg-slate-950 p-4 flex items-center justify-between gap-3"
+              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4 flex items-center justify-between gap-3"
             >
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-100 truncate">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-100 truncate">
                   {offer.templateName}
                 </p>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-600 dark:text-slate-500 mt-0.5">
                   {new Date(offer.scheduledDate).toLocaleDateString("en-IN", {
                     day: "numeric",
                     month: "short",
@@ -265,7 +265,7 @@ export default function OfferBroadcasts() {
                 {offer.status === "scheduled" && (
                   <button
                     onClick={() => dispatch(cancelOffer(offer._id))}
-                    className="p-1.5 rounded-md bg-slate-800 hover:bg-rose-500/10 hover:text-rose-400 text-slate-400 border border-slate-700"
+                    className="p-1.5 rounded-md bg-slate-50 dark:bg-slate-800 hover:bg-rose-500/10 hover:text-rose-400 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
                     title="Cancel offer"
                   >
                     <X size={13} />
