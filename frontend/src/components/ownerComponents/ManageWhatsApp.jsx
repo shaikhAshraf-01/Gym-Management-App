@@ -435,11 +435,17 @@ export default function ManageWhatsApp() {
                 icon={UserPlus}
                 iconColor="bg-cyan-500/10 text-cyan-400"
                 title="Welcome on Member Create"
-                description="Send a welcome message the moment a new member is added."
+                description="Sends a welcome message with the invoice PDF attached, the moment a new member is added."
                 checked={settings.memberWelcome.enabled}
                 onChange={(v) => handleMemberWelcomeChange({ enabled: v })}
                 disabled={!settings.enabled}
               >
+                <p className="mb-2 text-[11px] text-amber-500">
+                  This template must be created in Meta Business Manager as a
+                  <strong> Document header</strong> template (not text-only) —
+                  the invoice PDF is attached automatically here, you don't
+                  send it yourself.
+                </p>
                 <TemplateTestField
                   automation="memberWelcome"
                   templateName={settings.memberWelcome.templateName}
