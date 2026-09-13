@@ -1,9 +1,11 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { connectSocket, disconnectSocket } from "../socket.js";
+import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
+import { connectSocket, disconnectSocket, getSocket } from "../socket.js";
 import { memberUpserted, memberRemoved, deletedMemberRemoved, fetchMembers } from "../redux/slices/membersSlice";
 import { enquiryUpserted, enquiryRemoved } from "../redux/slices/enquiriesSlice";
-import { gymProfileUpdated, trainersUpdated } from "../redux/slices/ownerSlice";
+import { gymProfileUpdated, trainersUpdated, fetchOwnerProfile } from "../redux/slices/ownerSlice";
 import { gymUpserted, gymRemoved, gymTrainersUpdated } from "../redux/slices/gymSlice";
 
 // Keeps members/enquiries live across:
@@ -17,6 +19,7 @@ import { gymUpserted, gymRemoved, gymTrainersUpdated } from "../redux/slices/gym
 export default function useRealtimeSync() {
   const dispatch = useDispatch();
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const role = useSelector((state) => state.auth.role);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -69,10 +72,38 @@ export default function useRealtimeSync() {
       });
     })();
 
+    // Android/iOS can suspend the JS thread (and the socket with it)
+    // while the app is backgrounded — there's no browser "refresh"
+    // button in the APK to fall back on, so when the app comes back
+    // to the foreground we explicitly make sure the socket is alive
+    // and pull fresh data ourselves, instead of trusting that every
+    // socket event fired while backgrounded actually arrived.
+    let removeResumeListener = () => {};
+    if (Capacitor.isNativePlatform()) {
+      CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+        if (!isActive) return;
+
+        const socket = getSocket();
+        if (!socket || !socket.connected) {
+          connectSocket();
+        }
+
+        // Admin has no gym/members context — only owner/trainer need
+        // this resync.
+        if (role === "owner" || role === "trainer") {
+          dispatch(fetchOwnerProfile());
+          dispatch(fetchMembers());
+        }
+      }).then((handle) => {
+        removeResumeListener = () => handle.remove();
+      });
+    }
+
     return () => {
       cancelled = true;
       disconnectSocket();
+      removeResumeListener();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, dispatch]);
+  }, [isAuthenticated, role, dispatch]);
 }

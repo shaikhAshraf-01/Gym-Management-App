@@ -27,6 +27,7 @@ import OwnerProfile from "./components/ownerComponents/OwnerProfile";
 import ManageWhatsApp from "./components/ownerComponents/ManageWhatsApp";
 import OfferBroadcasts from "./components/ownerComponents/OfferBroadcasts";
 import ManagePlans from "./components/ownerComponents/ManagePlans";
+import DeletedMembers from "./components/ownerComponents/DeletedMembers";
 //trainer routes
 import TrainerLayout from "./layouts/trainerLayout/TrainerLayout";
 import TrainerProfile from "./components/trainerComponents/TrainerProfile";
@@ -110,6 +111,7 @@ function App() {
             <Route path="/owner/whatsapp" element={<ManageWhatsApp />} />
             <Route path="/owner/whatsapp/offers" element={<OfferBroadcasts />} />
             <Route path="/owner/plans" element={<ManagePlans />} />
+            <Route path="/owner/deleted-members" element={<DeletedMembers />} />
           </Route>
         </Route>
 
