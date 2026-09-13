@@ -19,7 +19,7 @@ export const sendWhatsappTemplateMessage = async ({
   gym,
   toPhone,
   templateName,
-  languageCode = "en",
+  languageCode = "en_us",
   templateParams = [],
   headerMediaId = null,
 }) => {

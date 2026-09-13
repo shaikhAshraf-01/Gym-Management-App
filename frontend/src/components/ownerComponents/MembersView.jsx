@@ -341,8 +341,7 @@ const buildExtensionMessage = (member) => {
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           <Download className="h-3.5 w-3.5" />
-          <span>CSV</span>
-        </button>
+      </button>
       </div>
 
       {/* LOADING STATE */}
