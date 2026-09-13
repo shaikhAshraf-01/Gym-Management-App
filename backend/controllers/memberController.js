@@ -1,8 +1,10 @@
 import Member from "../models/Member.js";
 import MemberSubscriptionHistory from "../models/MemberSubscriptionHistory.js";
 import MemberPaymentHistory from "../models/MemberPaymentHistory.js";
+import Gym from "../models/Gym.js";
 import { emitToGym } from "../socket/index.js"; // 👈 ADD THIS LINE
-import { triggerMemberAutomation } from "../utils/sendWhatsappMessage.js";
+import { triggerMemberAutomation, uploadWhatsappMedia } from "../utils/sendWhatsappMessage.js";
+import { generateInvoicePdf } from "../utils/generateInvoicePdf.js";
 
 const PLAN_MONTHS = {
   "1_month": 1,
@@ -432,15 +434,51 @@ export const addMember = async (req, res) => {
     const formatted = await formatMember(member);
     emitToGym(req.user.gymId, "member:created", { member: formatted });
 
-    // Fire-and-forget: don't let a WhatsApp failure fail member
-    // creation. No-ops silently if the gym isn't on Plus/Pro or
-    // hasn't turned this automation on.
-    triggerMemberAutomation({
-      gymId: req.user.gymId,
-      automationKey: "memberWelcome",
-      toPhone: mobile,
-      templateParams: [name, plan],
-    }).catch(() => {});
+    // Fire-and-forget: don't let a WhatsApp failure (or the invoice
+    // PDF build) fail member creation. No-ops silently if the gym
+    // isn't on Plus/Pro or hasn't turned this automation on — the PDF
+    // is only generated/uploaded if the welcome message is actually
+    // going to send, so we don't waste work otherwise.
+    (async () => {
+      let headerMediaId = null;
+      try {
+        const gymDoc = await Gym.findById(req.user.gymId).select(
+          "gymName gstNumber whatsappIntegration.connected whatsappAutomationSettings.enabled whatsappAutomationSettings.memberWelcome +whatsappIntegration.accessToken"
+        );
+        const automationLive =
+          gymDoc?.whatsappIntegration?.connected &&
+          gymDoc?.whatsappAutomationSettings?.enabled &&
+          gymDoc?.whatsappAutomationSettings?.memberWelcome?.enabled;
+
+        if (automationLive) {
+          const pdfBuffer = await generateInvoicePdf({
+            gym: gymDoc,
+            member: { name, mobile, plan },
+            subscription: { planAmount, plan, joiningDate },
+          });
+          const uploadResult = await uploadWhatsappMedia({
+            gym: gymDoc,
+            fileBuffer: pdfBuffer,
+            filename: "invoice.pdf",
+          });
+          if (uploadResult.success) {
+            headerMediaId = uploadResult.mediaId;
+          } else {
+            console.error("Welcome invoice upload failed:", uploadResult.error);
+          }
+        }
+      } catch (error) {
+        console.error("Welcome invoice generation failed:", error);
+      }
+
+      return triggerMemberAutomation({
+        gymId: req.user.gymId,
+        automationKey: "memberWelcome",
+        toPhone: mobile,
+        templateParams: [name, plan],
+        headerMediaId,
+      });
+    })().catch(() => {});
 
     res.status(201).json({
       success: true,
