@@ -391,7 +391,7 @@ const buildExtensionMessage = (member) => {
                       <span className="truncate">{member.name}</span>
                       {member.admissionType === "offer" && (
                         <span className="shrink-0 whitespace-nowrap rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-400">
-                          Offer
+                          {member.offerName || "Offer"}
                         </span>
                       )}
                     </div>
@@ -492,7 +492,7 @@ const buildExtensionMessage = (member) => {
             >
               {member.admissionType === "offer" && (
                 <span className="absolute -top-2 right-3 rounded-full border border-blue-500/30 bg-blue-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-                  Offer
+                  {member.offerName || "Offer"}
                 </span>
               )}
               <div className="flex justify-between items-start mb-3">
