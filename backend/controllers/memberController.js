@@ -203,6 +203,9 @@ const formatMember = async (memberDoc) => {
 
       admissionType: sub.admissionType || "normal",
 
+      offerName: sub.offerName || "",
+      discount: sub.discount || 0,
+
       activities: sub.activities || [],
 
       startDate: toDateStr(sub.joiningDate),
@@ -245,6 +248,9 @@ const formatMember = async (memberDoc) => {
     // "normal" or "offer" — whether the CURRENT membership was taken
     // under a special offer. Drives the blue offer badge in the UI.
     admissionType: latest.admissionType || "normal",
+
+    offerName: latest.offerName || "",
+    discount: latest.discount || 0,
 
     activities: latest.activities || [],
 
@@ -350,6 +356,8 @@ export const addMember = async (req, res) => {
       trainer,
       activities,
       admissionType,
+      offerName,
+      discount,
     } = req.body;
 
     if (
@@ -392,6 +400,10 @@ export const addMember = async (req, res) => {
       planAmount: Number(planAmount),
 
       admissionType: admissionType === "offer" ? "offer" : "normal",
+
+      offerName: admissionType === "offer" ? String(offerName || "").trim() : "",
+
+      discount: admissionType !== "offer" ? Number(discount || 0) : 0,
 
       balance: Number(balanceAmount || 0),
 
@@ -858,6 +870,8 @@ export const extendMembership = async (req, res) => {
       newStartDate,
       activities,
       admissionType,
+      offerName,
+      discount,
     } = req.body;
 
     // ---------------------------------------------------------------
@@ -991,6 +1005,10 @@ export const extendMembership = async (req, res) => {
       planAmount: Number(extensionAmount || 0),
 
       admissionType: admissionType === "offer" ? "offer" : "normal",
+
+      offerName: admissionType === "offer" ? String(offerName || "").trim() : "",
+
+      discount: admissionType !== "offer" ? Number(discount || 0) : 0,
 
       balance: Number(balanceAmount || 0),
 

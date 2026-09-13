@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { Loader2 } from "lucide-react";
 
-// Hardcoded for now — becomes a per-gym manageable list later if needed.
-const ACTIVITY_OPTIONS = [
-  { value: "workout", label: "Workout" },
-  { value: "cardio", label: "Cardio" },
-  { value: "zumba", label: "Zumba" },
-  { value: "hiit", label: "HIIT" },
+const PLAN_DURATIONS = [
+  { value: "1_month", label: "1 Month" },
+  { value: "3_month", label: "3 Months" },
+  { value: "6_month", label: "6 Months" },
+  { value: "1_year", label: "1 Year" },
 ];
 
 export default function MembershipForm({ onSave, onCancel, prefill }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Owner-managed prices from "Manage Plans" — plan amount is
+  // auto-computed and locked from these, never typed by hand here.
+  const gymPricing = useSelector((state) => state.owner.gym?.pricing);
+  const planPrices = gymPricing?.plans || {};
+  const activityOptions = gymPricing?.activities || [];
+  const activeOffers = (gymPricing?.offers || []).filter((o) => o.active);
 
   const [formData, setFormData] = useState({
     name: prefill?.name || "",
@@ -24,7 +31,54 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
     paymentMode: "upi",
     joiningDate: new Date().toISOString().split("T")[0],
     admissionType: "normal", // "normal" | "offer"
+    offerName: "", // which named offer, only used when admissionType is "offer"
+    discount: "", // one-off reduction, only usable on Normal admissions
   });
+
+  // Recompute the total amount whenever plan, activities, offer choice
+  // or discount change — Normal uses the base Plan Prices; Offer uses
+  // the selected named offer's own price list instead. Each
+  // activity's price is looked up for the CURRENTLY selected plan
+  // duration (Cardio can cost different amounts for 1 Month vs 3
+  // Months). Owner never types the total themselves.
+  useEffect(() => {
+    const isOffer = formData.admissionType === "offer";
+    const selectedOffer = isOffer
+      ? activeOffers.find((o) => o.name === formData.offerName)
+      : null;
+    const basePrice = isOffer
+      ? Number(selectedOffer?.plans?.[formData.plan]) || 0
+      : Number(planPrices[formData.plan]) || 0;
+
+    const activitiesTotal = formData.activities.reduce((sum, activityName) => {
+      const match = activityOptions.find((a) => a.name === activityName);
+      return sum + (Number(match?.prices?.[formData.plan]) || 0);
+    }, 0);
+
+    // Discount only applies to Normal admissions — Offer pricing IS
+    // the discount mechanism, so it isn't stacked on top.
+    const discount = !isOffer ? Number(formData.discount) || 0 : 0;
+    const computedTotal = Math.max(0, basePrice + activitiesTotal - discount);
+
+    setFormData((prev) => {
+      if (String(computedTotal) === prev.planAmount) return prev;
+      const currentPaid = parseFloat(prev.amountPayingToday) || 0;
+      return {
+        ...prev,
+        planAmount: String(computedTotal),
+        amountPayingToday:
+          currentPaid > computedTotal ? String(computedTotal) : prev.amountPayingToday,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    formData.plan,
+    formData.activities,
+    formData.discount,
+    formData.admissionType,
+    formData.offerName,
+    gymPricing,
+  ]);
 
   // ---------------------------------------------------------------
   // Earliest allowed Joining Date — capped to 6 months back from
@@ -103,7 +157,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
       value = value.replace(/[^a-zA-Z\s]/g, "").slice(0, 32);
     }
     // Number-only fields: digits only, no letters/symbols
-    else if (["age", "planAmount", "amountPayingToday", "balanceAmount"].includes(name)) {
+    else if (["age", "amountPayingToday", "balanceAmount", "discount"].includes(name)) {
       value = value.replace(/[^0-9]/g, "");
     }
 
@@ -119,23 +173,6 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
             plan > 0
               ? String(Math.min(paidValue, plan))
               : value,
-        };
-      }
-
-      // If Plan Amount is reduced,
-      // reduce Amount Paying Today automatically
-      if (name === "planAmount") {
-        const newPlan = parseFloat(value) || 0;
-        const currentPaid =
-          parseFloat(prev.amountPayingToday) || 0;
-
-        return {
-          ...prev,
-          planAmount: value,
-          amountPayingToday:
-            currentPaid > newPlan
-              ? String(newPlan)
-              : prev.amountPayingToday,
         };
       }
 
@@ -188,6 +225,8 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
           .toISOString()
           .split("T")[0],
         admissionType: "normal",
+        offerName: "",
+        discount: "",
       });
     } finally {
       setIsSubmitting(false);
@@ -296,21 +335,11 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               onChange={handleChange}
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-cyan-500"
             >
-              <option value="1_month">
-                1 Month
-              </option>
-
-              <option value="3_month">
-                3 Months
-              </option>
-
-              <option value="6_month">
-                6 Months
-              </option>
-
-              <option value="1_year">
-                1 Year
-              </option>
+              {PLAN_DURATIONS.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label} — ₹{Number(planPrices[value]) || 0}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -323,7 +352,7 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               <button
                 type="button"
                 onClick={() =>
-                  setFormData((prev) => ({ ...prev, admissionType: "normal" }))
+                  setFormData((prev) => ({ ...prev, admissionType: "normal", offerName: "" }))
                 }
                 className={`rounded-lg border p-3 text-xs font-semibold transition-colors cursor-pointer ${
                   formData.admissionType === "normal"
@@ -336,7 +365,12 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
               <button
                 type="button"
                 onClick={() =>
-                  setFormData((prev) => ({ ...prev, admissionType: "offer" }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    admissionType: "offer",
+                    discount: "",
+                    offerName: activeOffers[0]?.name || "",
+                  }))
                 }
                 className={`rounded-lg border p-3 text-xs font-semibold transition-colors cursor-pointer ${
                   formData.admissionType === "offer"
@@ -347,33 +381,87 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
                 Offer
               </button>
             </div>
+
+            {formData.admissionType === "offer" && (
+              <div className="mt-2">
+                <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
+                  Select Offer
+                </label>
+                {activeOffers.length === 0 ? (
+                  <p className="text-xs text-amber-500">
+                    No active offers — create one in Manage Plans (Profile page).
+                  </p>
+                ) : (
+                  <select
+                    value={formData.offerName}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, offerName: e.target.value }))
+                    }
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-blue-500"
+                  >
+                    {activeOffers.map((offer) => (
+                      <option key={offer.name} value={offer.name}>
+                        {offer.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+
+            {formData.admissionType === "normal" && (
+              <div className="mt-2">
+                <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
+                  Discount (optional)
+                </label>
+                <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 overflow-hidden">
+                  <span className="px-2.5 text-sm text-slate-500">₹</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    name="discount"
+                    value={formData.discount}
+                    onChange={handleChange}
+                    placeholder="0"
+                    className="w-full bg-transparent p-2.5 pl-0 text-sm text-slate-800 dark:text-white focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Activities */}
           <div className="md:col-span-2">
             <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
-              Activities
+              Activities (add-ons)
             </label>
 
-            <div className="flex flex-wrap gap-2">
-              {ACTIVITY_OPTIONS.map((opt) => {
-                const isSelected = formData.activities.includes(opt.value);
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => handleActivityToggle(opt.value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
-                      isSelected
-                        ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
-                        : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
+            {activityOptions.length === 0 ? (
+              <p className="text-xs text-slate-500">
+                No activities set up yet — add some in Manage Plans (Profile
+                page) if you charge extra for Cardio, Zumba, etc.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {activityOptions.map((opt) => {
+                  const isSelected = formData.activities.includes(opt.name);
+                  return (
+                    <button
+                      key={opt.name}
+                      type="button"
+                      onClick={() => handleActivityToggle(opt.name)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                        isSelected
+                          ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                          : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      {opt.name} — ₹{Number(opt.prices?.[formData.plan]) || 0}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Joining Date */}
@@ -400,19 +488,21 @@ export default function MembershipForm({ onSave, onCancel, prefill }) {
           {/* Plan Amount */}
           <div>
             <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
-              Plan Amount
+              Plan Amount (auto)
             </label>
 
             <input
-              type="number"
+              type="text"
               name="planAmount"
-              value={formData.planAmount}
-              onChange={handleChange}
-              min="0"
-              className="no-spinner w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-cyan-500"
-              placeholder="Enter total package price"
-              required
+              value={`₹${formData.planAmount || 0}`}
+              readOnly
+              className="no-spinner w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-700 dark:text-slate-300 cursor-not-allowed"
             />
+            {Number(formData.planAmount) === 0 && (
+              <p className="text-[10px] text-amber-500 mt-1">
+                Set a price for this plan in Manage Plans (Profile page).
+              </p>
+            )}
           </div>
 
           {/* Amount Paying Today */}

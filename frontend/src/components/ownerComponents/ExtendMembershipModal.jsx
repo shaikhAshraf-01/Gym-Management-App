@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { createPortal } from "react-dom";
 import { X, Loader2 } from "lucide-react";
 
-const ACTIVITY_OPTIONS = [
-  { value: "workout", label: "Workout" },
-  { value: "cardio", label: "Cardio" },
-  { value: "zumba", label: "Zumba" },
-  { value: "hiit", label: "HIIT" },
+const PLAN_DURATIONS = [
+  { value: "1_month", label: "1 Month" },
+  { value: "3_month", label: "3 Months" },
+  { value: "6_month", label: "6 Months" },
+  { value: "1_year", label: "1 Year" },
 ];
 
 export default function ExtendMembershipModal({
@@ -15,6 +16,13 @@ export default function ExtendMembershipModal({
   onClose,
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Owner-managed prices from "Manage Plans" — amount is auto-computed
+  // and locked from these, never typed by hand here.
+  const gymPricing = useSelector((state) => state.owner.gym?.pricing);
+  const planPrices = gymPricing?.plans || {};
+  const activityOptions = gymPricing?.activities || [];
+  const activeOffers = (gymPricing?.offers || []).filter((o) => o.active);
 
   const [formData, setFormData] = useState({
     plan: "1_month",
@@ -26,7 +34,51 @@ export default function ExtendMembershipModal({
     newStartDate: "",
     newExpiryDate: "",
     admissionType: "normal", // "normal" | "offer"
+    offerName: "",
+    discount: "", // one-off reduction, only usable on Normal admissions
   });
+
+  // Recompute the total whenever plan, activities, offer choice or
+  // discount change — Normal uses the base Plan Prices; Offer uses
+  // the selected named offer's own price list instead. Each
+  // activity's price is looked up for the CURRENTLY selected plan
+  // duration.
+  useEffect(() => {
+    const isOffer = formData.admissionType === "offer";
+    const selectedOffer = isOffer
+      ? activeOffers.find((o) => o.name === formData.offerName)
+      : null;
+    const basePrice = isOffer
+      ? Number(selectedOffer?.plans?.[formData.plan]) || 0
+      : Number(planPrices[formData.plan]) || 0;
+
+    const activitiesTotal = formData.activities.reduce((sum, activityName) => {
+      const match = activityOptions.find((a) => a.name === activityName);
+      return sum + (Number(match?.prices?.[formData.plan]) || 0);
+    }, 0);
+
+    const discount = !isOffer ? Number(formData.discount) || 0 : 0;
+    const computedTotal = Math.max(0, basePrice + activitiesTotal - discount);
+
+    setFormData((prev) => {
+      if (String(computedTotal) === prev.extensionAmount) return prev;
+      const currentPaid = parseFloat(prev.amountPayingToday) || 0;
+      return {
+        ...prev,
+        extensionAmount: String(computedTotal),
+        amountPayingToday:
+          currentPaid > computedTotal ? String(computedTotal) : prev.amountPayingToday,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    formData.plan,
+    formData.activities,
+    formData.discount,
+    formData.admissionType,
+    formData.offerName,
+    gymPricing,
+  ]);
 
   const handleActivityToggle = (value) => {
     setFormData((prev) => {
@@ -125,6 +177,8 @@ export default function ExtendMembershipModal({
       newStartDate: calculateDefaultStartDate(),
       newExpiryDate: "",
       admissionType: "normal",
+      offerName: "",
+      discount: "",
     });
   }, [member]);
 
@@ -149,7 +203,7 @@ export default function ExtendMembershipModal({
     let { value } = e.target;
 
     // Number-only fields: digits only, no letters/symbols
-    if (["extensionAmount", "amountPayingToday", "balanceAmount"].includes(name)) {
+    if (["amountPayingToday", "balanceAmount", "discount"].includes(name)) {
       value = value.replace(/[^0-9]/g, "");
     }
 
@@ -161,18 +215,6 @@ export default function ExtendMembershipModal({
         return {
           ...prev,
           amountPayingToday: fee > 0 ? String(Math.min(paid, fee)) : value,
-        };
-      }
-
-      if (name === "extensionAmount") {
-        const newFee = Number(value) || 0;
-        const currentPaid = Number(prev.amountPayingToday) || 0;
-
-        return {
-          ...prev,
-          extensionAmount: value,
-          amountPayingToday:
-            currentPaid > newFee ? String(newFee) : prev.amountPayingToday,
         };
       }
 
@@ -199,6 +241,8 @@ export default function ExtendMembershipModal({
         paymentMode: formData.paymentMode,
         newStartDate: formData.newStartDate,
         admissionType: formData.admissionType,
+        offerName: formData.offerName,
+        discount: formData.discount,
       });
     } finally {
       setIsSubmitting(false);
@@ -238,10 +282,10 @@ export default function ExtendMembershipModal({
                 onChange={handleChange}
                 className="w-full bg-slate-50 dark:bg-[#1c273e] border border-slate-200 dark:border-slate-700/80 rounded-lg p-3 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-lime-400"
               >
-                <option value="1_month">1 Month</option>
-                <option value="3_month">3 Months</option>
-                <option value="6_month">6 Months</option>
-                <option value="1_year">1 Year</option>
+                <option value="1_month">1 Month — ₹{Number(planPrices["1_month"]) || 0}</option>
+                <option value="3_month">3 Months — ₹{Number(planPrices["3_month"]) || 0}</option>
+                <option value="6_month">6 Months — ₹{Number(planPrices["6_month"]) || 0}</option>
+                <option value="1_year">1 Year — ₹{Number(planPrices["1_year"]) || 0}</option>
               </select>
             </div>
 
@@ -254,7 +298,7 @@ export default function ExtendMembershipModal({
                 <button
                   type="button"
                   onClick={() =>
-                    setFormData((prev) => ({ ...prev, admissionType: "normal" }))
+                    setFormData((prev) => ({ ...prev, admissionType: "normal", offerName: "" }))
                   }
                   className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-semibold transition-colors cursor-pointer ${
                     formData.admissionType === "normal"
@@ -267,7 +311,12 @@ export default function ExtendMembershipModal({
                 <button
                   type="button"
                   onClick={() =>
-                    setFormData((prev) => ({ ...prev, admissionType: "offer" }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      admissionType: "offer",
+                      discount: "",
+                      offerName: activeOffers[0]?.name || "",
+                    }))
                   }
                   className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-semibold transition-colors cursor-pointer ${
                     formData.admissionType === "offer"
@@ -278,32 +327,85 @@ export default function ExtendMembershipModal({
                   Offer Admission
                 </button>
               </div>
+
+              {formData.admissionType === "offer" && (
+                <div className="mt-2">
+                  <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Select Offer
+                  </label>
+                  {activeOffers.length === 0 ? (
+                    <p className="text-xs text-amber-500">
+                      No active offers — create one in Manage Plans.
+                    </p>
+                  ) : (
+                    <select
+                      value={formData.offerName}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, offerName: e.target.value }))
+                      }
+                      className="w-full bg-slate-50 dark:bg-[#1c273e] border border-slate-200 dark:border-slate-700/80 rounded-lg p-2.5 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500"
+                    >
+                      {activeOffers.map((offer) => (
+                        <option key={offer.name} value={offer.name}>
+                          {offer.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
+              {formData.admissionType === "normal" && (
+                <div className="mt-2">
+                  <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Discount (optional)
+                  </label>
+                  <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#1c273e] overflow-hidden">
+                    <span className="px-2.5 text-sm text-slate-500">₹</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      name="discount"
+                      value={formData.discount}
+                      onChange={handleChange}
+                      placeholder="0"
+                      className="w-full bg-transparent p-2.5 pl-0 text-sm text-slate-700 dark:text-slate-200 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Activities */}
             <div>
               <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-400 mb-1">
-                Activities
+                Activities (add-ons)
               </label>
-              <div className="flex flex-wrap gap-1.5">
-                {ACTIVITY_OPTIONS.map((opt) => {
-                  const isSelected = formData.activities.includes(opt.value);
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => handleActivityToggle(opt.value)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-lime-500 border-lime-400 text-slate-950 shadow-sm"
-                          : "bg-slate-50 dark:bg-[#1c273e] border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
+              {activityOptions.length === 0 ? (
+                <p className="text-xs text-slate-500">
+                  No activities set up yet — add some in Manage Plans.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {activityOptions.map((opt) => {
+                    const isSelected = formData.activities.includes(opt.name);
+                    return (
+                      <button
+                        key={opt.name}
+                        type="button"
+                        onClick={() => handleActivityToggle(opt.name)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-lime-500 border-lime-400 text-slate-950 shadow-sm"
+                            : "bg-slate-50 dark:bg-[#1c273e] border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        {opt.name} — ₹{Number(opt.prices?.[formData.plan]) || 0}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* New Start Date */}
@@ -342,18 +444,20 @@ export default function ExtendMembershipModal({
             {/* Extension Fee */}
             <div>
               <label className="block text-xs uppercase font-bold text-slate-600 dark:text-slate-400 mb-1">
-                New Membership Fee
+                New Membership Fee (auto)
               </label>
               <input
-                type="number"
+                type="text"
                 name="extensionAmount"
-                value={formData.extensionAmount}
-                onChange={handleChange}
-                min="0"
-                required
-                placeholder="Enter new fee"
-                className="w-full bg-slate-50 dark:bg-[#1c273e] border border-slate-200 dark:border-slate-700/80 rounded-lg p-3 text-sm text-slate-700 dark:text-slate-200 placeholder-slate-500 focus:outline-none focus:border-lime-400"
+                value={`₹${formData.extensionAmount || 0}`}
+                readOnly
+                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-lg p-3 text-sm text-slate-600 dark:text-slate-300 cursor-not-allowed"
               />
+              {Number(formData.extensionAmount) === 0 && (
+                <p className="text-[10px] text-amber-500 mt-1">
+                  Set a price for this plan in Manage Plans (Profile page).
+                </p>
+              )}
             </div>
 
             {/* Amount Paid */}

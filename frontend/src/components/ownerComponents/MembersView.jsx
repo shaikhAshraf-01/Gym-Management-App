@@ -20,13 +20,27 @@ export default function MembersView() {
   // generic phrase in the message builder below.
   const gymName = useSelector((state) => state.owner.gym?.gymName);
   const role = useSelector((state) => state.auth.role);
-  // WhatsApp reminders (manual wa.me links) are only available on the
-  // Basic plan for now — Plus/Pro will get automatic WhatsApp sending
-  // once the Cloud API integration is built.
+  // WhatsApp reminders (manual wa.me links) as a fallback wherever the
+  // Cloud API automation for that same event isn't actually live —
+  // either because the gym is on Basic (no automation at all), or
+  // because they're Plus/Pro but chose to keep that specific
+  // automation switched off (or haven't connected WhatsApp yet).
   const subscriptionPlan = useSelector(
     (state) => state.owner.currentSubscription?.subscriptionPlan
   );
-  const canUseManualWhatsApp = subscriptionPlan === "Basic";
+  const gym = useSelector((state) => state.owner.gym);
+  const isBasicPlan = subscriptionPlan === "Basic" || !subscriptionPlan;
+  const isExtendRenewalAutomationLive =
+    !isBasicPlan &&
+    !!gym?.whatsappIntegration?.connected &&
+    !!gym?.whatsappAutomationSettings?.enabled &&
+    !!gym?.whatsappAutomationSettings?.extendRenewal?.enabled;
+  // Extend/Renewal confirmation: manual link shows up whenever the
+  // automated one won't fire for this gym right now.
+  const canUseRenewalWhatsApp = !isExtendRenewalAutomationLive;
+  // Balance-due reminder has no automated equivalent anymore (removed
+  // as redundant with this) — always available, on every plan.
+  const canUseManualWhatsApp = true;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // all | active | inactive
@@ -156,8 +170,7 @@ const handleSaveExtend = async (id, extensionPayload) => {
   try {
     const updatedMember = await dispatch(extendMembership({ id, ...extensionPayload })).unwrap();
     
-    if (canUseManualWhatsApp) {
-      // Sahi tarah se updated data aur input payload inject karein
+    if (canUseRenewalWhatsApp) {
       setConfirmingRenewalMember({ ...updatedMember, _extensionPayload: extensionPayload });
     }
     setExtendingMember(null); // Modal end me close karein
@@ -440,10 +453,10 @@ const buildExtensionMessage = (member) => {
                           member={member}
                           addedBy={addedBy}
                           gymName={gymName}
-                          canUseManualWhatsApp={canUseManualWhatsApp}
+                          canUseManualWhatsApp={canUseRenewalWhatsApp}
                           variant="desktop"
                           onRenewSuccess={(updateMember,extensionPayload)=>{
-                            if(canUseManualWhatsApp){
+                            if(canUseRenewalWhatsApp){
                               setConfirmingRenewalMember({
                                 ...updateMember,
                                 _extensionPayload:extensionPayload,
@@ -571,10 +584,10 @@ const buildExtensionMessage = (member) => {
                     member={member}
                     addedBy={addedBy}
                     gymName={gymName}
-                    canUseManualWhatsApp={canUseManualWhatsApp}
+                    canUseManualWhatsApp={canUseRenewalWhatsApp}
                     variant="mobile"
                      onRenewSuccess={(updateMember,extensionPayload)=>{
-                            if(canUseManualWhatsApp){
+                            if(canUseRenewalWhatsApp){
                               setConfirmingRenewalMember({
                                 ...updateMember,
                                 _extensionPayload:extensionPayload,

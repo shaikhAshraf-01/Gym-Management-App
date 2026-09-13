@@ -25,6 +25,7 @@ import {
   Moon,
   RotateCcw,
   UserX,
+  Wallet,
 } from "lucide-react";
 
 import { performLogout } from "../../redux/slices/authSlice";
@@ -765,6 +766,26 @@ export default function OwnerProfile() {
             </button>
           );
         })()}
+
+        {/* ===================== MANAGE PLANS ===================== */}
+
+        <button
+          onClick={() => navigate("/owner/plans")}
+          className="mt-4 flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-left shadow-xl transition hover:border-lime-400/40"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="shrink-0 rounded-xl bg-cyan-500/10 p-2.5 text-cyan-400">
+              <Wallet size={20} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-slate-700 dark:text-slate-100">Manage Plans</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Set plan &amp; activity prices — auto-fills in Add Member/Renew
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="shrink-0 text-slate-600" size={18} />
+        </button>
 
         {/* ===================== APPEARANCE ===================== */}
 

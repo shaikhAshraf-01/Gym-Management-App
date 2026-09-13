@@ -40,6 +40,26 @@ const memberSubscriptionHistorySchema = new mongoose.Schema(
       default: "normal",
     },
 
+    // Which named offer campaign (e.g. "Diwali Offer") was applied —
+    // only set when admissionType is "offer". Stored as plain text
+    // (not a ref) so it stays accurate even if the offer is later
+    // renamed or removed from Gym.pricing.offers.
+    offerName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    // One-off manual reduction, only usable on Normal admissions
+    // (Offer pricing already IS the discount mechanism). Stored
+    // separately from planAmount so Profile/History can show exactly
+    // how much was knocked off, not just the final number.
+    discount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     // Selected activities for this subscription (workout, cardio, etc.)
     // Must be declared here or Mongoose silently strips it on save.
     activities: {

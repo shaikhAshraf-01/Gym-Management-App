@@ -706,6 +706,107 @@ export const updateWhatsappAutomationSettings = async (req, res) => {
   }
 };
 
+// PATCH /api/owner/pricing
+// Owner sets/updates the per-plan prices and the activity add-on list
+// (with prices). Add Member / Extend forms use these to auto-fill
+// (and lock) the amount instead of the owner typing/calculating it
+// each time. Accepts a partial body — e.g. just { plans: {...} } or
+// just { activities: [...] } — either is merged, never wipes the other.
+const ALLOWED_DURATION_KEYS = ["1_month", "3_month", "6_month", "1_year"];
+
+const validateDurationPrices = (prices, label) => {
+  const cleaned = {};
+  for (const key of ALLOWED_DURATION_KEYS) {
+    const amount = Number(prices?.[key] ?? 0);
+    if (!Number.isFinite(amount) || amount < 0) {
+      return { error: `Invalid ${key} price for ${label}.` };
+    }
+    cleaned[key] = amount;
+  }
+  return { cleaned };
+};
+
+export const updateGymPricing = async (req, res) => {
+  try {
+    const { gym } = await findOwnedGym(req.user._id);
+    if (!gym) {
+      return res.status(404).json({ success: false, message: "Gym not found." });
+    }
+
+    const { plans, activities, offers } = req.body || {};
+
+    if (plans && typeof plans === "object") {
+      const { cleaned, error } = validateDurationPrices(plans, "the plan");
+      if (error) {
+        return res.status(400).json({ success: false, message: error });
+      }
+      gym.pricing.plans = { ...gym.pricing.plans, ...cleaned };
+    }
+
+    if (Array.isArray(activities)) {
+      const cleanedActivities = [];
+      for (const activity of activities) {
+        const name = String(activity?.name || "").trim();
+        if (!name) {
+          return res.status(400).json({
+            success: false,
+            message: "Every activity needs a name.",
+          });
+        }
+        const { cleaned, error } = validateDurationPrices(
+          activity?.prices,
+          name
+        );
+        if (error) {
+          return res.status(400).json({ success: false, message: error });
+        }
+        cleanedActivities.push({ name, prices: cleaned });
+      }
+      gym.pricing.activities = cleanedActivities;
+    }
+
+    if (Array.isArray(offers)) {
+      const cleanedOffers = [];
+      for (const offer of offers) {
+        const name = String(offer?.name || "").trim();
+        if (!name) {
+          return res.status(400).json({
+            success: false,
+            message: "Every offer needs a name.",
+          });
+        }
+        const { cleaned, error } = validateDurationPrices(offer?.plans, name);
+        if (error) {
+          return res.status(400).json({ success: false, message: error });
+        }
+        cleanedOffers.push({
+          name,
+          active: offer?.active !== false,
+          plans: cleaned,
+        });
+      }
+      gym.pricing.offers = cleanedOffers;
+    }
+
+    await gym.save();
+
+    emitToGym(gym._id, "gym:updated", { gym });
+    emitToAdmins("gym:updated", { gym });
+
+    return res.status(200).json({
+      success: true,
+      message: "Pricing saved.",
+      gym,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save pricing.",
+    });
+  }
+};
+
 // POST /api/owner/whatsapp/test-send
 // Owner-triggered dry run — sends ONE real message, straight from the
 // app, using whatever template name is currently saved for the given

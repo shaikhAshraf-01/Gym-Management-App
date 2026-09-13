@@ -44,6 +44,9 @@ export const disconnectWhatsappApi = () =>
 export const updateWhatsappAutomationSettingsApi = (settings) =>
   api.patch("/owner/whatsapp/automation-settings", settings);
 
+export const updateGymPricingApi = (pricing) =>
+  api.patch("/owner/pricing", pricing);
+
 export const testSendWhatsappAutomationApi = (automation, toPhone) =>
   api.post("/owner/whatsapp/test-send", { automation, toPhone });
 

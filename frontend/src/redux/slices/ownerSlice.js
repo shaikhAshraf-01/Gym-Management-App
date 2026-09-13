@@ -10,6 +10,7 @@ import {
   connectWhatsappApi,
   disconnectWhatsappApi,
   updateWhatsappAutomationSettingsApi,
+  updateGymPricingApi,
 } from "../../api/ownerApi";
 
 // ❌ REMOVED: getAuthHeaders() is no longer needed because 
@@ -162,6 +163,20 @@ export const updateWhatsappAutomationSettings = createAsyncThunk(
   },
 );
 
+export const updateGymPricing = createAsyncThunk(
+  "owner/updateGymPricing",
+  async (pricing, { rejectWithValue }) => {
+    try {
+      const response = await updateGymPricingApi(pricing);
+      return response.data.gym;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to save pricing.",
+      );
+    }
+  },
+);
+
 const initialState = {
   owner: null,
   gym: null,
@@ -182,6 +197,8 @@ const initialState = {
   gstActionError: null,
   whatsappActionLoading: false,
   whatsappActionError: null,
+  pricingActionLoading: false,
+  pricingActionError: null,
 };
 
 const ownerSlice = createSlice({
@@ -369,6 +386,20 @@ const ownerSlice = createSlice({
       .addCase(updateWhatsappAutomationSettings.rejected, (state, action) => {
         state.whatsappActionLoading = false;
         state.whatsappActionError = action.payload;
+      })
+      .addCase(updateGymPricing.pending, (state) => {
+        state.pricingActionLoading = true;
+        state.pricingActionError = null;
+      })
+      .addCase(updateGymPricing.fulfilled, (state, action) => {
+        state.pricingActionLoading = false;
+        if (state.gym) {
+          state.gym.pricing = action.payload.pricing;
+        }
+      })
+      .addCase(updateGymPricing.rejected, (state, action) => {
+        state.pricingActionLoading = false;
+        state.pricingActionError = action.payload;
       });
   },
 });

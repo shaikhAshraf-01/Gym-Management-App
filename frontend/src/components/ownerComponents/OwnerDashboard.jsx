@@ -108,9 +108,18 @@ export default function OwnerDashboard() {
       state.owner.currentSubscription?.subscriptionPlan
   );
 
-  // Manual WhatsApp is available only for Basic
-  const canUseManualWhatsApp =
-    subscriptionPlan === "Basic";
+  // Extend/Renewal wa.me fallback: shows up whenever the Cloud API
+  // automation for this event won't actually fire for this gym right
+  // now — Basic (no automation at all), or Plus/Pro with it switched
+  // off / WhatsApp not connected.
+  const gym = useSelector((state) => state.owner.gym);
+  const isBasicPlan = subscriptionPlan === "Basic" || !subscriptionPlan;
+  const isExtendRenewalAutomationLive =
+    !isBasicPlan &&
+    !!gym?.whatsappIntegration?.connected &&
+    !!gym?.whatsappAutomationSettings?.enabled &&
+    !!gym?.whatsappAutomationSettings?.extendRenewal?.enabled;
+  const canUseManualWhatsApp = !isExtendRenewalAutomationLive;
 
   // ---------------------------------------------------------
   // Local State

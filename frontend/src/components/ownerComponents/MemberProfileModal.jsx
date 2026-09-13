@@ -487,6 +487,16 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
             <div>
               <p className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-500">Total Fees</p>
               <p className="font-semibold text-slate-800 dark:text-white mt-0.5">₹{member.planAmount}</p>
+              {member.admissionType === "offer" && member.offerName && (
+                <p className="text-[10px] font-bold text-blue-500 mt-0.5">
+                  {member.offerName}
+                </p>
+              )}
+              {member.admissionType === "normal" && Number(member.discount) > 0 && (
+                <p className="text-[10px] font-bold text-emerald-500 mt-0.5">
+                  ₹{member.discount} discount applied
+                </p>
+              )}
             </div>
             <div>
               <p className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-500">Balance</p>
@@ -562,7 +572,13 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
 
                           {entry.admissionType === "offer" && (
                             <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-400">
-                              Offer
+                              {entry.offerName || "Offer"}
+                            </span>
+                          )}
+
+                          {entry.admissionType === "normal" && Number(entry.discount) > 0 && (
+                            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500">
+                              ₹{entry.discount} off
                             </span>
                           )}
                         </div>

@@ -13,6 +13,7 @@ import {
   disconnectWhatsappAccount,
   updateWhatsappAutomationSettings,
   testSendWhatsappAutomation,
+  updateGymPricing,
 } from "../controllers/ownerController.js";
 import {
   createOffer,
@@ -81,6 +82,9 @@ router.put("/trainers/:trainerId", authMiddleware, roleMiddleware("owner"), upda
 router.delete("/trainers/:trainerId", authMiddleware, roleMiddleware("owner"), removeTrainerOwner);
 
 // ============ WHATSAPP AUTOMATION (owner-only, Plus/Pro gated in controller) ============
+
+// ============ PRICING (owner-only, no plan gating — free on all tiers) ============
+router.patch("/pricing", authMiddleware, roleMiddleware("owner"), updateGymPricing);
 
 router.post("/whatsapp/connect", authMiddleware, roleMiddleware("owner"), connectWhatsappAccount);
 router.delete("/whatsapp/connect", authMiddleware, roleMiddleware("owner"), disconnectWhatsappAccount);

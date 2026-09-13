@@ -42,6 +42,58 @@ const gymSchema= new mongoose.Schema({
         enum:["active","inactive"],
         default:"active",
     },
+    // ===== Pricing catalog — set once by the owner in "Manage Plans", =====
+    // then used to auto-fill amount in Add Member / Extend forms so
+    // nobody has to type/calculate it by hand each time. Plan amount
+    // is LOCKED to these values in those forms — the owner can only
+    // change prices here, not per-member.
+    pricing:{
+        plans:{
+            "1_month":{ type:Number, default:0, min:0 },
+            "3_month":{ type:Number, default:0, min:0 },
+            "6_month":{ type:Number, default:0, min:0 },
+            "1_year":{ type:Number, default:0, min:0 },
+        },
+        // Add-on activities (Workout, Cardio, ...) — each with its own
+        // price PER PLAN DURATION (e.g. Cardio might be ₹300 for 1
+        // month but ₹900 for 3 months, not just a flat add-on), added
+        // on top of the selected plan's amount. Gym-managed list,
+        // replacing the old hardcoded 4-option list.
+        activities:{
+            type:[
+                {
+                    name:{ type:String, required:true, trim:true },
+                    prices:{
+                        "1_month":{ type:Number, default:0, min:0 },
+                        "3_month":{ type:Number, default:0, min:0 },
+                        "6_month":{ type:Number, default:0, min:0 },
+                        "1_year":{ type:Number, default:0, min:0 },
+                    },
+                },
+            ],
+            default:[],
+        },
+        // Named offer campaigns (e.g. "Diwali Offer", "New Year
+        // Offer") — each is its OWN complete price list, used instead
+        // of `plans` above when a member is admitted as "offer" and
+        // this specific offer is picked. `active` lets the owner
+        // retire one without losing the historical name/prices.
+        offers:{
+            type:[
+                {
+                    name:{ type:String, required:true, trim:true },
+                    active:{ type:Boolean, default:true },
+                    plans:{
+                        "1_month":{ type:Number, default:0, min:0 },
+                        "3_month":{ type:Number, default:0, min:0 },
+                        "6_month":{ type:Number, default:0, min:0 },
+                        "1_year":{ type:Number, default:0, min:0 },
+                    },
+                },
+            ],
+            default:[],
+        },
+    },
     // ===== WhatsApp Business Account (Meta) — owned & managed by the
     // gym owner themselves, we only orchestrate sends through it. =====
     whatsappIntegration:{
