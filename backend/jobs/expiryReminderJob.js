@@ -64,7 +64,15 @@ export const runExpiryReminderJob = async () => {
           gym,
           toPhone: member.mobile,
           templateName,
-          templateParams: [member.name, String(daysBefore || 3)],
+          templateParams: [
+            member.name, // {{1}} name
+            gym.gymName, // {{2}} gym name
+            new Date(entry.doc.expiryDate).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            }), // {{3}} expiry date
+          ],
         });
 
         if (result.success) {

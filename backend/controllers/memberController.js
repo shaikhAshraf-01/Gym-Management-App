@@ -475,7 +475,7 @@ export const addMember = async (req, res) => {
         gymId: req.user.gymId,
         automationKey: "memberWelcome",
         toPhone: mobile,
-        templateParams: [name, plan],
+        templateParams: [name, gymDoc.gymName], // {{1}} name, {{2}} gym name
         headerMediaId,
       });
     })().catch(() => {});
@@ -651,21 +651,14 @@ export const updateMember = async (req, res) => {
    // updateMember controller function ke andar is section ko replace karein:
 
 if (balanceJustCleared) {
-  // Current date ko format kar rahe hain (e.g. 14 Sep 2026 ya YYYY-MM-DD)
-  const currentDateStr = new Date().toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-
   triggerMemberAutomation({
     gymId: req.user.gymId,
     automationKey: "balanceConfirmation",
     toPhone: member.mobile,
     templateParams: [
-      String(member.name || "Member"), // {{1}} - Member Name
-      currentDateStr,                  // {{2}} - As of Date (e.g. 14 Sep 2026)
-      "0"                              // {{3}} - Updated Account Balance (₹0)
+      String(member.name || "Member"),          // {{1}} - Member Name
+      "0",                                       // {{2}} - Pending Amount (now cleared)
+      String(latestSub?.plan || plan || "N/A"),  // {{3}} - Plan against which balance was cleared
     ],
   }).catch((err) => console.error("Balance automation error:", err));
 }
@@ -1147,7 +1140,11 @@ export const extendMembership = async (req, res) => {
         gymId: req.user.gymId,
         automationKey: "extendRenewal",
         toPhone: member.mobile,
-        templateParams: [member.name, plan, wasActive ? "Extended" : "Renewed"],
+        templateParams: [
+          member.name, // {{1}} name
+          gymDoc.gymName, // {{2}} gym name
+          `${wasActive ? "Extended" : "Renewed"} for ${monthsToAdd} month${monthsToAdd > 1 ? "s" : ""}`, // {{3}} period
+        ],
         headerMediaId,
       });
     })().catch(() => {});

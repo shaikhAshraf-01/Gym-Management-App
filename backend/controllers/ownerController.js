@@ -789,13 +789,18 @@ export const updateGymPricing = async (req, res) => {
 
 // ================= TEST SEND WHATSAPP AUTOMATION =================
 const TEST_SAMPLE_PARAMS = {
-  expiryReminder: (gym, settings) => [
+  expiryReminder: (gym) => [
     "Test Member",
-    String(settings.expiryReminder?.daysBefore || 3),
+    gym.gymName || "Your Gym",
+    new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }),
   ],
-  memberWelcome: (gym) => ["Test Member", "Monthly"],
-  extendRenewal: (gym) => ["Test Member", "Monthly", "Renewed"],
-  balanceConfirmation: (gym) => ["Test Member"],
+  memberWelcome: (gym) => ["Test Member", gym.gymName || "Your Gym"],
+  extendRenewal: (gym) => ["Test Member", gym.gymName || "Your Gym", "Renewed for 1 month"],
+  balanceConfirmation: (gym) => ["Test Member", "0", "Monthly"],
 };
 
 export const testSendWhatsappAutomation = async (req, res) => {
