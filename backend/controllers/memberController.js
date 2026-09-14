@@ -648,14 +648,20 @@ export const updateMember = async (req, res) => {
 
     // Balance just cleared (was > 0, now exactly 0) — fire the
     // confirmation automation, fire-and-forget.
-    if (balanceJustCleared) {
-      triggerMemberAutomation({
-        gymId: req.user.gymId,
-        automationKey: "balanceConfirmation",
-        toPhone: member.mobile,
-        templateParams: [member.name],
-      }).catch(() => {});
-    }
+   // updateMember controller function ke andar is section ko replace karein:
+
+if (balanceJustCleared) {
+  triggerMemberAutomation({
+    gymId: req.user.gymId,
+    automationKey: "balanceConfirmation",
+    toPhone: member.mobile,
+    templateParams: [
+      member.name,                     // {{1}} - Member Name
+      latestSub?.plan || "Gym",        // {{2}} - Plan Name
+      String(oldBalance)               // {{3}} - Cleared Amount / Total Paid Amount
+    ],
+  }).catch(() => {});
+}
 
     res.status(200).json({
       success: true,
