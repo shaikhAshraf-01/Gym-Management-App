@@ -4,8 +4,7 @@ import GymSubscriptionHistory from "../models/GymSubscriptionHistory.js";
 import Member from "../models/Member.js";
 import MemberSubscriptionHistory from "../models/MemberSubscriptionHistory.js";
 
-import cloudinary from "../config/cloudinary.js"
-import streamifier from "streamifier"
+import imagekit from "../config/imagekit.js"
 import { compressImageBuffer } from "../utils/compressImage.js";
 import { emitToAdmins, emitToGym } from "../socket/index.js";
 import { hasActivePlusOrProPlan } from "../utils/planCheck.js";
@@ -161,40 +160,36 @@ export const uploadGymLogo = async (req, res) => {
     }
 const compressedBuffer = await compressImageBuffer(req.file.buffer);
 // ...
-    const uploadFromBuffer = () =>
-      new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: "GymOpsFlow/gym-logos",
-            transformation: [
-              {
-                width: 500,
-                height: 500,
-                crop: "fill",     // image ko exactly 500x500 mein fill karega, bina distort kiye
-                gravity: "auto",  // Cloudinary AI khud important part center mein rakhega
-                quality: "auto",  // file size bhi optimize ho jayegi
-                fetch_format: "auto",
-              },
-            ],
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
-
-streamifier.createReadStream(compressedBuffer).pipe(uploadStream); // req.file.buffer ki jagah
+    const uploadFromBuffer = async () => {
+      const result = await imagekit.upload({
+        file: compressedBuffer,
+        fileName: `gym-logo-${gym._id}.webp`,
+        folder: "GymOpsFlow/gym-logos",
+        useUniqueFileName: true,
+        // Resized/cropped to a consistent square avatar with
+        // AI-picked focus — same intent as Cloudinary's old
+        // "crop: fill, gravity: auto".
+        transformation: {
+          pre: "w-500,h-500,fo-auto",
+        },
       });
+      return result;
+    };
 
       if(gym.gymLogoPublicId){
-        await cloudinary.uploader.destroy(gym.gymLogoPublicId);
+        try {
+          await imagekit.deleteFile(gym.gymLogoPublicId);
+        } catch (error) {
+          // Already gone on ImageKit's side — fine, keep going.
+          console.error("ImageKit delete (old gym logo) failed:", error?.message);
+        }
         gym.gymLogoPublicId="",
         gym.gymLogo=""
       }
     const result = await uploadFromBuffer();
 
-    gym.gymLogo = result.secure_url;
-    gym.gymLogoPublicId=result.public_id;
+    gym.gymLogo = result.url;
+    gym.gymLogoPublicId=result.fileId;
     await gym.save();
 
     emitToGym(gym._id, "gym:updated", { gym });
@@ -234,9 +229,13 @@ export const removeGymLogo = async (req, res) => {
       });
     }
 
-    // Delete image from Cloudinary
+    // Delete image from ImageKit
     if (gym.gymLogoPublicId) {
-      await cloudinary.uploader.destroy(gym.gymLogoPublicId);
+      try {
+        await imagekit.deleteFile(gym.gymLogoPublicId);
+      } catch (error) {
+        console.error("ImageKit delete (gym logo) failed:", error?.message);
+      }
     }
 
     // Clear database fields
@@ -284,41 +283,35 @@ export const uploadTrainerPhoto = async (req, res) => {
     }
 const compressedBuffer = await compressImageBuffer(req.file.buffer);
 // ...
-const uploadFromBuffer = () =>
-  new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: "GymOpsFlow/trainer-photos",
-        transformation: [
-          {
-                width: 500,
-                height: 500,
-                crop: "fill",
-                gravity: "center", // plain geometric center — no AI guessing, always predictable
-                quality: "auto",
-                fetch_format: "auto",
-              },
-            ],
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
-        
-        streamifier.createReadStream(compressedBuffer).pipe(uploadStream); // req.file.buffer ki jagah
-      });
+const uploadFromBuffer = async () => {
+  const result = await imagekit.upload({
+    file: compressedBuffer,
+    fileName: `trainer-photo-${trainer._id}.webp`,
+    folder: "GymOpsFlow/trainer-photos",
+    useUniqueFileName: true,
+    // Plain center crop — no AI guessing, always predictable (same
+    // intent as the old Cloudinary "gravity: center").
+    transformation: {
+      pre: "w-500,h-500",
+    },
+  });
+  return result;
+};
 
     if (trainer.photoPublicId) {
-      await cloudinary.uploader.destroy(trainer.photoPublicId);
+      try {
+        await imagekit.deleteFile(trainer.photoPublicId);
+      } catch (error) {
+        console.error("ImageKit delete (old trainer photo) failed:", error?.message);
+      }
       trainer.photoPublicId = "";
       trainer.photo = "";
     }
 
     const result = await uploadFromBuffer();
 
-    trainer.photo = result.secure_url;
-    trainer.photoPublicId = result.public_id;
+    trainer.photo = result.url;
+    trainer.photoPublicId = result.fileId;
     await trainer.save();
 
     return res.status(200).json({
@@ -345,7 +338,11 @@ export const removeTrainerPhoto = async (req, res) => {
     }
 
     if (trainer.photoPublicId) {
-      await cloudinary.uploader.destroy(trainer.photoPublicId);
+      try {
+        await imagekit.deleteFile(trainer.photoPublicId);
+      } catch (error) {
+        console.error("ImageKit delete (trainer photo) failed:", error?.message);
+      }
     }
 
     trainer.photo = "";
@@ -523,7 +520,11 @@ export const removeTrainerOwner = async (req, res) => {
     }
 
     if (trainer.photoPublicId) {
-      await cloudinary.uploader.destroy(trainer.photoPublicId);
+      try {
+        await imagekit.deleteFile(trainer.photoPublicId);
+      } catch (error) {
+        console.error("ImageKit delete (deleted trainer's photo) failed:", error?.message);
+      }
     }
 
     await Trainer.findByIdAndDelete(trainerId);
@@ -820,7 +821,7 @@ const TEST_SAMPLE_PARAMS = {
   ],
   memberWelcome: (gym) => ["Test Member", "Monthly"],
   extendRenewal: (gym) => ["Test Member", "Monthly", "Renewed"],
-  balanceConfirmation: (gym) => ["Test Member", "0", gym.gymName],
+  balanceConfirmation: (gym) => ["Test Member"],
 };
 
 export const testSendWhatsappAutomation = async (req, res) => {

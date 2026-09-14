@@ -16,21 +16,20 @@
     "@exortek/express-mongo-sanitize": "^1.1.0",
     "@getbrevo/brevo": "^6.0.3",
     "bcryptjs": "^3.0.3",
-    "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^7.4.1",
     "helmet": "^8.0.0",
+    "imagekit": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.0",
     "multer": "^2.2.0",
     "node-cron": "^4.6.0",
     "pdfkit": "^0.20.2",
     "sharp": "^0.35.3",
-    "socket.io": "^4.8.1",
-    "streamifier": "^0.1.1"
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

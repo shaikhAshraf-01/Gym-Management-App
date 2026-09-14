@@ -315,6 +315,18 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
   const [confirmingCurrentDelete, setConfirmingCurrentDelete] = useState(false);
   const [sharingReceiptId, setSharingReceiptId] = useState(null);
 
+  // "Renew" if the membership has already lapsed, "Extend" if it's
+  // still active — same wording MembersView uses, so it doesn't say
+  // "Renew" for someone who isn't actually expired yet.
+  const isExpired = (() => {
+    if (!member?.expiryDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = new Date(member.expiryDate);
+    expiry.setHours(0, 0, 0, 0);
+    return expiry < today;
+  })();
+
   useEffect(() => {
     if (!member) return undefined;
 
@@ -444,7 +456,9 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
               <div className="p-2.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
                 <RefreshCw className="h-4 w-4" />
               </div>
-              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">Renew</span>
+              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                {isExpired ? "Renew" : "Extend"}
+              </span>
             </button>
 
             <button onClick={() => onEdit(member)} className="flex flex-col items-center gap-1.5 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer">

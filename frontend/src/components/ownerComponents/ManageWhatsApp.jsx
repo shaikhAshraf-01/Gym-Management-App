@@ -459,11 +459,17 @@ export default function ManageWhatsApp() {
                 icon={RefreshCw}
                 iconColor="bg-indigo-500/10 text-indigo-400"
                 title="Extend / Renew Confirmation"
-                description="Confirm automatically when a membership is extended or renewed."
+                description="Confirms with the invoice PDF attached, whenever a membership is extended or renewed."
                 checked={settings.extendRenewal.enabled}
                 onChange={(v) => handleExtendRenewalChange({ enabled: v })}
                 disabled={!settings.enabled}
               >
+                <p className="mb-2 text-[11px] text-amber-500">
+                  This template must be created in Meta Business Manager as a
+                  <strong> Document header</strong> template (not text-only) —
+                  the invoice PDF is attached automatically here, you don't
+                  send it yourself.
+                </p>
                 <TemplateTestField
                   automation="extendRenewal"
                   templateName={settings.extendRenewal.templateName}

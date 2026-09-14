@@ -1091,12 +1091,53 @@ export const extendMembership = async (req, res) => {
 
     // Fire-and-forget automation — wasActive tells us "Extended"
     // (still had time left) vs "Renewed" (had expired) for the message.
-    triggerMemberAutomation({
-      gymId: req.user.gymId,
-      automationKey: "extendRenewal",
-      toPhone: member.mobile,
-      templateParams: [member.name, plan, wasActive ? "Extended" : "Renewed"],
-    }).catch(() => {});
+    // Same optional invoice-PDF attach as the Welcome message — only
+    // if the owner turned that on AND has a Document-header template
+    // set up (see memberWelcome's PDF logic in addMember for details).
+    (async () => {
+      let headerMediaId = null;
+      try {
+        const gymDoc = await Gym.findById(req.user.gymId).select(
+          "gymName gstNumber whatsappIntegration.connected whatsappAutomationSettings.enabled whatsappAutomationSettings.extendRenewal +whatsappIntegration.accessToken"
+        );
+        const automationLive =
+          gymDoc?.whatsappIntegration?.connected &&
+          gymDoc?.whatsappAutomationSettings?.enabled &&
+          gymDoc?.whatsappAutomationSettings?.extendRenewal?.enabled;
+
+        if (automationLive) {
+          const pdfBuffer = await generateInvoicePdf({
+            gym: gymDoc,
+            member: { name: member.name, mobile: member.mobile, plan },
+            subscription: {
+              planAmount: extensionAmount,
+              plan,
+              joiningDate: startFrom,
+            },
+          });
+          const uploadResult = await uploadWhatsappMedia({
+            gym: gymDoc,
+            fileBuffer: pdfBuffer,
+            filename: "invoice.pdf",
+          });
+          if (uploadResult.success) {
+            headerMediaId = uploadResult.mediaId;
+          } else {
+            console.error("Renewal invoice upload failed:", uploadResult.error);
+          }
+        }
+      } catch (error) {
+        console.error("Renewal invoice generation failed:", error);
+      }
+
+      return triggerMemberAutomation({
+        gymId: req.user.gymId,
+        automationKey: "extendRenewal",
+        toPhone: member.mobile,
+        templateParams: [member.name, plan, wasActive ? "Extended" : "Renewed"],
+        headerMediaId,
+      });
+    })().catch(() => {});
 
     return res.status(200).json({
       success: true,
