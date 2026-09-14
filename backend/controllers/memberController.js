@@ -656,11 +656,11 @@ if (balanceJustCleared) {
     automationKey: "balanceConfirmation",
     toPhone: member.mobile,
     templateParams: [
-      member.name,                     // {{1}} - Member Name
-      latestSub?.plan || "Gym",        // {{2}} - Plan Name
-      String(oldBalance)               // {{3}} - Cleared Amount / Total Paid Amount
+      String(member.name || "Member"),
+      String(latestSub?.plan || "Gym Membership"),
+      String(oldBalance || 0)
     ],
-  }).catch(() => {});
+  }).catch((err) => console.error("Balance automation error:", err));
 }
 
     res.status(200).json({
