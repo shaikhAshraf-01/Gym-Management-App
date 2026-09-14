@@ -651,14 +651,21 @@ export const updateMember = async (req, res) => {
    // updateMember controller function ke andar is section ko replace karein:
 
 if (balanceJustCleared) {
+  // Current date ko format kar rahe hain (e.g. 14 Sep 2026 ya YYYY-MM-DD)
+  const currentDateStr = new Date().toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
   triggerMemberAutomation({
     gymId: req.user.gymId,
     automationKey: "balanceConfirmation",
     toPhone: member.mobile,
     templateParams: [
-      String(member.name || "Member"),
-      String(latestSub?.plan || "Gym Membership"),
-      String(oldBalance || 0)
+      String(member.name || "Member"), // {{1}} - Member Name
+      currentDateStr,                  // {{2}} - As of Date (e.g. 14 Sep 2026)
+      "0"                              // {{3}} - Updated Account Balance (₹0)
     ],
   }).catch((err) => console.error("Balance automation error:", err));
 }
