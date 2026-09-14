@@ -160,7 +160,7 @@ export const uploadGymLogo = async (req, res) => {
     const compressedBuffer = await compressImageBuffer(req.file.buffer, fileExt);
 
     const uploadFromBuffer = async () => {
-      const result = await imagekit.upload({
+      const result = await imagekit.files.upload({
         file: compressedBuffer,
         fileName: `gym-logo-${gym._id}.${fileExt}`, // Dynamic Extension
         folder: "GymOpsFlow/gym-logos",
@@ -174,7 +174,7 @@ export const uploadGymLogo = async (req, res) => {
 
     if (gym.gymLogoPublicId) {
       try {
-        await imagekit.deleteFile(gym.gymLogoPublicId);
+        await imagekit.files.delete(gym.gymLogoPublicId);
       } catch (error) {
         console.error("ImageKit delete (old gym logo) failed:", error?.message);
       }
@@ -227,7 +227,7 @@ export const removeGymLogo = async (req, res) => {
 
     if (gym.gymLogoPublicId) {
       try {
-        await imagekit.deleteFile(gym.gymLogoPublicId);
+        await imagekit.files.delete(gym.gymLogoPublicId);
       } catch (error) {
         console.error("ImageKit delete (gym logo) failed:", error?.message);
       }
@@ -280,7 +280,7 @@ export const uploadTrainerPhoto = async (req, res) => {
     const compressedBuffer = await compressImageBuffer(req.file.buffer, fileExt);
 
     const uploadFromBuffer = async () => {
-      const result = await imagekit.upload({
+      const result = await imagekit.files.upload({
         file: compressedBuffer,
         fileName: `trainer-photo-${trainer._id}.${fileExt}`, // Dynamic Extension
         folder: "GymOpsFlow/trainer-photos",
@@ -294,7 +294,7 @@ export const uploadTrainerPhoto = async (req, res) => {
 
     if (trainer.photoPublicId) {
       try {
-        await imagekit.deleteFile(trainer.photoPublicId);
+        await imagekit.files.delete(trainer.photoPublicId);
       } catch (error) {
         console.error("ImageKit delete (old trainer photo) failed:", error?.message);
       }
@@ -334,7 +334,7 @@ export const removeTrainerPhoto = async (req, res) => {
 
     if (trainer.photoPublicId) {
       try {
-        await imagekit.deleteFile(trainer.photoPublicId);
+        await imagekit.files.delete(trainer.photoPublicId);
       } catch (error) {
         console.error("ImageKit delete (trainer photo) failed:", error?.message);
       }
@@ -504,7 +504,7 @@ export const removeTrainerOwner = async (req, res) => {
 
     if (trainer.photoPublicId) {
       try {
-        await imagekit.deleteFile(trainer.photoPublicId);
+        await imagekit.files.delete(trainer.photoPublicId);
       } catch (error) {
         console.error("ImageKit delete (deleted trainer's photo) failed:", error?.message);
       }
