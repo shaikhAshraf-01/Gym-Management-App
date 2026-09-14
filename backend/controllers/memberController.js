@@ -1100,54 +1100,58 @@ export const extendMembership = async (req, res) => {
     // Same optional invoice-PDF attach as the Welcome message — only
     // if the owner turned that on AND has a Document-header template
     // set up (see memberWelcome's PDF logic in addMember for details).
-    (async () => {
-      let headerMediaId = null;
-      try {
-        const gymDoc = await Gym.findById(req.user.gymId).select(
-          "gymName gstNumber whatsappIntegration.connected whatsappAutomationSettings.enabled whatsappAutomationSettings.extendRenewal +whatsappIntegration.accessToken"
-        );
-        const automationLive =
-          gymDoc?.whatsappIntegration?.connected &&
-          gymDoc?.whatsappAutomationSettings?.enabled &&
-          gymDoc?.whatsappAutomationSettings?.extendRenewal?.enabled;
+   (async () => {
+  let headerMediaId = null;
+  let gymName = "";
+  try {
+    const gymDoc = await Gym.findById(req.user.gymId).select(
+      "gymName gstNumber whatsappIntegration.connected whatsappAutomationSettings.enabled whatsappAutomationSettings.extendRenewal +whatsappIntegration.accessToken"
+    );
+    
+    if (gymDoc) {
+      gymName = gymDoc.gymName || "";
+      const automationLive =
+        gymDoc?.whatsappIntegration?.connected &&
+        gymDoc?.whatsappAutomationSettings?.enabled &&
+        gymDoc?.whatsappAutomationSettings?.extendRenewal?.enabled;
 
-        if (automationLive) {
-          const pdfBuffer = await generateInvoicePdf({
-            gym: gymDoc,
-            member: { name: member.name, mobile: member.mobile, plan },
-            subscription: {
-              planAmount: extensionAmount,
-              plan,
-              joiningDate: startFrom,
-            },
-          });
-          const uploadResult = await uploadWhatsappMedia({
-            gym: gymDoc,
-            fileBuffer: pdfBuffer,
-            filename: "invoice.pdf",
-          });
-          if (uploadResult.success) {
-            headerMediaId = uploadResult.mediaId;
-          } else {
-            console.error("Renewal invoice upload failed:", uploadResult.error);
-          }
+      if (automationLive) {
+        const pdfBuffer = await generateInvoicePdf({
+          gym: gymDoc,
+          member: { name: member.name, mobile: member.mobile, plan },
+          subscription: {
+            planAmount: extensionAmount,
+            plan,
+            joiningDate: startFrom,
+          },
+        });
+        const uploadResult = await uploadWhatsappMedia({
+          gym: gymDoc,
+          fileBuffer: pdfBuffer,
+          filename: "invoice.pdf",
+        });
+        if (uploadResult.success) {
+          headerMediaId = uploadResult.mediaId;
         }
-      } catch (error) {
-        console.error("Renewal invoice generation failed:", error);
       }
+    }
+  } catch (error) {
+    console.error("Renewal invoice generation failed:", error);
+  }
 
-      return triggerMemberAutomation({
-        gymId: req.user.gymId,
-        automationKey: "extendRenewal",
-        toPhone: member.mobile,
-        templateParams: [
-          member.name, // {{1}} name
-          gymDoc.gymName, // {{2}} gym name
-          `${wasActive ? "Extended" : "Renewed"} for ${monthsToAdd} month${monthsToAdd > 1 ? "s" : ""}`, // {{3}} period
-        ],
-        headerMediaId,
-      });
-    })().catch(() => {});
+  return triggerMemberAutomation({
+    gymId: req.user.gymId,
+    automationKey: "extendRenewal",
+    toPhone: member.mobile,
+    // Make sure these match EXACTLY the placeholders count in your WhatsApp Business Manager Template
+    templateParams: [
+      String(member.name || "Member"),
+      String(gymName || "Gym"),
+      `${wasActive ? "Extended" : "Renewed"} (${monthsToAdd} Month${monthsToAdd > 1 ? "s" : ""})`,
+    ],
+    headerMediaId,
+  });
+})().catch((err) => console.error("Extend automation error:", err));
 
     return res.status(200).json({
       success: true,
