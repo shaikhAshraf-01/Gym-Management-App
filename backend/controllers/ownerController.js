@@ -4,21 +4,21 @@ import GymSubscriptionHistory from "../models/GymSubscriptionHistory.js";
 import Member from "../models/Member.js";
 import MemberSubscriptionHistory from "../models/MemberSubscriptionHistory.js";
 
-import imagekit from "../config/imagekit.js"
+import imagekit from "../config/imagekit.js";
 import { compressImageBuffer } from "../utils/compressImage.js";
 import { emitToAdmins, emitToGym } from "../socket/index.js";
 import { hasActivePlusOrProPlan } from "../utils/planCheck.js";
 import { getFormattedTrainers } from "./gymController.js";
 import { sendWhatsappTemplateMessage } from "../utils/sendWhatsappMessage.js";
-// ================= GET OWNER / TRAINER PROFILE =================
-// Originally owner-only. Now also serves Trainers (used by
-// TrainerProfile.jsx) — a trainer has no gym logo/subscription
-// management rights, but they still need read access to their own
-// info + which gym they belong to. The owner lookup path below is
-// UNCHANGED from before (still Gym.findOne({ owner: owner._id })) so
-// existing owner behaviour has zero regression risk; trainer support
-// is purely additive via a separate branch.
 
+// Helper function to extract file extension safely
+const getFileExtension = (originalname) => {
+  if (!originalname) return "jpg";
+  const ext = originalname.split(".").pop().toLowerCase();
+  return ext ? ext : "jpg";
+};
+
+// ================= GET OWNER / TRAINER PROFILE =================
 export const getOwnerProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("-password -otp -otpExpires");
@@ -36,21 +36,17 @@ export const getOwnerProfile = async (req, res) => {
         : await Gym.findById(user.gymId);
 
     if (!gym) {
-        return res.status(404).json({
-            success: false,
-            message: "Gym not found",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "Gym not found",
+      });
     }
     
-    const currentSubscription=await GymSubscriptionHistory.findOne({
-        gymId:gym._id,
-        endDate:{$gte:new Date()},
-    }).sort({endDate:-1})
+    const currentSubscription = await GymSubscriptionHistory.findOne({
+      gymId: gym._id,
+      endDate: { $gte: new Date() },
+    }).sort({ endDate: -1 });
 
-    // Trainer roster — needed on the Owner Profile page for the
-    // add/edit/remove trainer section. Trainers themselves don't
-    // need to see the roster on their own profile, so this stays
-    // empty for the trainer branch.
     const trainers =
       user.role === "owner" ? await getFormattedTrainers(gym._id) : [];
 
@@ -72,15 +68,12 @@ export const getOwnerProfile = async (req, res) => {
     console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error",    });
+      message: "Internal server error",
+    });
   }
 };
 
 // ================= UPDATE GST DETAILS =================
-// Owner-only. GSTIN is optional — saving an empty string clears it,
-// which switches every future receipt/invoice for this gym back to
-// the plain (non-GST) format. Standard 15-character GSTIN format is
-// validated when a non-empty value is sent.
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
 export const updateGymGstDetails = async (req, res) => {
@@ -132,6 +125,7 @@ export const updateGymGstDetails = async (req, res) => {
   }
 };
 
+// ================= UPLOAD GYM LOGO =================
 export const uploadGymLogo = async (req, res) => {
   try {
     if (!req.file) {
@@ -158,17 +152,19 @@ export const uploadGymLogo = async (req, res) => {
         message: "Gym not found.",
       });
     }
-const compressedBuffer = await compressImageBuffer(req.file.buffer);
-// ...
+
+    // Original extension extract karein
+    const fileExt = getFileExtension(req.file.originalname);
+
+    // Dynamic extension ke saath image compress karein
+    const compressedBuffer = await compressImageBuffer(req.file.buffer, fileExt);
+
     const uploadFromBuffer = async () => {
       const result = await imagekit.upload({
         file: compressedBuffer,
-        fileName: `gym-logo-${gym._id}.webp`,
+        fileName: `gym-logo-${gym._id}.${fileExt}`, // Dynamic Extension
         folder: "GymOpsFlow/gym-logos",
         useUniqueFileName: true,
-        // Resized/cropped to a consistent square avatar with
-        // AI-picked focus — same intent as Cloudinary's old
-        // "crop: fill, gravity: auto".
         transformation: {
           pre: "w-500,h-500,fo-auto",
         },
@@ -176,20 +172,20 @@ const compressedBuffer = await compressImageBuffer(req.file.buffer);
       return result;
     };
 
-      if(gym.gymLogoPublicId){
-        try {
-          await imagekit.deleteFile(gym.gymLogoPublicId);
-        } catch (error) {
-          // Already gone on ImageKit's side — fine, keep going.
-          console.error("ImageKit delete (old gym logo) failed:", error?.message);
-        }
-        gym.gymLogoPublicId="",
-        gym.gymLogo=""
+    if (gym.gymLogoPublicId) {
+      try {
+        await imagekit.deleteFile(gym.gymLogoPublicId);
+      } catch (error) {
+        console.error("ImageKit delete (old gym logo) failed:", error?.message);
       }
+      gym.gymLogoPublicId = "";
+      gym.gymLogo = "";
+    }
+
     const result = await uploadFromBuffer();
 
     gym.gymLogo = result.url;
-    gym.gymLogoPublicId=result.fileId;
+    gym.gymLogoPublicId = result.fileId;
     await gym.save();
 
     emitToGym(gym._id, "gym:updated", { gym });
@@ -200,12 +196,12 @@ const compressedBuffer = await compressImageBuffer(req.file.buffer);
       message: "Gym logo uploaded successfully.",
       gymLogo: gym.gymLogo,
     });
-
   } catch (error) {
     console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error.",    });
+      message: "Internal server error.",
+    });
   }
 };
 
@@ -229,7 +225,6 @@ export const removeGymLogo = async (req, res) => {
       });
     }
 
-    // Delete image from ImageKit
     if (gym.gymLogoPublicId) {
       try {
         await imagekit.deleteFile(gym.gymLogoPublicId);
@@ -238,7 +233,6 @@ export const removeGymLogo = async (req, res) => {
       }
     }
 
-    // Clear database fields
     gym.gymLogo = "";
     gym.gymLogoPublicId = "";
 
@@ -251,7 +245,6 @@ export const removeGymLogo = async (req, res) => {
       success: true,
       message: "Gym logo removed successfully.",
     });
-
   } catch (error) {
     console.error(error);
     return res.status(500).json({
@@ -262,8 +255,6 @@ export const removeGymLogo = async (req, res) => {
 };
 
 // ================= TRAINER PROFILE PHOTO =================
-
-
 export const uploadTrainerPhoto = async (req, res) => {
   try {
     if (!req.file) {
@@ -281,22 +272,25 @@ export const uploadTrainerPhoto = async (req, res) => {
         message: "Trainer not found.",
       });
     }
-const compressedBuffer = await compressImageBuffer(req.file.buffer);
-// ...
-const uploadFromBuffer = async () => {
-  const result = await imagekit.upload({
-    file: compressedBuffer,
-    fileName: `trainer-photo-${trainer._id}.webp`,
-    folder: "GymOpsFlow/trainer-photos",
-    useUniqueFileName: true,
-    // Plain center crop — no AI guessing, always predictable (same
-    // intent as the old Cloudinary "gravity: center").
-    transformation: {
-      pre: "w-500,h-500",
-    },
-  });
-  return result;
-};
+
+    // Original extension extract karein
+    const fileExt = getFileExtension(req.file.originalname);
+
+    // Dynamic extension ke saath image compress karein
+    const compressedBuffer = await compressImageBuffer(req.file.buffer, fileExt);
+
+    const uploadFromBuffer = async () => {
+      const result = await imagekit.upload({
+        file: compressedBuffer,
+        fileName: `trainer-photo-${trainer._id}.${fileExt}`, // Dynamic Extension
+        folder: "GymOpsFlow/trainer-photos",
+        useUniqueFileName: true,
+        transformation: {
+          pre: "w-500,h-500",
+        },
+      });
+      return result;
+    };
 
     if (trainer.photoPublicId) {
       try {
@@ -322,7 +316,8 @@ const uploadFromBuffer = async () => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Internal server error.",    });
+      message: "Internal server error.",
+    });
   }
 };
 
@@ -363,12 +358,6 @@ export const removeTrainerPhoto = async (req, res) => {
 };
 
 // ================= OWNER: TRAINER MANAGEMENT =================
-// Lets a gym owner manage their own trainers directly (previously
-// only the admin could add/remove trainers). Scoped strictly to the
-// gym the logged-in owner owns — an owner can never touch another
-// gym's trainers, unlike the admin routes which take a gym :id from
-// the URL.
-
 const findOwnedGym = async (ownerId) => {
   const owner = await User.findById(ownerId);
   if (!owner || owner.role !== "owner") return { owner: null, gym: null };
@@ -376,7 +365,6 @@ const findOwnedGym = async (ownerId) => {
   return { owner, gym };
 };
 
-// POST /api/owner/trainers
 export const addTrainerOwner = async (req, res) => {
   try {
     const { name, mobile, email } = req.body;
@@ -415,9 +403,6 @@ export const addTrainerOwner = async (req, res) => {
 
     const trainers = await getFormattedTrainers(gym._id);
 
-    // Realtime: the owner's other devices/tabs, any trainer already
-    // signed in for this gym, and every admin session all stay in
-    // sync without a manual refresh.
     emitToGym(gym._id, "trainers:updated", { gymId: gym._id, trainers });
     emitToAdmins("trainers:updated", { gymId: gym._id, trainers });
 
@@ -435,7 +420,6 @@ export const addTrainerOwner = async (req, res) => {
   }
 };
 
-// PUT /api/owner/trainers/:trainerId
 export const updateTrainerOwner = async (req, res) => {
   try {
     const { trainerId } = req.params;
@@ -498,7 +482,6 @@ export const updateTrainerOwner = async (req, res) => {
   }
 };
 
-// DELETE /api/owner/trainers/:trainerId
 export const removeTrainerOwner = async (req, res) => {
   try {
     const { trainerId } = req.params;
@@ -549,18 +532,8 @@ export const removeTrainerOwner = async (req, res) => {
 };
 
 // ================= WHATSAPP AUTOMATION (Plus / Pro only) =================
-// The gym owner connects THEIR OWN WhatsApp Business Account (via
-// Meta's Embedded Signup on the frontend, which hands back a
-// phoneNumberId/wabaId/accessToken). We never own the number — we
-// just store the credentials to send template messages on the
-// owner's behalf. Plan gating is enforced here, server-side, not
-// just hidden in the UI, since a Basic-plan request could otherwise
-// hit this endpoint directly.
-
 const assertPlusOrProPlan = hasActivePlusOrProPlan;
 
-// POST /api/owner/whatsapp/connect
-// Called after the frontend completes Meta's Embedded Signup flow.
 export const connectWhatsappAccount = async (req, res) => {
   try {
     const { gym } = await findOwnedGym(req.user._id);
@@ -587,12 +560,12 @@ export const connectWhatsappAccount = async (req, res) => {
       connected: true,
       phoneNumberId,
       wabaId,
-      accessToken, // select:false — never sent back in responses
+      accessToken,
       connectedAt: new Date(),
     };
     await gym.save();
 
-    const safeGym = await Gym.findById(gym._id); // re-fetch, drops accessToken (select:false)
+    const safeGym = await Gym.findById(gym._id);
 
     emitToGym(gym._id, "gym:updated", { gym: safeGym });
     emitToAdmins("gym:updated", { gym: safeGym });
@@ -611,7 +584,6 @@ export const connectWhatsappAccount = async (req, res) => {
   }
 };
 
-// DELETE /api/owner/whatsapp/connect
 export const disconnectWhatsappAccount = async (req, res) => {
   try {
     const { gym } = await findOwnedGym(req.user._id);
@@ -626,7 +598,6 @@ export const disconnectWhatsappAccount = async (req, res) => {
       accessToken: "",
       connectedAt: null,
     };
-    // Automation can't run without a connected account.
     gym.whatsappAutomationSettings.enabled = false;
     await gym.save();
 
@@ -647,9 +618,6 @@ export const disconnectWhatsappAccount = async (req, res) => {
   }
 };
 
-// PATCH /api/owner/whatsapp/automation-settings
-// Accepts a partial settings object and merges it in, e.g.:
-// { enabled: true } or { expiryReminder: { enabled: true, daysBefore: 5 } }
 export const updateWhatsappAutomationSettings = async (req, res) => {
   try {
     const { gym } = await findOwnedGym(req.user._id);
@@ -674,9 +642,6 @@ export const updateWhatsappAutomationSettings = async (req, res) => {
     const current = gym.whatsappAutomationSettings.toObject();
     const incoming = req.body || {};
 
-    // Shallow-merge each known sub-section so a partial update (e.g.
-    // just { expiryReminder: { daysBefore: 5 } }) doesn't wipe the
-    // other fields already saved for that sub-section.
     gym.whatsappAutomationSettings = {
       enabled:
         typeof incoming.enabled === "boolean" ? incoming.enabled : current.enabled,
@@ -707,12 +672,7 @@ export const updateWhatsappAutomationSettings = async (req, res) => {
   }
 };
 
-// PATCH /api/owner/pricing
-// Owner sets/updates the per-plan prices and the activity add-on list
-// (with prices). Add Member / Extend forms use these to auto-fill
-// (and lock) the amount instead of the owner typing/calculating it
-// each time. Accepts a partial body — e.g. just { plans: {...} } or
-// just { activities: [...] } — either is merged, never wipes the other.
+// ================= PRICING MANAGEMENT =================
 const ALLOWED_DURATION_KEYS = ["1_month", "3_month", "6_month", "1_year"];
 
 const validateDurationPrices = (prices, label) => {
@@ -808,12 +768,7 @@ export const updateGymPricing = async (req, res) => {
   }
 };
 
-// POST /api/owner/whatsapp/test-send
-// Owner-triggered dry run — sends ONE real message, straight from the
-// app, using whatever template name is currently saved for the given
-// automation, filled with realistic sample values (not a real
-// member). Lets the owner confirm a freshly-approved Meta template
-// actually delivers before it goes live on the real cron/triggers.
+// ================= TEST SEND WHATSAPP AUTOMATION =================
 const TEST_SAMPLE_PARAMS = {
   expiryReminder: (gym, settings) => [
     "Test Member",
@@ -870,8 +825,6 @@ export const testSendWhatsappAutomation = async (req, res) => {
       });
     }
 
-    // Re-fetch with the access token included — findOwnedGym's result
-    // above has it stripped (select:false).
     const gymWithToken = await Gym.findById(gym._id).select(
       "+whatsappIntegration.accessToken"
     );
