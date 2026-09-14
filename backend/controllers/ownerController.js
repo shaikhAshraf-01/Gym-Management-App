@@ -4,6 +4,7 @@ import GymSubscriptionHistory from "../models/GymSubscriptionHistory.js";
 import Member from "../models/Member.js";
 import MemberSubscriptionHistory from "../models/MemberSubscriptionHistory.js";
 
+import { toFile } from "@imagekit/nodejs";
 import imagekit from "../config/imagekit.js";
 import { compressImageBuffer } from "../utils/compressImage.js";
 import { emitToAdmins, emitToGym } from "../socket/index.js";
@@ -16,6 +17,16 @@ const getFileExtension = (originalname) => {
   if (!originalname) return "jpg";
   const ext = originalname.split(".").pop().toLowerCase();
   return ext ? ext : "jpg";
+};
+
+// Mirrors compressImageBuffer's own format branching (utils/compressImage.js)
+// so the mime type we tell ImageKit always matches what sharp actually output.
+const getCompressedMimeType = (fileExt) => {
+  const ext = fileExt?.toLowerCase();
+  if (ext === "png") return "image/png";
+  if (ext === "webp") return "image/webp";
+  if (ext === "avif") return "image/avif";
+  return "image/jpeg"; // compressImageBuffer's fallback for everything else
 };
 
 // ================= GET OWNER / TRAINER PROFILE =================
@@ -160,9 +171,13 @@ export const uploadGymLogo = async (req, res) => {
     const compressedBuffer = await compressImageBuffer(req.file.buffer, fileExt);
 
     const uploadFromBuffer = async () => {
+      const fileName = `gym-logo-${gym._id}.${fileExt}`;
+      const uploadableFile = await toFile(compressedBuffer, fileName, {
+        type: getCompressedMimeType(fileExt),
+      });
       const result = await imagekit.files.upload({
-        file: compressedBuffer,
-        fileName: `gym-logo-${gym._id}.${fileExt}`, // Dynamic Extension
+        file: uploadableFile,
+        fileName, // Dynamic Extension
         folder: "GymOpsFlow/gym-logos",
         useUniqueFileName: true,
         transformation: {
@@ -280,9 +295,13 @@ export const uploadTrainerPhoto = async (req, res) => {
     const compressedBuffer = await compressImageBuffer(req.file.buffer, fileExt);
 
     const uploadFromBuffer = async () => {
+      const fileName = `trainer-photo-${trainer._id}.${fileExt}`;
+      const uploadableFile = await toFile(compressedBuffer, fileName, {
+        type: getCompressedMimeType(fileExt),
+      });
       const result = await imagekit.files.upload({
-        file: compressedBuffer,
-        fileName: `trainer-photo-${trainer._id}.${fileExt}`, // Dynamic Extension
+        file: uploadableFile,
+        fileName, // Dynamic Extension
         folder: "GymOpsFlow/trainer-photos",
         useUniqueFileName: true,
         transformation: {
