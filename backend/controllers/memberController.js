@@ -1139,18 +1139,18 @@ export const extendMembership = async (req, res) => {
     console.error("Renewal invoice generation failed:", error);
   }
 
-  return triggerMemberAutomation({
-    gymId: req.user.gymId,
-    automationKey: "extendRenewal",
-    toPhone: member.mobile,
-    // Make sure these match EXACTLY the placeholders count in your WhatsApp Business Manager Template
-    templateParams: [
-      String(member.name || "Member"),
-      String(gymName || "Gym"),
-      `${wasActive ? "Extended" : "Renewed"} (${monthsToAdd} Month${monthsToAdd > 1 ? "s" : ""})`,
-    ],
-    headerMediaId,
-  });
+  // Replace this block inside extendMembership:
+return triggerMemberAutomation({
+  gymId: req.user.gymId,
+  automationKey: "extendRenewal",
+  toPhone: member.mobile,
+  templateParams: [
+    String(member.name || "Member"),                              // Index 0 -> {{1}} (Name)
+    `${monthsToAdd} Month${monthsToAdd > 1 ? "s" : ""}`,           // Index 1 -> {{2}} (Duration)
+    wasActive ? "extended" : "renewed",                           // Index 2 -> {{3}} (Action)
+  ],
+  headerMediaId,
+});
 })().catch((err) => console.error("Extend automation error:", err));
 
     return res.status(200).json({
