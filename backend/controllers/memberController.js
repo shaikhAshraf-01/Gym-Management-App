@@ -322,8 +322,9 @@ export const addMember = async (req, res) => {
       let gymName = "";
 
       try {
+        // FIXED: Explicitly selecting phoneNumberId from Gym model
         const gymDoc = await Gym.findById(req.user.gymId).select(
-          "gymName gstNumber whatsappIntegration.connected whatsappAutomationSettings.enabled whatsappAutomationSettings.memberWelcome +whatsappIntegration.accessToken"
+          "gymName gstNumber whatsappIntegration.connected whatsappIntegration.phoneNumberId whatsappAutomationSettings.enabled whatsappAutomationSettings.memberWelcome +whatsappIntegration.accessToken"
         );
 
         if (!gymDoc) return;
@@ -808,8 +809,9 @@ export const extendMembership = async (req, res) => {
       let gymName = "";
 
       try {
+        // FIXED: Explicitly selecting phoneNumberId from Gym model
         const gymDoc = await Gym.findById(req.user.gymId).select(
-          "gymName gstNumber whatsappIntegration.connected whatsappAutomationSettings.enabled whatsappAutomationSettings.extendRenewal +whatsappIntegration.accessToken"
+          "gymName gstNumber whatsappIntegration.connected whatsappIntegration.phoneNumberId whatsappAutomationSettings.enabled whatsappAutomationSettings.extendRenewal +whatsappIntegration.accessToken"
         );
 
         if (gymDoc) {
