@@ -2,7 +2,7 @@ import Member from "../models/Member.js";
 import MemberSubscriptionHistory from "../models/MemberSubscriptionHistory.js";
 import MemberPaymentHistory from "../models/MemberPaymentHistory.js";
 import Gym from "../models/Gym.js";
-import { emitToGym } from "../socket/index.js"; // 👈 ADD THIS LINE
+import { emitToGym } from "../socket/index.js";
 import { triggerMemberAutomation, uploadWhatsappMedia } from "../utils/sendWhatsappMessage.js";
 import { generateInvoicePdf } from "../utils/generateInvoicePdf.js";
 
@@ -17,7 +17,7 @@ const toDateStr = (d) => new Date(d).toISOString().split("T")[0];
 
 // ---------------------------------------------------------------------
 // pruneOldSubscriptionHistory
-
+// ---------------------------------------------------------------------
 const pruneOldSubscriptionHistory = async (memberId, keep = 6) => {
   const oldSubscriptions = await MemberSubscriptionHistory.find({
     member: memberId,
@@ -41,18 +41,6 @@ const pruneOldSubscriptionHistory = async (memberId, keep = 6) => {
 
 // ---------------------------------------------------------------------
 // formatMember
-//
-// Returns the CURRENT/LATEST membership in the main Members table.
-// Older memberships remain available inside membershipHistory.
-//
-// Main table:
-//   planAmount       = latest membership fee
-//   amountPayingToday = latest membership's total payments
-//   joiningDate      = latest membership start
-//   expiryDate       = latest membership expiry
-//
-// History:
-//   Every subscription remains separately visible.
 // ---------------------------------------------------------------------
 const formatMember = async (memberDoc) => {
   const subscriptions = await MemberSubscriptionHistory.find({
@@ -98,9 +86,6 @@ const formatMember = async (memberDoc) => {
     memberSubscription: { $in: subscriptionIds },
   }).sort({ paymentDate: 1 });
 
-  // ---------------------------------------------------------------
-  // Group payments subscription-wise
-  // ---------------------------------------------------------------
   const paymentsBySubscription = {};
 
   payments.forEach((payment) => {
@@ -113,32 +98,9 @@ const formatMember = async (memberDoc) => {
     paymentsBySubscription[key].push(payment);
   });
 
-  // ---------------------------------------------------------------
-  // First = original membership
-  // Latest = current membership
-  // ---------------------------------------------------------------
   const first = subscriptions[0];
   const latest = subscriptions[subscriptions.length - 1];
 
-  // ---------------------------------------------------------------
-  // Lifetime totals
-  //
-  // These are still calculated internally. They can be useful later
-  // for reports/revenue pages.
-  // ---------------------------------------------------------------
-  const totalPlanAmount = subscriptions.reduce(
-    (sum, subscription) => sum + Number(subscription.planAmount || 0),
-    0,
-  );
-
-  const totalAmountPaid = payments.reduce(
-    (sum, payment) => sum + Number(payment.amountPaid || 0),
-    0,
-  );
-
-  // ---------------------------------------------------------------
-  // Latest subscription payments only
-  // ---------------------------------------------------------------
   const latestPayments = paymentsBySubscription[latest._id.toString()] || [];
 
   const latestPaymentMode = latestPayments.length
@@ -147,19 +109,16 @@ const formatMember = async (memberDoc) => {
 
   const latestAmountPaid = latestPayments.reduce(
     (sum, payment) => sum + Number(payment.amountPaid || 0),
-    0,
+    0
   );
 
-  // ---------------------------------------------------------------
-  // Membership History
-  // ---------------------------------------------------------------
   const membershipHistory = subscriptions.map((sub, idx) => {
     const subPayments = paymentsBySubscription[sub._id.toString()] || [];
 
     const amount =
       subPayments.reduce(
         (sum, payment) => sum + Number(payment.amountPaid || 0),
-        0,
+        0
       ) || Number(sub.planAmount || 0);
 
     const mode = subPayments.length
@@ -170,10 +129,6 @@ const formatMember = async (memberDoc) => {
       ? subPayments[subPayments.length - 1].paymentDate
       : sub.joiningDate;
 
-    // First subscription = joined.
-    // Later ones: prefer the wasActive flag saved at renewal time
-    // (accurate). Only fall back to guessing from the date gap for
-    // old records created before this field existed.
     let type = "joined";
 
     if (idx > 0) {
@@ -189,7 +144,7 @@ const formatMember = async (memberDoc) => {
         thisStart.setHours(0, 0, 0, 0);
 
         const gapDays = Math.round(
-          (thisStart - prevExpiry) / (1000 * 60 * 60 * 24),
+          (thisStart - prevExpiry) / (1000 * 60 * 60 * 24)
         );
 
         type = gapDays > 1 ? "renewed" : "extended";
@@ -198,85 +153,41 @@ const formatMember = async (memberDoc) => {
 
     return {
       id: sub._id.toString(),
-
       type,
-
       plan: sub.plan,
-
       admissionType: sub.admissionType || "normal",
-
       offerName: sub.offerName || "",
       discount: sub.discount || 0,
-
       activities: sub.activities || [],
-
       startDate: toDateStr(sub.joiningDate),
       endDate: toDateStr(sub.expiryDate),
-
       amount: String(amount),
-
       paymentMode: mode,
-
       by: sub.createdBy?.name || "Unknown",
-
       date: toDateStr(eventDate),
     };
   });
 
-  // ---------------------------------------------------------------
-  // IMPORTANT:
-  //
-  // The main Members table now shows ONLY the latest membership.
-  //
-  // Before:
-  //   ₹999 + ₹900 = ₹1899
-  //
-  // Now:
-  //   ₹900
-  //
-  // Old ₹999 remains safely inside membershipHistory.
-  // ---------------------------------------------------------------
   return {
     id: memberDoc._id.toString(),
-
     name: memberDoc.name,
     mobile: memberDoc.mobile,
     age: memberDoc.age,
     gender: memberDoc.gender,
-
-    // Current plan
     plan: latest.plan,
-
-    // "normal" or "offer" — whether the CURRENT membership was taken
-    // under a special offer. Drives the blue offer badge in the UI.
     admissionType: latest.admissionType || "normal",
-
     offerName: latest.offerName || "",
     discount: latest.discount || 0,
-
     activities: latest.activities || [],
-
-    // CURRENT membership values
     planAmount: String(latest.planAmount || 0),
     amountPayingToday: String(latestAmountPaid || 0),
-
-    // Explicit latest values for EditMemberModal
     latestPlanAmount: String(latest.planAmount || 0),
     latestAmountPaid: String(latestAmountPaid || 0),
-
-    // Current membership balance
     balanceAmount: String(latest.balance || 0),
-
     paymentMode: latestPaymentMode,
-
-    // IMPORTANT:
-    // Main table should show current membership dates,
-    // not the original joining date.
     joiningDate: toDateStr(latest.joiningDate),
     expiryDate: toDateStr(latest.expiryDate),
-
     addedBy: first.createdBy?.name || "Unknown",
-
     membershipHistory,
   };
 };
@@ -284,15 +195,12 @@ const formatMember = async (memberDoc) => {
 // =====================================================================
 // GET MEMBERS
 // =====================================================================
-
 export const getMembers = async (req, res) => {
   try {
     const members = await Member.find({
       gym: req.user.gymId,
       isDeleted: { $ne: true },
-    }).sort({
-      createdAt: -1,
-    });
+    }).sort({ createdAt: -1 });
 
     const formatted = await Promise.all(members.map(formatMember));
 
@@ -310,17 +218,14 @@ export const getMembers = async (req, res) => {
 };
 
 // =====================================================================
-// GET DELETED MEMBERS (soft-deleted, owner only)
+// GET DELETED MEMBERS
 // =====================================================================
-
 export const getDeletedMembers = async (req, res) => {
   try {
     const members = await Member.find({
       gym: req.user.gymId,
       isDeleted: true,
-    }).sort({
-      deletedAt: -1,
-    });
+    }).sort({ deletedAt: -1 });
 
     const formatted = await Promise.all(members.map(formatMember));
 
@@ -340,7 +245,6 @@ export const getDeletedMembers = async (req, res) => {
 // =====================================================================
 // ADD MEMBER
 // =====================================================================
-
 export const addMember = async (req, res) => {
   try {
     const {
@@ -376,9 +280,6 @@ export const addMember = async (req, res) => {
       });
     }
 
-    // ---------------------------------------------------------------
-    // Create main member
-    // ---------------------------------------------------------------
     const member = await Member.create({
       name,
       mobile,
@@ -388,45 +289,26 @@ export const addMember = async (req, res) => {
       trainer: trainer || null,
     });
 
-    // ---------------------------------------------------------------
-    // Create first subscription
-    // ---------------------------------------------------------------
     const subscription = await MemberSubscriptionHistory.create({
       member: member._id,
-
       plan,
-
       joiningDate,
       expiryDate,
-
       planAmount: Number(planAmount),
-
       admissionType: admissionType === "offer" ? "offer" : "normal",
-
       offerName: admissionType === "offer" ? String(offerName || "").trim() : "",
-
       discount: admissionType !== "offer" ? Number(discount || 0) : 0,
-
       balance: Number(balanceAmount || 0),
-
       activities: Array.isArray(activities) ? activities : [],
-
       createdBy: req.user._id,
     });
 
-    // ---------------------------------------------------------------
-    // Initial payment
-    // ---------------------------------------------------------------
     if (Number(amountPayingToday) > 0) {
       await MemberPaymentHistory.create({
         memberSubscription: subscription._id,
-
         amountPaid: Number(amountPayingToday),
-
         paymentMode: paymentMode || "upi",
-
         paymentDate: joiningDate,
-
         remarks: "Initial joining payment",
       });
     }
@@ -434,72 +316,69 @@ export const addMember = async (req, res) => {
     const formatted = await formatMember(member);
     emitToGym(req.user.gymId, "member:created", { member: formatted });
 
-    // Fire-and-forget: don't let a WhatsApp failure (or the invoice
-    // PDF build) fail member creation. No-ops silently if the gym
-    // isn't on Plus/Pro or hasn't turned this automation on — the PDF
-    // is only generated/uploaded if the welcome message is actually
-    // going to send, so we don't waste work otherwise.
+    // WhatsApp Automation Trigger
     (async () => {
       let headerMediaId = null;
-      // FIX: gymName is declared here, outside the try block, so it's
-      // still in scope when we build templateParams below. Previously
-      // `gymDoc` was declared with `const` INSIDE the try block, then
-      // referenced after it — that throws a ReferenceError every time,
-      // which the outer .catch(() => {}) swallowed silently, so the
-      // welcome WhatsApp message never actually sent.
       let gymName = "";
+
       try {
         const gymDoc = await Gym.findById(req.user.gymId).select(
           "gymName gstNumber whatsappIntegration.connected whatsappAutomationSettings.enabled whatsappAutomationSettings.memberWelcome +whatsappIntegration.accessToken"
         );
-        gymName = gymDoc?.gymName || "";
+
+        if (!gymDoc) return;
+        gymName = gymDoc.gymName || "";
+
         const automationLive =
           gymDoc?.whatsappIntegration?.connected &&
           gymDoc?.whatsappAutomationSettings?.enabled &&
           gymDoc?.whatsappAutomationSettings?.memberWelcome?.enabled;
 
         if (automationLive) {
+          // Generate PDF Invoice
           const pdfBuffer = await generateInvoicePdf({
             gym: gymDoc,
             member: { name, mobile, plan },
             subscription: { planAmount, plan, joiningDate },
           });
+
+          // Upload Media to WhatsApp API
           const uploadResult = await uploadWhatsappMedia({
             gym: gymDoc,
             fileBuffer: pdfBuffer,
             filename: "invoice.pdf",
           });
+
           if (uploadResult.success) {
             headerMediaId = uploadResult.mediaId;
           } else {
-            console.error("Welcome invoice upload failed:", uploadResult.error);
+            console.error("❌ Welcome invoice upload failed:", uploadResult.error);
           }
         }
-      } catch (error) {
-        console.error("Welcome invoice generation failed:", error);
-      }
 
-      return triggerMemberAutomation({
-        gymId: req.user.gymId,
-        automationKey: "memberWelcome",
-        toPhone: mobile,
-        templateParams: [name, gymName], // {{1}} name, {{2}} gym name
-        headerMediaId,
-      });
-    })().catch((err) => console.error("Welcome automation error:", err));
+        const automationResult = await triggerMemberAutomation({
+          gymId: req.user.gymId,
+          automationKey: "memberWelcome",
+          toPhone: mobile,
+          templateParams: [name, gymName],
+          headerMediaId,
+        });
+
+        console.log("Welcome automation response:", automationResult);
+      } catch (error) {
+        console.error("Welcome automation error:", error);
+      }
+    })();
 
     res.status(201).json({
       success: true,
-
       message: "Member added successfully.",
-
       member: formatted,
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-
       message: "Failed to add member.",
     });
   }
@@ -508,7 +387,6 @@ export const addMember = async (req, res) => {
 // =====================================================================
 // UPDATE MEMBER
 // =====================================================================
-
 export const updateMember = async (req, res) => {
   try {
     const { id } = req.params;
@@ -528,9 +406,6 @@ export const updateMember = async (req, res) => {
       activities,
     } = req.body;
 
-    // ---------------------------------------------------------------
-    // Find member belonging to this gym
-    // ---------------------------------------------------------------
     const member = await Member.findOne({
       _id: id,
       gym: req.user.gymId,
@@ -543,53 +418,24 @@ export const updateMember = async (req, res) => {
       });
     }
 
-    // ---------------------------------------------------------------
-    // Update basic member information
-    // ---------------------------------------------------------------
-    if (name !== undefined) {
-      member.name = name;
-    }
-
-    if (mobile !== undefined) {
-      member.mobile = mobile;
-    }
-
-    if (age !== undefined) {
-      // Empty string from a cleared/optional number field would fail
-      // Number casting — normalize to null instead.
-      member.age = age === "" ? null : age;
-    }
-
-    if (gender !== undefined) {
-      // Empty string ("Select" option, i.e. gender left unset) isn't
-      // a valid enum value — normalize to null so save() doesn't
-      // throw a ValidationError.
-      member.gender = gender === "" ? null : gender;
-    }
+    if (name !== undefined) member.name = name;
+    if (mobile !== undefined) member.mobile = mobile;
+    if (age !== undefined) member.age = age === "" ? null : age;
+    if (gender !== undefined) member.gender = gender === "" ? null : gender;
 
     await member.save();
 
-    // ---------------------------------------------------------------
-    // Find latest subscription
-    // ---------------------------------------------------------------
     const latestSub = await MemberSubscriptionHistory.findOne({
       member: member._id,
-    }).sort({
-      joiningDate: -1,
-    });
+    }).sort({ joiningDate: -1 });
 
     let balanceJustCleared = false;
 
     if (latestSub) {
       const oldBalance = Number(latestSub.balance || 0);
 
-      if (plan !== undefined) {
-        latestSub.plan = plan;
-      }
-
-      if (planAmount !== undefined) {
-        latestSub.planAmount = Number(planAmount);
-      }
+      if (plan !== undefined) latestSub.plan = plan;
+      if (planAmount !== undefined) latestSub.planAmount = Number(planAmount);
 
       if (balanceAmount !== undefined) {
         const newBalance = Number(balanceAmount);
@@ -603,48 +449,30 @@ export const updateMember = async (req, res) => {
         latestSub.activities = Array.isArray(activities) ? activities : [];
       }
 
-      if (joiningDate !== undefined) {
-        latestSub.joiningDate = joiningDate;
-      }
-
-      if (expiryDate !== undefined) {
-        latestSub.expiryDate = expiryDate;
-      }
+      if (joiningDate !== undefined) latestSub.joiningDate = joiningDate;
+      if (expiryDate !== undefined) latestSub.expiryDate = expiryDate;
 
       await latestSub.save();
 
-      // -------------------------------------------------------------
-      // Update latest payment
-      // -------------------------------------------------------------
       if (amountPayingToday !== undefined) {
         const latestPayment = await MemberPaymentHistory.findOne({
           memberSubscription: latestSub._id,
-        }).sort({
-          paymentDate: -1,
-        });
+        }).sort({ paymentDate: -1 });
 
         if (latestPayment) {
           latestPayment.amountPaid = Number(amountPayingToday);
-
           if (paymentMode !== undefined) {
             latestPayment.paymentMode = paymentMode;
           } else if (latestPayment.paymentMode === "both") {
-            // Legacy value no longer in the enum — normalize before
-            // save() re-validates the whole document.
             latestPayment.paymentMode = "cash";
           }
-
           await latestPayment.save();
         } else if (Number(amountPayingToday) > 0) {
           await MemberPaymentHistory.create({
             memberSubscription: latestSub._id,
-
             amountPaid: Number(amountPayingToday),
-
             paymentMode: paymentMode || "upi",
-
             paymentDate: joiningDate || new Date(),
-
             remarks: "Membership payment",
           });
         }
@@ -654,35 +482,28 @@ export const updateMember = async (req, res) => {
     const formatted = await formatMember(member);
     emitToGym(req.user.gymId, "member:updated", { member: formatted });
 
-    // Balance just cleared (was > 0, now exactly 0) — fire the
-    // confirmation automation, fire-and-forget.
-   // updateMember controller function ke andar is section ko replace karein:
-
-if (balanceJustCleared) {
-  triggerMemberAutomation({
-    gymId: req.user.gymId,
-    automationKey: "balanceConfirmation",
-    toPhone: member.mobile,
-    templateParams: [
-      String(member.name || "Member"),          // {{1}} - Member Name
-      "0",                                       // {{2}} - Pending Amount (now cleared)
-      String(latestSub?.plan || plan || "N/A"),  // {{3}} - Plan against which balance was cleared
-    ],
-  }).catch((err) => console.error("Balance automation error:", err));
-}
+    if (balanceJustCleared) {
+      triggerMemberAutomation({
+        gymId: req.user.gymId,
+        automationKey: "balanceConfirmation",
+        toPhone: member.mobile,
+        templateParams: [
+          String(member.name || "Member"),
+          "0",
+          String(latestSub?.plan || plan || "N/A"),
+        ],
+      }).catch((err) => console.error("Balance automation error:", err));
+    }
 
     res.status(200).json({
       success: true,
-
       message: "Member updated successfully.",
-
       member: formatted,
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-
       message: "Failed to update member.",
     });
   }
@@ -691,7 +512,6 @@ if (balanceJustCleared) {
 // =====================================================================
 // DELETE MEMBER
 // =====================================================================
-
 export const deleteMember = async (req, res) => {
   try {
     const { id } = req.params;
@@ -708,10 +528,6 @@ export const deleteMember = async (req, res) => {
       });
     }
 
-    // Soft delete — member (and their payment/subscription history)
-    // stay in the database untouched, just hidden from the main list
-    // and moved to Profile -> Deleted Members, where the owner can
-    // restore or permanently delete them.
     member.isDeleted = true;
     member.deletedAt = new Date();
     await member.save();
@@ -720,23 +536,20 @@ export const deleteMember = async (req, res) => {
 
     res.status(200).json({
       success: true,
-
       message: "Member moved to deleted members.",
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-
       message: "Failed to delete member.",
     });
   }
 };
 
 // =====================================================================
-// RESTORE MEMBER (undo a soft delete, owner only)
+// RESTORE MEMBER
 // =====================================================================
-
 export const restoreMember = async (req, res) => {
   try {
     const { id } = req.params;
@@ -776,10 +589,8 @@ export const restoreMember = async (req, res) => {
 };
 
 // =====================================================================
-// PERMANENT DELETE MEMBER (owner only — only allowed once already
-// soft-deleted, as a safety check against skipping the review step)
+// PERMANENT DELETE MEMBER
 // =====================================================================
-
 export const permanentDeleteMember = async (req, res) => {
   try {
     const { id } = req.params;
@@ -803,19 +614,14 @@ export const permanentDeleteMember = async (req, res) => {
 
     const subscriptionIds = subscriptions.map((s) => s._id);
 
-    // Delete payments
     await MemberPaymentHistory.deleteMany({
-      memberSubscription: {
-        $in: subscriptionIds,
-      },
+      memberSubscription: { $in: subscriptionIds },
     });
 
-    // Delete subscription history
     await MemberSubscriptionHistory.deleteMany({
       member: member._id,
     });
 
-    // Delete member
     await Member.findByIdAndDelete(id);
     emitToGym(req.user.gymId, "member:permanently-deleted", { id });
 
@@ -835,7 +641,6 @@ export const permanentDeleteMember = async (req, res) => {
 // =====================================================================
 // DELETE CURRENT MEMBERSHIP
 // =====================================================================
-
 export const deleteCurrentMembership = async (req, res) => {
   try {
     const { id } = req.params;
@@ -888,27 +693,6 @@ export const deleteCurrentMembership = async (req, res) => {
 // =====================================================================
 // EXTEND / RENEW MEMBERSHIP
 // =====================================================================
-//
-// IMPORTANT RULE:
-//
-// If current membership is ACTIVE:
-//
-//   Current expiry = 10 Aug
-//   Renewal on = 08 Aug
-//
-//   New start = 11 Aug
-//
-// If membership is EXPIRED:
-//
-//   Current expiry = 04 Aug
-//   Renewal on = 10 Aug
-//
-//   New start = 10 Aug
-//
-// So we NEVER lose remaining active membership time,
-// and we NEVER start an expired membership in the past.
-// =====================================================================
-
 export const extendMembership = async (req, res) => {
   try {
     const { id } = req.params;
@@ -926,9 +710,6 @@ export const extendMembership = async (req, res) => {
       discount,
     } = req.body;
 
-    // ---------------------------------------------------------------
-    // Find member belonging to current gym
-    // ---------------------------------------------------------------
     const member = await Member.findOne({
       _id: id,
       gym: req.user.gymId,
@@ -941,18 +722,10 @@ export const extendMembership = async (req, res) => {
       });
     }
 
-    // ---------------------------------------------------------------
-    // Find latest/current subscription
-    // ---------------------------------------------------------------
     const latestSub = await MemberSubscriptionHistory.findOne({
       member: member._id,
-    }).sort({
-      joiningDate: -1,
-    });
+    }).sort({ joiningDate: -1 });
 
-    // ---------------------------------------------------------------
-    // Validate plan
-    // ---------------------------------------------------------------
     const monthsToAdd = PLAN_MONTHS[plan];
 
     if (!monthsToAdd) {
@@ -962,58 +735,23 @@ export const extendMembership = async (req, res) => {
       });
     }
 
-    // ---------------------------------------------------------------
-    // Today
-    // ---------------------------------------------------------------
     const today = new Date();
-
     today.setHours(0, 0, 0, 0);
 
-    // ---------------------------------------------------------------
-    // Calculate the default start date.
-    //
-    // If old membership is expired:
-    //
-    //     old expiry = 04 Aug
-    //     today      = 14 Aug
-    //
-    //     default start = 14 Aug
-    //
-    // If old membership is active:
-    //
-    //     old expiry = 20 Aug
-    //     today      = 14 Aug
-    //
-    //     default start = 21 Aug
-    // ---------------------------------------------------------------
     let defaultStartDate = new Date(today);
-
-    // Was the membership still active (not expired) right before this
-    // renewal? Recorded on the new subscription so history can show
-    // "Extended" vs "Renewed" accurately later, instead of guessing.
     let wasActive = false;
 
     if (latestSub?.expiryDate) {
       const currentExpiry = new Date(latestSub.expiryDate);
-
       currentExpiry.setHours(0, 0, 0, 0);
 
       if (currentExpiry >= today) {
         wasActive = true;
-
         defaultStartDate = new Date(currentExpiry);
-
         defaultStartDate.setDate(defaultStartDate.getDate() + 1);
       }
     }
 
-    // ---------------------------------------------------------------
-    // If frontend sends a start date, use it.
-    //
-    // This allows the gym owner to manually choose the date.
-    //
-    // Otherwise use calculated default.
-    // ---------------------------------------------------------------
     let startFrom = defaultStartDate;
 
     if (newStartDate) {
@@ -1027,153 +765,112 @@ export const extendMembership = async (req, res) => {
       }
 
       selectedStartDate.setHours(0, 0, 0, 0);
-
       startFrom = selectedStartDate;
     }
 
-    // ---------------------------------------------------------------
-    // Calculate new expiry
-    // ---------------------------------------------------------------
     const newExpiry = new Date(startFrom);
-
     newExpiry.setMonth(newExpiry.getMonth() + monthsToAdd);
 
-    // ---------------------------------------------------------------
-    // Create NEW subscription
-    //
-    // IMPORTANT:
-    // Old membership remains untouched.
-    // It stays in MemberSubscriptionHistory.
-    // ---------------------------------------------------------------
     const newSubscription = await MemberSubscriptionHistory.create({
       member: member._id,
-
       plan,
-
       joiningDate: startFrom,
-
       expiryDate: newExpiry,
-
       planAmount: Number(extensionAmount || 0),
-
       admissionType: admissionType === "offer" ? "offer" : "normal",
-
       offerName: admissionType === "offer" ? String(offerName || "").trim() : "",
-
       discount: admissionType !== "offer" ? Number(discount || 0) : 0,
-
       balance: Number(balanceAmount || 0),
-
       activities: Array.isArray(activities)
         ? activities
-        : (latestSub?.activities || []),
-
+        : latestSub?.activities || [],
       wasActive,
-
       createdBy: req.user._id,
     });
 
-    // ---------------------------------------------------------------
-    // Create payment for NEW membership
-    // ---------------------------------------------------------------
     if (Number(amountPayingToday) > 0) {
       await MemberPaymentHistory.create({
         memberSubscription: newSubscription._id,
-
         amountPaid: Number(amountPayingToday),
-
         paymentMode: paymentMode || "upi",
-
         paymentDate: today,
-
         remarks: "Membership renewal payment",
       });
     }
 
-    // ---------------------------------------------------------------
-    // Keep only the current + last 5 subscriptions for this member —
-    // older ones (and their payment rows) get deleted so history
-    // doesn't grow unbounded over years of renewals.
-    // ---------------------------------------------------------------
     await pruneOldSubscriptionHistory(member._id);
 
-    // ---------------------------------------------------------------
-    // Return current member
-    // ---------------------------------------------------------------
     const formatted = await formatMember(member);
     emitToGym(req.user.gymId, "member:updated", { member: formatted });
 
-    // Fire-and-forget automation — wasActive tells us "Extended"
-    // (still had time left) vs "Renewed" (had expired) for the message.
-    // Same optional invoice-PDF attach as the Welcome message — only
-    // if the owner turned that on AND has a Document-header template
-    // set up (see memberWelcome's PDF logic in addMember for details).
-   (async () => {
-  let headerMediaId = null;
-  let gymName = "";
-  try {
-    const gymDoc = await Gym.findById(req.user.gymId).select(
-      "gymName gstNumber whatsappIntegration.connected whatsappAutomationSettings.enabled whatsappAutomationSettings.extendRenewal +whatsappIntegration.accessToken"
-    );
-    
-    if (gymDoc) {
-      gymName = gymDoc.gymName || "";
-      const automationLive =
-        gymDoc?.whatsappIntegration?.connected &&
-        gymDoc?.whatsappAutomationSettings?.enabled &&
-        gymDoc?.whatsappAutomationSettings?.extendRenewal?.enabled;
+    (async () => {
+      let headerMediaId = null;
+      let gymName = "";
 
-      if (automationLive) {
-        const pdfBuffer = await generateInvoicePdf({
-          gym: gymDoc,
-          member: { name: member.name, mobile: member.mobile, plan },
-          subscription: {
-            planAmount: extensionAmount,
-            plan,
-            joiningDate: startFrom,
-          },
-        });
-        const uploadResult = await uploadWhatsappMedia({
-          gym: gymDoc,
-          fileBuffer: pdfBuffer,
-          filename: "invoice.pdf",
-        });
-        if (uploadResult.success) {
-          headerMediaId = uploadResult.mediaId;
+      try {
+        const gymDoc = await Gym.findById(req.user.gymId).select(
+          "gymName gstNumber whatsappIntegration.connected whatsappAutomationSettings.enabled whatsappAutomationSettings.extendRenewal +whatsappIntegration.accessToken"
+        );
+
+        if (gymDoc) {
+          gymName = gymDoc.gymName || "";
+          const automationLive =
+            gymDoc?.whatsappIntegration?.connected &&
+            gymDoc?.whatsappAutomationSettings?.enabled &&
+            gymDoc?.whatsappAutomationSettings?.extendRenewal?.enabled;
+
+          if (automationLive) {
+            const pdfBuffer = await generateInvoicePdf({
+              gym: gymDoc,
+              member: { name: member.name, mobile: member.mobile, plan },
+              subscription: {
+                planAmount: extensionAmount,
+                plan,
+                joiningDate: startFrom,
+              },
+            });
+
+            const uploadResult = await uploadWhatsappMedia({
+              gym: gymDoc,
+              fileBuffer: pdfBuffer,
+              filename: "invoice.pdf",
+            });
+
+            if (uploadResult.success) {
+              headerMediaId = uploadResult.mediaId;
+            } else {
+              console.error("❌ Renewal invoice upload failed:", uploadResult.error);
+            }
+          }
         }
-      }
-    }
-  } catch (error) {
-    console.error("Renewal invoice generation failed:", error);
-  }
 
-  // Replace this block inside extendMembership:
-return triggerMemberAutomation({
-  gymId: req.user.gymId,
-  automationKey: "extendRenewal",
-  toPhone: member.mobile,
-  templateParams: [
-    String(member.name || "Member"),                              // Index 0 -> {{1}} (Name)
-    `${monthsToAdd} Month${monthsToAdd > 1 ? "s" : ""}`,           // Index 1 -> {{2}} (Duration)
-    wasActive ? "extended" : "renewed",                           // Index 2 -> {{3}} (Action)
-  ],
-  headerMediaId,
-});
-})().catch((err) => console.error("Extend automation error:", err));
+        const automationResult = await triggerMemberAutomation({
+          gymId: req.user.gymId,
+          automationKey: "extendRenewal",
+          toPhone: member.mobile,
+          templateParams: [
+            String(member.name || "Member"),
+            `${monthsToAdd} Month${monthsToAdd > 1 ? "s" : ""}`,
+            wasActive ? "extended" : "renewed",
+          ],
+          headerMediaId,
+        });
+
+        console.log("Extend automation response:", automationResult);
+      } catch (error) {
+        console.error("Renewal invoice generation failed:", error);
+      }
+    })();
 
     return res.status(200).json({
       success: true,
-
       message: "Membership renewed successfully.",
-
       member: formatted,
     });
   } catch (error) {
     console.error("extendMembership error:", error);
-
     return res.status(500).json({
       success: false,
-
       message: "Failed to renew membership.",
     });
   }
