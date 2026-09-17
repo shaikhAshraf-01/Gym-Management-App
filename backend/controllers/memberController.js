@@ -441,10 +441,18 @@ export const addMember = async (req, res) => {
     // going to send, so we don't waste work otherwise.
     (async () => {
       let headerMediaId = null;
+      // FIX: gymName is declared here, outside the try block, so it's
+      // still in scope when we build templateParams below. Previously
+      // `gymDoc` was declared with `const` INSIDE the try block, then
+      // referenced after it — that throws a ReferenceError every time,
+      // which the outer .catch(() => {}) swallowed silently, so the
+      // welcome WhatsApp message never actually sent.
+      let gymName = "";
       try {
         const gymDoc = await Gym.findById(req.user.gymId).select(
           "gymName gstNumber whatsappIntegration.connected whatsappAutomationSettings.enabled whatsappAutomationSettings.memberWelcome +whatsappIntegration.accessToken"
         );
+        gymName = gymDoc?.gymName || "";
         const automationLive =
           gymDoc?.whatsappIntegration?.connected &&
           gymDoc?.whatsappAutomationSettings?.enabled &&
@@ -475,10 +483,10 @@ export const addMember = async (req, res) => {
         gymId: req.user.gymId,
         automationKey: "memberWelcome",
         toPhone: mobile,
-        templateParams: [name, gymDoc.gymName], // {{1}} name, {{2}} gym name
+        templateParams: [name, gymName], // {{1}} name, {{2}} gym name
         headerMediaId,
       });
-    })().catch(() => {});
+    })().catch((err) => console.error("Welcome automation error:", err));
 
     res.status(201).json({
       success: true,
