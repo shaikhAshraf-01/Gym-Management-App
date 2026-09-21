@@ -76,11 +76,6 @@ function App() {
         <Route
           path="/"
           element={
-            // Installed users (native Capacitor app OR an installed PWA
-            // opened from its home-screen icon) want to log in
-            // immediately — the marketing homepage with its "Download
-            // App" button is only useful for someone browsing the site
-            // in a normal browser tab who hasn't installed anything yet.
             Capacitor.isNativePlatform() || isStandalonePWA() ? (
               <Login />
             ) : (
