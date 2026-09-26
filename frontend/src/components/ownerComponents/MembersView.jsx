@@ -44,7 +44,11 @@ export default function MembersView() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // all | active | inactive
-  const [sortOrder, setSortOrder] = useState("newest"); // newest | oldest
+  // newest/oldest = Start Date (joiningDate). latestAdded/oldestAdded =
+  // member record's own createdAt (Add Member time — never moves on
+  // extend/renew). recentlyUpdated = latest subscription's
+  // updatedAt/createdAt — bumps on Add, Extend, Renew AND Edit Member.
+  const [sortOrder, setSortOrder] = useState("newest");
   const [editingMember, setEditingMember] = useState(null); 
   const [extendingMember, setExtendingMember] = useState(null); 
   const [viewingProfileMember, setViewingProfileMember] = useState(null);
@@ -218,9 +222,26 @@ const buildExtensionMessage = (member) => {
   });
 
   const filteredMembers = [...statusFilteredMembers].sort((a, b) => {
-    const dateA = new Date(a.joiningDate).getTime();
-    const dateB = new Date(b.joiningDate).getTime();
-    return sortOrder === "oldest" ? dateA - dateB : dateB - dateA;
+    // Start Date (joiningDate) based — existing behaviour, unchanged.
+    if (sortOrder === "oldest") {
+      return new Date(a.joiningDate).getTime() - new Date(b.joiningDate).getTime();
+    }
+    if (sortOrder === "newest") {
+      return new Date(b.joiningDate).getTime() - new Date(a.joiningDate).getTime();
+    }
+    // Add Member time — never moves when a member is extended/renewed.
+    if (sortOrder === "latestAdded") {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+    if (sortOrder === "oldestAdded") {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+    // Latest subscription activity — Add, Extend, Renew, Edit sab
+    // isko top pe le aate hain.
+    if (sortOrder === "recentlyUpdated") {
+      return new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime();
+    }
+    return 0;
   });
 
   // ---------------------------------------------------------
@@ -325,8 +346,11 @@ const buildExtensionMessage = (member) => {
             onChange={(e) => setSortOrder(e.target.value)}
             className="appearance-none pl-3 pr-8 py-2 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
           >
-            <option value="newest">Newest to Oldest</option>
-            <option value="oldest">Oldest to Newest</option>
+            <option value="newest">Start Date: Newest to Oldest</option>
+            <option value="oldest">Start Date: Oldest to Newest</option>
+            <option value="latestAdded">Latest Added</option>
+            <option value="oldestAdded">Oldest Added</option>
+            <option value="recentlyUpdated">Recently Updated</option>
           </select>
           <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-600 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

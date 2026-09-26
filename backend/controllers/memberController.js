@@ -76,6 +76,15 @@ const formatMember = async (memberDoc) => {
 
       addedBy: "Unknown",
 
+      // ===== Sort helpers (added for Latest/Oldest Added + Recently
+      // Updated sort options) =====
+      // createdAt: when this member record itself was first created —
+      // never changes on extend/renew, only on Add Member.
+      createdAt: memberDoc.createdAt,
+      // lastActivityAt: no subscription yet (shouldn't normally
+      // happen), so fall back to the member's own createdAt.
+      lastActivityAt: memberDoc.createdAt,
+
       membershipHistory: [],
     };
   }
@@ -188,6 +197,18 @@ const formatMember = async (memberDoc) => {
     joiningDate: toDateStr(latest.joiningDate),
     expiryDate: toDateStr(latest.expiryDate),
     addedBy: first.createdBy?.name || "Unknown",
+
+    // ===== Sort helpers =====
+    // createdAt: member record's own creation time — Add Member ka
+    // waqt set hota hai, extend/renew se kabhi nahi badalta. Isse
+    // "Latest Added" / "Oldest Added" sort hoga.
+    createdAt: memberDoc.createdAt,
+    // lastActivityAt: sabse latest subscription row ka updatedAt (ya
+    // createdAt agar kabhi update na hua ho) — Add Member, Extend,
+    // Renew, aur Edit Member (jo latestSub ko save karta hai) sab
+    // isko bump karte hain. Isse "Recently Updated" sort hoga.
+    lastActivityAt: latest.updatedAt || latest.createdAt,
+
     membershipHistory,
   };
 };
