@@ -2,7 +2,7 @@ import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { performLogout } from "../../redux/slices/authSlice";
-import { LayoutDashboard, Dumbbell, User, LogOut } from "lucide-react";
+import { LayoutDashboard, Dumbbell, User, LogOut, IndianRupee } from "lucide-react";
 
 export default function AdminSidebar() {
   const dispatch = useDispatch();
@@ -17,6 +17,7 @@ export default function AdminSidebar() {
     { label: "Dashboard", path: "/admin", icon: LayoutDashboard, end: true },
     { label: "All Gyms", path: "/admin/all-gyms", icon: Dumbbell, end: false },
     { label: "Add Gyms", path: "/admin/add-gyms", icon: Dumbbell, end: false },
+    { label: "Plan Pricing", path: "/admin/plan-pricing", icon: IndianRupee, end: false },
     { label: "Profile", path: "/admin/profile", icon: User, end: false },
   ];
 

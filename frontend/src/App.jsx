@@ -17,6 +17,7 @@ import AdminDashboard from "./components/adminComponents/AdminDashboard";
 import AdminProfile from "./components/adminComponents/AdminProfile";
 import AllGyms from "./components/adminComponents/AllGyms";
 import AddGyms from "./components/adminComponents/AddGyms";
+import ManagePlanPricing from "./components/adminComponents/ManagePlanPricing";
 //owner routes
 import OwnerLayout from "./layouts/ownerLayout/OwnerLayout";
 import OwnerDashboard from "./components/ownerComponents/OwnerDashboard";
@@ -76,6 +77,11 @@ function App() {
         <Route
           path="/"
           element={
+            // Installed users (native Capacitor app OR an installed PWA
+            // opened from its home-screen icon) want to log in
+            // immediately — the marketing homepage with its "Download
+            // App" button is only useful for someone browsing the site
+            // in a normal browser tab who hasn't installed anything yet.
             Capacitor.isNativePlatform() || isStandalonePWA() ? (
               <Login />
             ) : (
@@ -91,6 +97,7 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="/admin/all-gyms" element={<AllGyms />} />
             <Route path="/admin/add-gyms" element={<AddGyms />} />
+            <Route path="/admin/plan-pricing" element={<ManagePlanPricing />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
           </Route>
         </Route>

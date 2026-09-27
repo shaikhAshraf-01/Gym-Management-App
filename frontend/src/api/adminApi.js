@@ -33,3 +33,11 @@ export const deleteTrainerApi = (gymId, trainerId, customHeaders = {}) =>
   api.delete(`/admin/gyms/${gymId}/trainers/${trainerId}`, {
     headers: customHeaders,
   });
+
+// ================= PLAN PRICING (Basic/Plus/Pro subscription
+// pricing sold to gym owners — not a gym's own member fees) =================
+export const getPlanPricingApi = (customHeaders = {}) =>
+  api.get("/admin/plan-pricing", { headers: customHeaders });
+
+export const updatePlanPricingApi = (payload, customHeaders = {}) =>
+  api.patch("/admin/plan-pricing", payload, { headers: customHeaders });

@@ -1,9 +1,21 @@
-import React, { useState } from "react";
-import { X, Check, MessageCircle, Sparkles, Lock } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { X, Check, MessageCircle, Sparkles, Lock, Tag } from "lucide-react";
+import { getPlanPricingApi } from "../../api/ownerApi.js";
 
 const ADMIN_WHATSAPP_NUMBER = "9172001155"; // same support number as SubscriptionExpiredOverlay
 
-const PLANS = [
+// Fallback prices shown only until the live /owner/plan-pricing fetch
+// resolves (or if it fails) — mirrors the backend's own seed defaults
+// in backend/utils/planPricingDefaults.js, so the modal never looks
+// broken/empty while loading.
+const FALLBACK_PRICES = {
+  Basic: { 1: 249, 3: 599, 6: 999, 12: 1699 },
+  Plus: { 1: 349, 3: 849, 6: 1399, 12: 2499 },
+};
+
+// Feature copy stays static here — only the numbers (and the promo
+// badge) come from what admin publishes via /admin/plan-pricing.
+const PLAN_META = [
   {
     id: "Basic",
     label: "Basic",
@@ -13,7 +25,6 @@ const PLANS = [
       "Manual WhatsApp confirmations (renewal, expiry)",
       "Trainer & enquiry tracking",
     ],
-    prices: { 1: 249, 3: 599, 6: 999, 12: 1699 },
   },
   {
     id: "Plus",
@@ -27,7 +38,6 @@ const PLANS = [
       "Auto invoice on member create / renewal",
       "Publish Offer — broadcast to your members",
     ],
-    prices: { 1: 349, 3: 849, 6: 1399, 12: 2499 },
   },
   {
     id: "Pro",
@@ -80,6 +90,13 @@ function PlanCard({ plan, selectedPlanId, selectedMonths, onSelect }) {
         <span className="absolute -top-2.5 right-4 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
           <Lock className="h-3 w-3" />
           Coming Soon
+        </span>
+      )}
+
+      {plan.badgeText && !plan.comingSoon && (
+        <span className="inline-flex items-center gap-1 mb-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
+          <Tag className="h-3 w-3" />
+          {plan.badgeText}
         </span>
       )}
 
@@ -156,6 +173,49 @@ function PlanCard({ plan, selectedPlanId, selectedMonths, onSelect }) {
 export default function PlanSelectionModal({ onClose, gymName }) {
   const [selectedPlanId, setSelectedPlanId] = useState("Basic");
   const [selectedMonths, setSelectedMonths] = useState(1);
+  const [pricing, setPricing] = useState(null); // { Basic: {...}, Plus: {...}, Pro: {...} } from admin
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await getPlanPricingApi();
+        if (!cancelled && res?.data?.data) {
+          setPricing(res.data.data);
+        }
+      } catch {
+        // Silent — FALLBACK_PRICES below covers this, and the modal
+        // still fully works with those numbers if the fetch fails.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Merge static feature copy with whatever admin has published (or
+  // the fallback numbers while that fetch is still in flight).
+  const PLANS = PLAN_META.map((meta) => {
+    if (meta.comingSoon) return meta; // Pro: no pricing shown either way
+
+    const published = pricing?.[meta.id];
+    const prices = published
+      ? {
+          1: published.price1,
+          3: published.price3,
+          6: published.price6,
+          12: published.price12,
+        }
+      : FALLBACK_PRICES[meta.id];
+
+    return {
+      ...meta,
+      prices,
+      badgeText: published?.badgeActive ? published.badgeText : "",
+    };
+  });
 
   const selectedPlan = PLANS.find((p) => p.id === selectedPlanId);
   const selectedDuration = DURATIONS.find((d) => d.months === selectedMonths);

@@ -60,3 +60,7 @@ export const getAudienceCountApi = (audience) =>
 
 export const cancelOfferApi = (offerId) =>
   api.delete(`/owner/whatsapp/offers/${offerId}`);
+
+// ================= PLAN PRICING (read-only — what admin has
+// published for Basic/Plus/Pro; powers PlanSelectionModal) =================
+export const getPlanPricingApi = () => api.get("/owner/plan-pricing");

@@ -14,6 +14,7 @@ import {
   updateWhatsappAutomationSettings,
   testSendWhatsappAutomation,
   updateGymPricing,
+  getPlanPricingForOwner,
 } from "../controllers/ownerController.js";
 import {
   createOffer,
@@ -141,6 +142,15 @@ router.delete(
   authMiddleware,
   roleMiddleware("owner", "trainer"),
   deleteInquiry
+);
+
+// ===== Plan Pricing (read-only — what admin has published for
+// Basic/Plus/Pro; powers PlanSelectionModal) =====
+router.get(
+  "/plan-pricing",
+  authMiddleware,
+  roleMiddleware("owner"),
+  getPlanPricingForOwner
 );
 
 export default router;

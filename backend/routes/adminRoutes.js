@@ -4,6 +4,8 @@ import roleMiddleware from "../middlewares/roleMiddleware.js";
 import {
   getAdminProfile,
   changeAdminPassword,
+  getPlanPricing,
+  updatePlanPricing,
 } from "../controllers/adminController.js";
 import{
   createGym,
@@ -63,5 +65,21 @@ router.delete(
   roleMiddleware("admin"),
   deleteTrainer
 )
+
+// ===== Plan Pricing (Basic/Plus/Pro subscription pricing sold to
+// gym owners — not a gym's own member fees) =====
+router.get(
+  "/plan-pricing",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getPlanPricing
+);
+
+router.patch(
+  "/plan-pricing",
+  authMiddleware,
+  roleMiddleware("admin"),
+  updatePlanPricing
+);
 
 export default router;

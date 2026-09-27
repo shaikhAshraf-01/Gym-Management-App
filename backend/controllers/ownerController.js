@@ -11,6 +11,7 @@ import { emitToAdmins, emitToGym } from "../socket/index.js";
 import { hasActivePlusOrProPlan } from "../utils/planCheck.js";
 import { getFormattedTrainers } from "./gymController.js";
 import { sendWhatsappTemplateMessage } from "../utils/sendWhatsappMessage.js";
+import { getOrSeedPlanPricing } from "../utils/planPricingDefaults.js";
 
 // Helper function to extract file extension safely
 const getFileExtension = (originalname) => {
@@ -167,17 +168,13 @@ export const uploadGymLogo = async (req, res) => {
     // Original extension extract karein
     const fileExt = getFileExtension(req.file.originalname);
 
-    // Dynamic extension ke saath image compress karein (HEIC/HEIF automatically
-    // JPEG me convert ho jaata hai — outputExt isliye use karo, fileExt nahi)
-    const { buffer: compressedBuffer, outputExt } = await compressImageBuffer(
-      req.file.buffer,
-      fileExt
-    );
+    // Dynamic extension ke saath image compress karein
+    const compressedBuffer = await compressImageBuffer(req.file.buffer, fileExt);
 
     const uploadFromBuffer = async () => {
-      const fileName = `gym-logo-${gym._id}.${outputExt}`;
+      const fileName = `gym-logo-${gym._id}.${fileExt}`;
       const uploadableFile = await toFile(compressedBuffer, fileName, {
-        type: getCompressedMimeType(outputExt),
+        type: getCompressedMimeType(fileExt),
       });
       const result = await imagekit.files.upload({
         file: uploadableFile,
@@ -295,17 +292,13 @@ export const uploadTrainerPhoto = async (req, res) => {
     // Original extension extract karein
     const fileExt = getFileExtension(req.file.originalname);
 
-    // Dynamic extension ke saath image compress karein (HEIC/HEIF automatically
-    // JPEG me convert ho jaata hai — outputExt isliye use karo, fileExt nahi)
-    const { buffer: compressedBuffer, outputExt } = await compressImageBuffer(
-      req.file.buffer,
-      fileExt
-    );
+    // Dynamic extension ke saath image compress karein
+    const compressedBuffer = await compressImageBuffer(req.file.buffer, fileExt);
 
     const uploadFromBuffer = async () => {
-      const fileName = `trainer-photo-${trainer._id}.${outputExt}`;
+      const fileName = `trainer-photo-${trainer._id}.${fileExt}`;
       const uploadableFile = await toFile(compressedBuffer, fileName, {
-        type: getCompressedMimeType(outputExt),
+        type: getCompressedMimeType(fileExt),
       });
       const result = await imagekit.files.upload({
         file: uploadableFile,
@@ -797,18 +790,13 @@ export const updateGymPricing = async (req, res) => {
 
 // ================= TEST SEND WHATSAPP AUTOMATION =================
 const TEST_SAMPLE_PARAMS = {
-  expiryReminder: (gym) => [
+  expiryReminder: (gym, settings) => [
     "Test Member",
-    gym.gymName || "Your Gym",
-    new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }),
+    String(settings.expiryReminder?.daysBefore || 3),
   ],
-  memberWelcome: (gym) => ["Test Member", gym.gymName || "Your Gym"],
-  extendRenewal: (gym) => ["Test Member", gym.gymName || "Your Gym", "Renewed for 1 month"],
-  balanceConfirmation: (gym) => ["Test Member", "0", "Monthly"],
+  memberWelcome: (gym) => ["Test Member", "Monthly"],
+  extendRenewal: (gym) => ["Test Member", "Monthly", "Renewed"],
+  balanceConfirmation: (gym) => ["Test Member"],
 };
 
 export const testSendWhatsappAutomation = async (req, res) => {
@@ -881,6 +869,30 @@ export const testSendWhatsappAutomation = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to send test message.",
+    });
+  }
+};
+// ===== Plan Pricing (read-only for owner — what admin has published
+// for the Basic / Plus / Pro subscription plans). Powers the pricing
+// shown in PlanSelectionModal instead of the old static numbers. =====
+
+export const getPlanPricingForOwner = async (req, res) => {
+  try {
+    const doc = await getOrSeedPlanPricing();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        Basic: doc.Basic,
+        Plus: doc.Plus,
+        Pro: doc.Pro,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
     });
   }
 };
