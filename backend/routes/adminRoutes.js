@@ -16,6 +16,13 @@ import{
   deleteTrainer,
 } from "../controllers/gymController.js"
 
+import {
+  getGymOverview,
+  getGymMembers,
+  getGymEnquiries,
+  getGymSales,
+} from "../controllers/adminGymViewController.js";
+
 const router = express.Router();
 
 // ===== Profile =====
@@ -65,6 +72,12 @@ router.delete(
   roleMiddleware("admin"),
   deleteTrainer
 )
+
+// ===== Gym View (read-only: overview, members, enquiries, sales) =====
+router.get("/gyms/:id/overview", authMiddleware, roleMiddleware("admin"), getGymOverview);
+router.get("/gyms/:id/members", authMiddleware, roleMiddleware("admin"), getGymMembers);
+router.get("/gyms/:id/enquiries", authMiddleware, roleMiddleware("admin"), getGymEnquiries);
+router.get("/gyms/:id/sales", authMiddleware, roleMiddleware("admin"), getGymSales);
 
 // ===== Plan Pricing (Basic/Plus/Pro subscription pricing sold to
 // gym owners — not a gym's own member fees) =====

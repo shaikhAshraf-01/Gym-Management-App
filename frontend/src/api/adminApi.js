@@ -41,3 +41,16 @@ export const getPlanPricingApi = (customHeaders = {}) =>
 
 export const updatePlanPricingApi = (payload, customHeaders = {}) =>
   api.patch("/admin/plan-pricing", payload, { headers: customHeaders });
+
+// ================= GYM VIEW (read-only admin views of one gym) =================
+export const getGymOverviewApi = (gymId) =>
+  api.get(`/admin/gyms/${gymId}/overview`);
+
+export const getGymMembersApi = (gymId, params) =>
+  api.get(`/admin/gyms/${gymId}/members`, { params });
+
+export const getGymEnquiriesApi = (gymId, params) =>
+  api.get(`/admin/gyms/${gymId}/enquiries`, { params });
+
+export const getGymSalesApi = (gymId, params) =>
+  api.get(`/admin/gyms/${gymId}/sales`, { params });
