@@ -353,24 +353,8 @@ export default function MemberProfileModal({ member, onClose, onEdit, onExtend }
   const activities = member.activities || [];
   const history = [...(member.membershipHistory || [])].reverse();
 
-  const handleOpenWhatsAppChat = (mobile) => {
-    const cleanPhone = String(mobile || "").replace(/\D/g, "");
-    if (cleanPhone.length !== 10) return;
-    const finalPhone = `91${cleanPhone}`;
-    const nativeAppUrl = `whatsapp://send?phone=${finalPhone}`;
-    const browserFallbackUrl = `https://api.whatsapp.com/send?phone=${finalPhone}`;
-    const isMobileDevice =
-      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.Capacitor;
-
-    if (isMobileDevice) {
-      window.location.href = nativeAppUrl;
-      setTimeout(() => {
-        window.location.href = browserFallbackUrl;
-      }, 1500);
-    } else {
-      window.open(browserFallbackUrl, "MemberWhatsAppChat");
-    }
-  };
+  // Logic lives in utils/openWhatsAppChat.js (shared with MembersView.jsx).
+  const handleOpenWhatsAppChat = (mobile) => openWhatsAppChat(mobile);
 
   const handleConfirmDelete = () => {
     dispatch(deleteMember(member.id));

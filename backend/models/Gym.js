@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { encryptField, decryptField } from "../utils/fieldEncryption.js";
 const gymSchema= new mongoose.Schema({
     gymCode:{
         type:String,
@@ -100,9 +101,18 @@ const gymSchema= new mongoose.Schema({
         connected:{ type:Boolean, default:false },
         phoneNumberId:{ type:String, default:"" },
         wabaId:{ type:String, default:"" },
-        // Encrypted at rest via the User-supplied Mongoose field-level
-        // encryption / KMS layer — never returned in plain API responses.
-        accessToken:{ type:String, default:"", select:false },
+        // Encrypted at rest with AES-256-GCM (see utils/fieldEncryption.js) —
+        // the set/get below make this transparent to every read/write site
+        // in the codebase: they always see the plain token, the DB only
+        // ever stores ciphertext. Never returned in plain API responses
+        // (select:false).
+        accessToken:{
+            type:String,
+            default:"",
+            select:false,
+            set: encryptField,
+            get: decryptField,
+        },
         connectedAt:{ type:Date, default:null },
     },
     // ===== WhatsApp automation settings (Plus/Pro only — enforced =====

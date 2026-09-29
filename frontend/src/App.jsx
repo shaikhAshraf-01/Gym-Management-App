@@ -16,6 +16,7 @@ import AdminLayout from "./layouts/adminLayout/AdminLayout";
 import AdminDashboard from "./components/adminComponents/AdminDashboard";
 import AdminProfile from "./components/adminComponents/AdminProfile";
 import AllGyms from "./components/adminComponents/AllGyms";
+import GymDetails from "./components/adminComponents/GymDetails";
 import AddGyms from "./components/adminComponents/AddGyms";
 import ManagePlanPricing from "./components/adminComponents/ManagePlanPricing";
 //owner routes
@@ -96,6 +97,7 @@ function App() {
             {/* Automatically loads at "/admin" */}
             <Route index element={<AdminDashboard />} />
             <Route path="/admin/all-gyms" element={<AllGyms />} />
+            <Route path="/admin/all-gyms/:id" element={<GymDetails />} />
             <Route path="/admin/add-gyms" element={<AddGyms />} />
             <Route path="/admin/plan-pricing" element={<ManagePlanPricing />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
