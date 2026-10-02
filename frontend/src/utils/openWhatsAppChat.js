@@ -9,19 +9,31 @@ export const openWhatsAppChat = (mobile) => {
 
   const finalPhone = `91${cleanPhone}`;
   
-  // यूनिवर्सल लिंक (यह मोबाइल ऐप और पीसी दोनों के लिए बेस्ट है)
+  // 📱 मोबाइल और कैपेसिटर ऐप के लिए यूआरएल
   const whatsappUrl = `https://wa.me/${finalPhone}`;
   
   const isCapacitor = window.Capacitor;
   const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (isCapacitor || isMobileDevice) {
-    // मोबाइल ब्राउज़र और GymOpsFlow ऐप दोनों के लिए:
-    // यह सीधे फ़ोन में इंस्टॉल असली WhatsApp ऐप को बिना किसी टाइमर के ट्रिगर कर देगा।
+    // 📱 मोबाइल और कैपेसिटर ऐप के लिए सीधे ऐप ट्रिगर होगी
     window.location.href = whatsappUrl;
   } else {
-    // PC / Desktop Web के लिए:
-    // एक ही फिक्स टैब रीयूज़ होगा, जिससे बार-बार नया टैब नहीं खुलेगा।
-    window.open(whatsappUrl, "WhatsAppChatWindow");
+    // 💻 PC / Desktop के लिए:
+    // अब यहाँ \${finalPhone} बिल्कुल सही तरीके से बैकटिक्स के साथ लिखा है
+    const pcWhatsappUrl = `https://whatsapp.com/${finalPhone}`;
+    
+    let link = document.getElementById("whatsapp-share-link");
+    
+    if (!link) {
+      link = document.createElement("a");
+      link.id = "whatsapp-share-link";
+      link.target = "WhatsAppChatWindow"; // यह फिक्स नाम हर बार इसी टैब को रीयूज़ करेगा
+      link.style.display = "none";
+      document.body.appendChild(link);
+    }
+    
+    link.href = pcWhatsappUrl;
+    link.click(); // वर्चुअल क्लिक ट्रिगर करें
   }
 };
