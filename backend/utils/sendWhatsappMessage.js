@@ -10,6 +10,8 @@
 // gym document passed in here MUST be fetched with
 // .select("+whatsappIntegration.accessToken") or it will be empty.
 
+import { hasActivePlusOrProPlan } from "./planCheck.js";
+
 const META_GRAPH_VERSION = process.env.META_GRAPH_VERSION || "v21.0";
 
 // Sends an already-Meta-approved template message.
@@ -22,6 +24,7 @@ export const sendWhatsappTemplateMessage = async ({
   languageCode = "en_us",
   templateParams = [],
   headerMediaId = null,
+  headerImageUrl = null,
 }) => {
   if (!gym?.whatsappIntegration?.connected) {
     return { success: false, error: "WhatsApp Business Account not connected for this gym." };
@@ -41,7 +44,14 @@ export const sendWhatsappTemplateMessage = async ({
   }
 
   const components = [];
-  if (headerMediaId) {
+  // Image header (e.g. an offer's rate card) is passed by public URL —
+  // Meta downloads it at send time. Takes priority over a document header.
+  if (headerImageUrl) {
+    components.push({
+      type: "header",
+      parameters: [{ type: "image", image: { link: headerImageUrl } }],
+    });
+  } else if (headerMediaId) {
     components.push({
       type: "header",
       parameters: [{ type: "document", document: { id: headerMediaId } }],
@@ -163,6 +173,13 @@ export const triggerMemberAutomation = async ({
 
     if (!settings?.enabled || !automation?.enabled || !gym.whatsappIntegration?.connected) {
       // Not an error — automation is simply off. Silent no-op.
+      return { success: false, skipped: true };
+    }
+
+    // Toggle being ON isn't enough — the gym must also currently be on
+    // an active Plus/Pro plan. If the plan lapsed or was downgraded to
+    // Basic, skip silently (the frontend falls back to manual wa.me).
+    if (!(await hasActivePlusOrProPlan(gym._id))) {
       return { success: false, skipped: true };
     }
 

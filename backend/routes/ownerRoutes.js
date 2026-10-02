@@ -104,7 +104,27 @@ router.post(
 
 // ============ OFFER BROADCASTS (owner-only, Plus/Pro gated in controller) ============
 
-router.post("/whatsapp/offers", authMiddleware, roleMiddleware("owner"), createOffer);
+// Multer errors (wrong file type, >6 MB) would otherwise fall through to the
+// generic 500 handler — turn them into a readable 400 for this route.
+const uploadOfferImage = (req, res, next) =>
+  upload.single("image")(req, res, (err) => {
+    if (!err) return next();
+    return res.status(400).json({
+      success: false,
+      message:
+        err.code === "LIMIT_FILE_SIZE"
+          ? "Image must be under 6 MB."
+          : err.message || "Invalid image upload.",
+    });
+  });
+
+router.post(
+  "/whatsapp/offers",
+  authMiddleware,
+  roleMiddleware("owner"),
+  uploadOfferImage,
+  createOffer
+);
 router.get("/whatsapp/offers", authMiddleware, roleMiddleware("owner"), listOffers);
 router.get(
   "/whatsapp/offers/audience-count",

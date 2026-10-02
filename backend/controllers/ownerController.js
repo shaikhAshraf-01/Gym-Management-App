@@ -169,12 +169,15 @@ export const uploadGymLogo = async (req, res) => {
     const fileExt = getFileExtension(req.file.originalname);
 
     // Dynamic extension ke saath image compress karein
-    const compressedBuffer = await compressImageBuffer(req.file.buffer, fileExt);
+    const { buffer: compressedBuffer, outputExt } = await compressImageBuffer(
+      req.file.buffer,
+      fileExt
+    );
 
     const uploadFromBuffer = async () => {
-      const fileName = `gym-logo-${gym._id}.${fileExt}`;
+      const fileName = `gym-logo-${gym._id}.${outputExt}`;
       const uploadableFile = await toFile(compressedBuffer, fileName, {
-        type: getCompressedMimeType(fileExt),
+        type: getCompressedMimeType(outputExt),
       });
       const result = await imagekit.files.upload({
         file: uploadableFile,
@@ -293,12 +296,15 @@ export const uploadTrainerPhoto = async (req, res) => {
     const fileExt = getFileExtension(req.file.originalname);
 
     // Dynamic extension ke saath image compress karein
-    const compressedBuffer = await compressImageBuffer(req.file.buffer, fileExt);
+    const { buffer: compressedBuffer, outputExt } = await compressImageBuffer(
+      req.file.buffer,
+      fileExt
+    );
 
     const uploadFromBuffer = async () => {
-      const fileName = `trainer-photo-${trainer._id}.${fileExt}`;
+      const fileName = `trainer-photo-${trainer._id}.${outputExt}`;
       const uploadableFile = await toFile(compressedBuffer, fileName, {
-        type: getCompressedMimeType(fileExt),
+        type: getCompressedMimeType(outputExt),
       });
       const result = await imagekit.files.upload({
         file: uploadableFile,

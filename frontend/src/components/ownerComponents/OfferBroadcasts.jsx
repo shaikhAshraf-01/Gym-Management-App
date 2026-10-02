@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Megaphone, Lock, Sparkles, Users, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Megaphone, Lock, Sparkles, Users, X, Loader2, ImagePlus } from "lucide-react";
 import PlanSelectionModal from "./PlanSelectionModal";
 import {
   fetchOffers,
@@ -24,6 +24,10 @@ const STATUS_STYLES = {
   failed: "bg-rose-500/10 text-rose-400 border-rose-500/20",
   cancelled: "bg-slate-100 dark:bg-slate-700/30 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700",
 };
+
+// Matches the backend/multer limit. The server re-compresses and converts
+// to JPEG/PNG (the only formats WhatsApp accepts for a template header).
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
 // Scheduling for "today" risks landing after that day's cron already
 // ran (it fires once, at a fixed time) — so the earliest pickable
@@ -54,8 +58,46 @@ export default function OfferBroadcasts() {
 
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [templateName, setTemplateName] = useState("");
+  const [offerName, setOfferName] = useState("");
   const [scheduledDate, setScheduledDate] = useState(tomorrowDateInputValue());
   const [audience, setAudience] = useState("all_members");
+  const [imageFile, setImageFile] = useState(null);
+  const [imageError, setImageError] = useState("");
+  // Changing the key remounts the <input type="file">, which is the only
+  // reliable way to clear its selection after a successful submit.
+  const [fileInputKey, setFileInputKey] = useState(0);
+
+  const previewUrl = useMemo(
+    () => (imageFile ? URL.createObjectURL(imageFile) : ""),
+    [imageFile]
+  );
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    setImageError("");
+    if (!file) {
+      setImageFile(null);
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setImageError("Please choose an image file (JPG or PNG).");
+      setImageFile(null);
+      setFileInputKey((k) => k + 1);
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageError("Image must be under 6 MB.");
+      setImageFile(null);
+      setFileInputKey((k) => k + 1);
+      return;
+    }
+    setImageFile(file);
+  };
 
   useEffect(() => {
     if (!isLocked) dispatch(fetchOffers());
@@ -67,15 +109,25 @@ export default function OfferBroadcasts() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!templateName.trim() || !scheduledDate) return;
-    dispatch(createOffer({ templateName: templateName.trim(), scheduledDate, audience })).then(
-      (result) => {
-        if (!result.error) {
-          setTemplateName("");
-          setScheduledDate(tomorrowDateInputValue());
-        }
+    if (!templateName.trim() || !offerName.trim() || !scheduledDate || !imageFile) return;
+
+    const formData = new FormData();
+    formData.append("templateName", templateName.trim());
+    formData.append("offerName", offerName.trim());
+    formData.append("scheduledDate", scheduledDate);
+    formData.append("audience", audience);
+    formData.append("image", imageFile);
+
+    dispatch(createOffer(formData)).then((result) => {
+      if (!result.error) {
+        setTemplateName("");
+        setOfferName("");
+        setScheduledDate(tomorrowDateInputValue());
+        setImageFile(null);
+        setImageError("");
+        setFileInputKey((k) => k + 1);
       }
-    );
+    });
   };
 
   if (isLocked) {
@@ -165,8 +217,66 @@ export default function OfferBroadcasts() {
             className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-sm text-slate-700 dark:text-slate-100 outline-none focus:border-amber-400"
           />
           <p className="mt-1 text-[10px] text-slate-600 dark:text-slate-500">
-            The exact name of a Meta-approved template on your connected account.
+            The exact name of a Meta-approved template on your connected account. It
+            needs an <b>Image</b> header and two body variables:{" "}
+            <code>{"{{1}}"}</code> = member name, <code>{"{{2}}"}</code> = offer name.
           </p>
+        </div>
+
+        <div>
+          <label className="block text-[10px] uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
+            Offer Name
+          </label>
+          <input
+            type="text"
+            maxLength={60}
+            placeholder="e.g. Diwali Offer"
+            value={offerName}
+            onChange={(e) => setOfferName(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-sm text-slate-700 dark:text-slate-100 outline-none focus:border-amber-400"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[10px] uppercase font-bold text-slate-600 dark:text-slate-500 mb-1">
+            Offer Image (rate card)
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-3 hover:border-amber-400">
+            {previewUrl ? (
+              <img
+                src={previewUrl}
+                alt="Offer preview"
+                onError={(e) => {
+                  // e.g. HEIC can't be previewed in most browsers — the
+                  // file still uploads fine, just hide the broken thumbnail.
+                  e.currentTarget.style.display = "none";
+                }}
+                className="h-14 w-14 shrink-0 rounded-md object-cover border border-slate-200 dark:border-slate-700"
+              />
+            ) : (
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-amber-500/10 text-amber-400">
+                <ImagePlus size={20} />
+              </div>
+            )}
+            <div className="min-w-0 text-xs">
+              <p className="truncate font-semibold text-slate-700 dark:text-slate-200">
+                {imageFile ? imageFile.name : "Choose image"}
+              </p>
+              <p className="text-[10px] text-slate-600 dark:text-slate-500">
+                {imageFile
+                  ? `${(imageFile.size / 1024 / 1024).toFixed(2)} MB`
+                  : "JPG or PNG with your plan rates — shown in the WhatsApp message"}
+              </p>
+            </div>
+            <input
+              key={fileInputKey}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+          </label>
+          {imageError && <p className="mt-1 text-[10px] text-rose-400">{imageError}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -215,7 +325,7 @@ export default function OfferBroadcasts() {
 
         <button
           type="submit"
-          disabled={actionLoading || !templateName.trim()}
+          disabled={actionLoading || !templateName.trim() || !offerName.trim() || !imageFile}
           className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 px-4 py-3 text-sm font-bold text-slate-950"
         >
           {actionLoading ? <Loader2 size={15} className="animate-spin" /> : <Megaphone size={15} />}
@@ -237,9 +347,17 @@ export default function OfferBroadcasts() {
               key={offer._id}
               className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4 flex items-center justify-between gap-3"
             >
-              <div className="min-w-0">
+              {offer.imageUrl && (
+                <img
+                  src={offer.imageUrl}
+                  alt=""
+                  loading="lazy"
+                  className="h-11 w-11 shrink-0 rounded-md object-cover border border-slate-200 dark:border-slate-700"
+                />
+              )}
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-slate-700 dark:text-slate-100 truncate">
-                  {offer.templateName}
+                  {offer.offerName || offer.templateName}
                 </p>
                 <p className="text-xs text-slate-600 dark:text-slate-500 mt-0.5">
                   {new Date(offer.scheduledDate).toLocaleDateString("en-IN", {

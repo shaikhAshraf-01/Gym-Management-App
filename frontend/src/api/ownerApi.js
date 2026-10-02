@@ -51,7 +51,11 @@ export const testSendWhatsappAutomationApi = (automation, toPhone) =>
   api.post("/owner/whatsapp/test-send", { automation, toPhone });
 
 // ================= OFFER BROADCASTS =================
-export const createOfferApi = (payload) => api.post("/owner/whatsapp/offers", payload);
+// payload is a FormData (offer fields + the rate-card image file).
+export const createOfferApi = (formData) =>
+  api.post("/owner/whatsapp/offers", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 
 export const listOffersApi = () => api.get("/owner/whatsapp/offers");
 

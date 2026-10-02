@@ -15,6 +15,27 @@ const gymOfferSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    // Human-readable campaign name (e.g. "Diwali Offer") — sent as the
+    // template's {{2}} and shown in the offers list. Not `required` at
+    // schema level on purpose: offers created before this field existed
+    // would otherwise fail validation every time the cron job re-saves
+    // them. The controller enforces it for new offers.
+    offerName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    // The rate-card image shown in the template's header. Hosted on
+    // ImageKit; Meta fetches it by URL at send time. The fileId is kept
+    // so the file can be deleted when the offer is cancelled.
+    imageUrl: {
+      type: String,
+      default: "",
+    },
+    imageFileId: {
+      type: String,
+      default: "",
+    },
     scheduledDate: {
       type: Date,
       required: true,

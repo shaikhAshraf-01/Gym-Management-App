@@ -11,6 +11,7 @@ import MemberProfileModal from "./MemberProfileModal";
 import WhatsAppMessagePopup from "../adminComponents/WhatsAppMessagePopup";
 import WhatsAppRenewMessagePopup from "../adminComponents/WhatsAppRenewMessagePopup";
 import { useBackHandler } from "../../hooks/useBackHandler";
+import { isWhatsappAutomationLive } from "../../utils/whatsappAutomation";
 
 export default function MembersView() {
   const dispatch = useDispatch();
@@ -30,12 +31,11 @@ export default function MembersView() {
     (state) => state.owner.currentSubscription?.subscriptionPlan
   );
   const gym = useSelector((state) => state.owner.gym);
-  const isBasicPlan = subscriptionPlan === "Basic" || !subscriptionPlan;
-  const isExtendRenewalAutomationLive =
-    !isBasicPlan &&
-    !!gym?.whatsappIntegration?.connected &&
-    !!gym?.whatsappAutomationSettings?.enabled &&
-    !!gym?.whatsappAutomationSettings?.extendRenewal?.enabled;
+  const isExtendRenewalAutomationLive = isWhatsappAutomationLive(
+    subscriptionPlan,
+    gym,
+    "extendRenewal"
+  );
   // Extend/Renewal confirmation: manual link shows up whenever the
   // automated one won't fire for this gym right now.
   const canUseRenewalWhatsApp = !isExtendRenewalAutomationLive;

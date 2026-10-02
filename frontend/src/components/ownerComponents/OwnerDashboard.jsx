@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   Phone,
@@ -24,6 +24,7 @@ import { fetchOwnerProfile } from "../../redux/slices/ownerSlice";
 import ExtendMembershipModal from "./ExtendMembershipModal";
 import WhatsAppMessagePopup from "../adminComponents/WhatsAppMessagePopup";
 import WhatsAppRenewMessagePopup from "../adminComponents/WhatsAppRenewMessagePopup";
+import { isWhatsappAutomationLive } from "../../utils/whatsappAutomation";
 
 // Active members shown in "Days Left"
 const EXPIRING_WINDOW_DAYS = 7;
@@ -113,13 +114,19 @@ export default function OwnerDashboard() {
   // now — Basic (no automation at all), or Plus/Pro with it switched
   // off / WhatsApp not connected.
   const gym = useSelector((state) => state.owner.gym);
-  const isBasicPlan = subscriptionPlan === "Basic" || !subscriptionPlan;
-  const isExtendRenewalAutomationLive =
-    !isBasicPlan &&
-    !!gym?.whatsappIntegration?.connected &&
-    !!gym?.whatsappAutomationSettings?.enabled &&
-    !!gym?.whatsappAutomationSettings?.extendRenewal?.enabled;
-  const canUseManualWhatsApp = !isExtendRenewalAutomationLive;
+  // Each event is decided by its OWN toggle: renewal confirmation (after
+  // Extend) follows extendRenewal; the WhatsApp button on the expiring-
+  // members list is the expiry reminder, so it follows expiryReminder.
+  const canUseManualWhatsApp = !isWhatsappAutomationLive(
+    subscriptionPlan,
+    gym,
+    "extendRenewal"
+  );
+  const canUseManualExpiryWhatsApp = !isWhatsappAutomationLive(
+    subscriptionPlan,
+    gym,
+    "expiryReminder"
+  );
 
   // ---------------------------------------------------------
   // Local State
@@ -679,7 +686,7 @@ ${gym} Team 💪`;
                       </a>
 
                       {/* WhatsApp */}
-                      {canUseManualWhatsApp ? (
+                      {canUseManualExpiryWhatsApp ? (
                         <button
                           onClick={() =>
                             setRemindingMember(

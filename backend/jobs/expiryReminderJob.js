@@ -3,6 +3,7 @@ import Member from "../models/Member.js";
 import MemberSubscriptionHistory from "../models/MemberSubscriptionHistory.js";
 import CronJobLog from "../models/CronJobLog.js";
 import { sendWhatsappTemplateMessage } from "../utils/sendWhatsappMessage.js";
+import { hasActivePlusOrProPlan } from "../utils/planCheck.js";
 
 const JOB_NAME = "expiryReminder";
 
@@ -36,6 +37,9 @@ export const runExpiryReminderJob = async () => {
 
   for (const gym of eligibleGyms) {
     try {
+      // Toggle ON alone isn't enough — plan must still be active Plus/Pro.
+      if (!(await hasActivePlusOrProPlan(gym._id))) continue;
+
       const { daysBefore, templateName } = gym.whatsappAutomationSettings.expiryReminder;
 
       const target = new Date();

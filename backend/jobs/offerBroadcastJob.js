@@ -3,6 +3,7 @@ import GymOffer from "../models/GymOffer.js";
 import CronJobLog from "../models/CronJobLog.js";
 import { resolveAudience } from "../utils/resolveAudience.js";
 import { sendWhatsappTemplateMessage } from "../utils/sendWhatsappMessage.js";
+import { hasActivePlusOrProPlan } from "../utils/planCheck.js";
 
 const JOB_NAME = "offerBroadcast";
 
@@ -38,7 +39,22 @@ export const runOfferBroadcastJob = async () => {
         continue;
       }
 
+      // Plan lapsed / downgraded to Basic since this offer was scheduled —
+      // don't send. Marked failed (same as not-connected) so it doesn't
+      // sit in "scheduled" and fire later, long after it's relevant.
+      if (!(await hasActivePlusOrProPlan(gym._id))) {
+        offer.status = "failed";
+        await offer.save();
+        continue;
+      }
+
       const recipients = await resolveAudience(gym._id, offer.audience);
+
+      // Template layout: header = rate-card image, body {{1}} = recipient
+      // name, {{2}} = offer name. Offers created before offerName/image
+      // existed keep the old shape (name only, no header) so they still
+      // send exactly as they used to.
+      const headerImageUrl = offer.imageUrl || null;
 
       let sent = 0;
       let failed = 0;
@@ -47,7 +63,10 @@ export const runOfferBroadcastJob = async () => {
           gym,
           toPhone: recipient.mobile,
           templateName: offer.templateName,
-          templateParams: [recipient.name],
+          templateParams: offer.offerName
+            ? [recipient.name, offer.offerName]
+            : [recipient.name],
+          headerImageUrl,
         });
         result.success ? sent++ : failed++;
       }

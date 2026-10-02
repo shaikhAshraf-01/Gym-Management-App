@@ -65,3 +65,31 @@ export async function compressImageBuffer(
     outputExt: ["png", "webp", "avif"].includes(ext) ? ext : "jpg",
   };
 }
+
+// -----------------------------------------------------------------------
+// Prepares an image to be used as a WhatsApp TEMPLATE HEADER (e.g. an
+// offer's rate card). Meta only accepts JPEG or PNG there (max 5 MB), so
+// unlike compressImageBuffer's pass-through for webp/avif, anything that
+// isn't PNG is forced to JPEG. Kept larger/sharper than the logo/photo
+// defaults (1600px, q85) because rate cards are mostly small text.
+// Returns { buffer, ext, mime }.
+export async function prepareWhatsappHeaderImage(buffer, originalName = "") {
+  const inputExt = (originalName.split(".").pop() || "jpg").toLowerCase();
+
+  // heic/heif need the extension so compressImageBuffer converts them
+  // first; png stays png (keeps text crisp); everything else -> jpeg.
+  const pipelineExt =
+    inputExt === "heic" || inputExt === "heif"
+      ? inputExt
+      : inputExt === "png"
+        ? "png"
+        : "jpg";
+
+  const { buffer: out, outputExt } = await compressImageBuffer(buffer, pipelineExt, {
+    maxDimension: 1600,
+    quality: 85,
+  });
+
+  const ext = outputExt === "png" ? "png" : "jpg";
+  return { buffer: out, ext, mime: ext === "png" ? "image/png" : "image/jpeg" };
+}
