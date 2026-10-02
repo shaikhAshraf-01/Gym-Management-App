@@ -12,26 +12,27 @@ export const openWhatsAppChat = (mobile) => {
   const isCapacitor = window.Capacitor;
   const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+  // व्हाट्सएप का ऑफिशियल और सही डायरेक्ट चैट लिंक
+  const whatsappUrl = `https://wa.me/${finalPhone}`;
+
   if (isCapacitor || isMobileDevice) {
-    // 📱 मोबाइल और कैपेसिटर ऐप के लिए: (यहाँ \$ बिल्कुल सही बैकटिक्स के साथ है)
-    window.location.href = `https://wa.me/${finalPhone}`;
+    // 📱 मोबाइल के लिए: सीधे ऐप ट्रिगर करेगा
+    window.location.href = whatsappUrl;
   } else {
     // 💻 PC / Desktop के लिए:
-    // URL को 'web.whatsapp.com' पर पूरी तरह सही किया गया है
-    // और यहाँ भी \$ बिल्कुल सही बैकटिक्स के साथ लगाया गया है
-    const pcWhatsappUrl = `https://whatsapp.com/${finalPhone}&app_absent=0`;
-    
     let link = document.getElementById("whatsapp-share-link");
     
     if (!link) {
       link = document.createElement("a");
       link.id = "whatsapp-share-link";
-      link.target = "WhatsAppChatWindow"; // यह एक ही टैब को रीयूज़ रखेगा
+      // यह 'target' नाम यह सुनिश्चित करेगा कि बार-बार नए टैब न खुलें, 
+      // बल्कि एक ही निर्धारित टैब रीयूज़ हो।
+      link.target = "WhatsAppChatWindow"; 
       link.style.display = "none";
       document.body.appendChild(link);
     }
     
-    link.href = pcWhatsappUrl;
-    link.click(); // वर्चुअल क्लिक ट्रिगर करें
+    link.href = whatsappUrl;
+    link.click(); // डायरेक्ट चैट के लिए वर्चुअल क्लिक
   }
 };
