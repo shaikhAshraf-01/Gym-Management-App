@@ -54,39 +54,50 @@ We’re happy to have you with us.`;
 
   const cleanPhone = String(phone || "").replace(/\D/g, "");
 
-  const handleOpenWhatsApp = () => {
-    if (!cleanPhone || cleanPhone.length !== 10) {
-      alert("Invalid WhatsApp mobile number.");
-      return;
-    }
+ const handleOpenWhatsApp = () => {
+  if (!cleanPhone || cleanPhone.length !== 10) {
+    alert("Invalid WhatsApp mobile number.");
+    return;
+  }
 
-    const finalPhone = `91${cleanPhone}`;
-    const encodedText = encodeURIComponent(message);
+  const finalPhone = `91${cleanPhone}`;
+  const encodedText = encodeURIComponent(message);
 
-    // ✅ APK support ke liye internal application scheme set kiya
+  // Detect if running inside Capacitor shell or typical mobile browser wrapper
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.Capacitor;
+
+  if (isMobile) {
+    // 📱 MOBILE LOGIC
     const nativeAppUrl = `whatsapp://send?phone=${finalPhone}&text=${encodedText}`;
-    
-    // ✅ Fallback — WhatsApp ka official click-to-chat endpoint
-    // (api.whatsapp.com). wa.me isi pe redirect karta hai, lekin yeh
-    // direct hone ki wajah se Capacitor/webview me zyada reliably
-    // WhatsApp app link ke through intercept hota hai.
-    const browserFallbackUrl = `https://api.whatsapp.com/send?phone=${finalPhone}&text=${encodedText}`;
+    const browserFallbackUrl = `https://wa.me{finalPhone}?text=${encodedText}`;
 
-    // Detect if running inside Capacitor shell or typical mobile browser wrapper
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.Capacitor;
+    // Direct intent protocol to load installed native WhatsApp
+    window.location.href = nativeAppUrl;
 
-    if (isMobile) {
-      // Direct intent protocol to load installed native WhatsApp
-      window.location.href = nativeAppUrl;
+    // 🚨 IMPORTANT: Is timer reference ko clear karna hoga jab app window se focus hatey
+    const fallbackTimer = setTimeout(() => {
+      window.location.href = browserFallbackUrl;
+    }, 2000); // 2 second delay takki native app successfully trigger ho sake
 
-      // Agar system response slow ho ya app na miley, fallback handle karega
-      setTimeout(() => {
-        window.location.href = browserFallbackUrl;
-      }, 1500);
-    } else {
-      window.open(browserFallbackUrl, "FitZoneWhatsAppTab");
-    }
-  };
+    // Agar WhatsApp app successfully khul gayi, to user window se focus hat jayega. 
+    // Tab hum is fallback loop ko block kar denge taaki browser me dubara link na khule!
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        clearTimeout(fallbackTimer);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+  } else {
+    // 💻 PC / DESKTOP LOGIC
+    // PC par sabse best aur safe method universal link (wa.me) use karna hai.
+    // Yeh desktop app installed hone par direct trigger popup deta hai aur browser me loop nahi karta.
+    const desktopUrl = `https://wa.me{finalPhone}?text=${encodedText}`;
+    window.open(desktopUrl, "_blank", "noopener,noreferrer");
+  }
+};
+
 
   return createPortal((
     <div className="fixed inset-0 z-100 isolate h-dvh min-h-svh w-full overflow-y-auto overscroll-contain bg-black/50 p-3 sm:p-4 [touch-action:pan-y]">

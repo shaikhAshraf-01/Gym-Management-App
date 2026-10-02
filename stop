@@ -1,0 +1,167 @@
+[33m7f2bbb3[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m 2nd attempt
+[33ma179cdc[m fir se whatsapp ka problem solve karna start
+[33mb0b227e[m fir se offer broacdcast implement
+[33m49ef4e2[m working on whatsapp
+[33m66e989e[m saaaad
+[33m2b1bae7[m check:::
+[33m49f2343[m check now
+[33mbb4fbfa[m done::
+[33md074b3e[m logout button changes
+[33m36cc15d[m whatsapp encrypted
+[33m1ca3a29[m now admin  can see complete details of a gym
+[33m72ddf69[m update
+[33mf32fd53[m offer plan will be manage by admin
+[33m37e9fd7[m expiring gym changed
+[33m4a8c98a[m member view me latest add wala filter
+[33m6883fdd[m just changes
+[33md4626d7[m check is now working
+[33m5a0ddea[m package add
+[33m29cbb3c[m testing welcome
+[33mbf1bab2[m hiec image can be upload now
+[33mc7aad3d[m membercontroler update for automation
+[33mf765308[m check kar
+[33mc6a0285[m extend problem
+[33mc9d866a[m params thik hai
+[33mc32bab4[m type adjusts
+[33md7e713f[m check now
+[33m5798e88[m balaced cleared 3 params now
+[33m4b0876b[m check now for image
+[33m824009b[m imagekit and controller updated
+[33m9a2a368[m image type changes
+[33ma074674[m new imagekit package
+[33mbc0b087[m package update
+[33med45eb9[m imagekit added and extend and renew now have pdf also
+[33mc9b182c[m en to en_us
+[33mc1346be[m manage
+[33m5f8b2e8[m pdf added in welcome message
+[33m1251977[m delete member seperated and realtimesync updated
+[33m25406de[m plan selection done
+[33m6f9bac9[m plan seperated:
+[33m5ce15d1[m planchecked solved
+[33m7c76dcd[m plancheck .js
+[33m6fc7ec9[m balance reminder remove
+[33mfe768b7[m route manage
+[33mdb2d078[m soft delete added and dark+white mode build
+[33mc0c999f[m membercontroller manage
+[33me54a922[m offer part added
+[33mb2aa643[m controller edit
+[33m7ef3e4b[m testing
+[33md60225b[m pdf eddit and gst wala field add
+[33mfb1c90f[m form resized
+[33m2dd7224[m starting pay part
+[33m68102ac[m basic version ready for now
+[33ma60afb1[m npm audit
+[33m3fe3b7a[m pdf added and sales by pay mode added and owner can mamage now
+[33m33be702[m owner basic versiona done
+[33m5c91025[m message scroll adjust
+[33m39e25af[m scroll fixed
+[33m311cf03[m extend aur edit bg dark
+[33m540ebac[m all members and related page theme change edit meber and renew and extend ka bbaki hai
+[33mbb2999c[m csv download option added in dashboard and theme change + member page modify
+[33m0a80f06[m kuch changes
+[33m8629ce3[m new app
+[33m0e4a892[m add case update
+[33mf1a4aea[m new pwa dependencies download
+[33m2281d82[m app.jsx updated
+[33mcd27597[m vite config updated for pwa + android
+[33md6a6815[m pwa ussing
+[33m1b2f1ea[m app after socket.io
+[33md810ea4[m socketadded
+[33m17e27bc[m new app
+[33mfabfe61[m fixed the renew message problem
+[33m59e10f2[m renew message done
+[33m51b6572[m new app 2.0
+[33mbbc722d[m renew change
+[33mc33695a[m new app added
+[33mf173491[m button adjust
+[33m48128c9[m app added
+[33m6b643fb[m dashboard
+[33mc6ae8ec[m home page ap done
+[33m30ad600[m vercel reused
+[33m331431a[m renew done and back button done
+[33mc252873[m[33m ([m[1;32mnodeploy[m[33m)[m ignore edit
+[33m7d9960f[m renew working
+[33m1afb7b1[m[33m ([m[1;31morigin/nodeploy[m[33m)[m branch me home page updated
+[33m208647d[m memberController edit
+[33m25aec60[m index added
+[33m689c222[m seedAdminAdded
+[33mfbc2499[m httponly cookie used
+[33m6a4e5f6[m last 5 history added
+[33m69a1cd5[m home page added and security 3
+[33m303e345[m security 2
+[33mab07cb3[m security 1
+[33mfa83e1d[m scroll manage in ad members
+[33ma540677[m helmet added
+[33m88d7788[m number added
+[33m0f57e15[m allgyms
+[33m0976fab[m logout problem and number problem solved
+[33m719146d[m logo and backbutton
+[33mf87d715[m gymcontroller problem solved
+[33m8f5f143[m photo sized badhayi gayi
+[33m0935035[m sharp installed and some changes in both files
+[33mddc32c5[m expiring me filter aur sales me age add kiya
+[33mbd17051[m load only when changes happen
+[33mbbbcc6a[m loading problem in allgyms solved
+[33md164f34[m message change
+[33m6525435[m message type change
+[33ma639da2[m gymController update
+[33m968cde7[m login page style and message style changes
+[33m9549cc2[m server updated
+[33m2fce6b3[m sales page updated
+[33m98e0080[m amount problem solved and allgyms adit done
+[33m53d2012[m allgyms and addsection edited
+[33mf4b8269[m allgyms and login page edited
+[33mf8da37e[m need to change all gyms
+[33m856c003[m some changes
+[33ma0be279[m allgyms edited
+[33m3c374c0[m server new
+[33mc7ca5b6[m server solved
+[33m7622c47[m server.js update
+[33m9ed2127[m testing localhost for mobile
+[33ma699720[m cron-job connected
+[33me9c913f[m edit in admin
+[33m678da61[m overflow checking
+[33m2f64518[m overflow problem solved
+[33mfa45933[m trainer enquiry conversion solved
+[33m27c8474[m add member edit
+[33m4cbb511[m fix: update brevo class implementation to v6 SDK standard
+[33m7d9bf16[m fix: change brevo import to namespace style for esm compatibility
+[33m20250e0[m brevo
+[33md0e5c54[m feat: updated email utility to use brevo api client
+[33m5cab5e6[m resend adjust
+[33m6b478be[m .env manage
+[33m8f8cb00[m cors problem solved
+[33mbcaeadd[m vercel file added
+[33m492e693[m backend .env updated
+[33m42ac6a9[m extra nodemudule deleted
+[33m622c551[m frontend .env updated
+[33m1e1cd3c[m time to deploy
+[33m0d3b1fd[m before deploying on vercel and render
+[33mf989a61[m Whats message edited with emojis
+[33mb719e37[m trainer page also done
+[33m2837d47[m admin message part done and owner enquiry part done
+[33mdb6e34e[m Owner profile page completed
+[33m46084ea[m image add for logo feature done
+[33md02162e[m email otp for owner login done
+[33m97f7bc8[m add gym and edit gym done for admin
+[33mdd4a4be[m add gym function create and done
+[33m20f73f2[m admin profile done with backend
+[33m5cd1c53[m admin profile and protected route done
+[33m2d8a533[m admin dashbord , allgyms, add gyms, and profile frontend is ready for backend connection
+[33mbb078f8[m authcontroller done
+[33m7ab4f9c[m nodemailer setup done for sendOTP
+[33m25a3503[m login page ui and ux changed
+[33mc4fd5ec[m all schema done
+[33m2bad271[m some schema's created
+[33md9dfbdb[m dependencies installed
+[33mfb82e41[m backend folder created and dependencies added
+[33m355fede[m call button added
+[33ma55a05e[m dashboard glitch solve
+[33m0861e9e[m photo adding option done
+[33m743ad2d[m logout button added in profile
+[33me97c49d[m frontend done for owner & admin testing remaining
+[33m625c5a3[m half owner page done
+[33mc8dee86[m working on owner page
+[33me3aa7b1[m admin pannel done with static data redux is remaining
+[33md2947f8[m login page done
+[33m8c5f643[m vite app created
