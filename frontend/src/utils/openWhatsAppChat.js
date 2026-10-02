@@ -9,26 +9,24 @@ export const openWhatsAppChat = (mobile) => {
 
   const finalPhone = `91${cleanPhone}`;
   
-  // 📱 मोबाइल और कैपेसिटर ऐप के लिए यूआरएल
-  const whatsappUrl = `https://wa.me/${finalPhone}`;
-  
   const isCapacitor = window.Capacitor;
   const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (isCapacitor || isMobileDevice) {
-    // 📱 मोबाइल और कैपेसिटर ऐप के लिए सीधे ऐप ट्रिगर होगी
-    window.location.href = whatsappUrl;
+    // 📱 मोबाइल और कैपेसिटर ऐप के लिए: यह सीधे फ़ोन की WhatsApp ऐप खोल देगा
+    window.location.href = `https://wa.me/${finalPhone}`;
   } else {
     // 💻 PC / Desktop के लिए:
-    // अब यहाँ \${finalPhone} बिल्कुल सही तरीके से बैकटिक्स के साथ लिखा है
-    const pcWhatsappUrl = `https://whatsapp.com/${finalPhone}`;
+    // '&app_absent=0' लगाने से "Continue to chat" वाला पेज बायपास हो जाएगा 
+    // और यह सीधे खुले हुए WhatsApp Web के अंदर उस नंबर की चैट बॉक्स पर ले जाएगा।
+    const pcWhatsappUrl = `https://whatsapp.com/${finalPhone}&app_absent=0`;
     
     let link = document.getElementById("whatsapp-share-link");
     
     if (!link) {
       link = document.createElement("a");
       link.id = "whatsapp-share-link";
-      link.target = "WhatsAppChatWindow"; // यह फिक्स नाम हर बार इसी टैब को रीयूज़ करेगा
+      link.target = "WhatsAppChatWindow"; // यह नाम टैब को रीयूज़ (सिंगल टैब) रखेगा
       link.style.display = "none";
       document.body.appendChild(link);
     }
