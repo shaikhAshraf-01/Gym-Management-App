@@ -10,14 +10,14 @@ export const openWhatsAppChat = (mobile) => {
   const finalPhone = `91${cleanPhone}`;
   
   // यूनिवर्सल लिंक (यह मोबाइल ऐप और पीसी दोनों के लिए बेस्ट है)
-  const whatsappUrl = `https://wa.me{finalPhone}`;
+  const whatsappUrl = `https://wa.me/${finalPhone}`;
   
   const isCapacitor = window.Capacitor;
   const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (isCapacitor || isMobileDevice) {
-    // मोबाइल ब्राउज़र और Capacitor ऐप दोनों के लिए:
-    // यह सीधे फ़ोन में इंस्टॉल असली WhatsApp ऐप को खोल देगा।
+    // मोबाइल ब्राउज़र और GymOpsFlow ऐप दोनों के लिए:
+    // यह सीधे फ़ोन में इंस्टॉल असली WhatsApp ऐप को बिना किसी टाइमर के ट्रिगर कर देगा।
     window.location.href = whatsappUrl;
   } else {
     // PC / Desktop Web के लिए:
