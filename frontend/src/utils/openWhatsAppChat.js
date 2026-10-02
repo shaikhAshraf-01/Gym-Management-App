@@ -1,4 +1,4 @@
-export const openWhatsAppChat = (mobile) => {
+export const openWhatsAppChat = (mobile, messageText = "") => {
   const cleanPhone = String(mobile || "").replace(/\D/g, "");
   
   // 10 अंकों का वैलिडेशन
@@ -12,27 +12,15 @@ export const openWhatsAppChat = (mobile) => {
   const isCapacitor = window.Capacitor;
   const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // व्हाट्सएप का ऑफिशियल और सही डायरेक्ट चैट लिंक
-  const whatsappUrl = `https://wa.me/${finalPhone}`;
+  // मैसेज को सही तरीके से एन्कोड करना
+  const encodedMessage = encodeURIComponent(messageText);
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=${finalPhone}&text=${encodedMessage}`;
 
   if (isCapacitor || isMobileDevice) {
-    // 📱 मोबाइल के लिए: सीधे ऐप ट्रिगर करेगा
+    // 📱 मोबाइल और कैपेसिटर ऐप के लिए: सीधे WhatsApp ऐप खुलेगा
     window.location.href = whatsappUrl;
   } else {
-    // 💻 PC / Desktop के लिए:
-    let link = document.getElementById("whatsapp-share-link");
-    
-    if (!link) {
-      link = document.createElement("a");
-      link.id = "whatsapp-share-link";
-      // यह 'target' नाम यह सुनिश्चित करेगा कि बार-बार नए टैब न खुलें, 
-      // बल्कि एक ही निर्धारित टैब रीयूज़ हो।
-      link.target = "WhatsAppChatWindow"; 
-      link.style.display = "none";
-      document.body.appendChild(link);
-    }
-    
-    link.href = whatsappUrl;
-    link.click(); // डायरेक्ट चैट के लिए वर्चुअल क्लिक
+    // 💻 PC / Desktop के लिए: हमेशा एक ही टैब रीयूज़ होगा, नया टैब नहीं खुलेगा
+    window.open(whatsappUrl, "WhatsAppChatWindow");
   }
 };
