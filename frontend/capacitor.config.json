@@ -5,6 +5,6 @@
   "server": {
     "androidScheme": "https",
     "hostname": "localhost",
-    "allowNavigation": ["*.onrender.com"]
+"allowNavigation": ["*.onrender.com", "wa.me", "*.whatsapp.com"]
   }
 }
