@@ -317,80 +317,82 @@ export default function ManagePlans() {
       </div>
 
       {/* ===================== OFFERS (named campaigns) ===================== */}
-      <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 mb-4">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-100 flex items-center gap-1.5">
-            <Tag size={14} className="text-blue-500" />
-            Offers (e.g. Diwali Offer, New Year Offer)
-          </p>
+<div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 mb-4">
+  <div className="mb-3 flex items-center justify-between">
+    <p className="text-sm font-semibold text-slate-700 dark:text-slate-100 flex items-center gap-1.5">
+      <Tag size={14} className="text-blue-500" />
+      Offers (e.g. Diwali Offer, New Year Offer)
+    </p>
+    <button
+      type="button"
+      onClick={addOfferRow}
+      className="inline-flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400"
+    >
+      <Plus size={14} />
+      New Offer
+    </button>
+  </div>
+
+  {offers.length === 0 && (
+    <p className="text-xs text-slate-500">
+      No offers yet — add one for a festival/seasonal price list,
+      e.g. "Diwali Offer" with its own 1 Month/3 Month/etc. prices.
+    </p>
+  )}
+
+  <div className="space-y-3">
+    {offers.map((offer, index) => (
+      <div
+        key={index}
+        className={`rounded-lg border p-2.5 ${
+          offer.active
+            ? "border-blue-500/40"
+            : "border-slate-200 dark:border-slate-700 opacity-60"
+        }`}
+      >
+        {/* CHANGED: Flex layout constraints optimized to prevent overflow */}
+        <div className="flex items-center gap-1.5 mb-2 w-full">
+          <input
+            type="text"
+            value={offer.name}
+            onChange={(e) => handleOfferNameChange(index, e.target.value)}
+            placeholder="e.g. Diwali Offer"
+            className="min-w-0 flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 text-xs sm:text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500"
+          />
           <button
             type="button"
-            onClick={addOfferRow}
-            className="inline-flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400"
+            onClick={() => toggleOfferActive(index)}
+            className={`shrink-0 px-2 py-2 rounded-lg text-xs font-semibold border ${
+              offer.active
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                : "border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-500"
+            }`}
           >
-            <Plus size={14} />
-            New Offer
+            {offer.active ? "Active" : "Inactive"}
+          </button>
+          <button
+            type="button"
+            onClick={() => removeOfferRow(index)}
+            className="shrink-0 p-2 rounded-lg border border-rose-900/40 bg-rose-950/20 text-rose-400"
+          >
+            <Trash2 size={14} />
           </button>
         </div>
 
-        {offers.length === 0 && (
-          <p className="text-xs text-slate-500">
-            No offers yet — add one for a festival/seasonal price list,
-            e.g. "Diwali Offer" with its own 1 Month/3 Month/etc. prices.
-          </p>
-        )}
-
-        <div className="space-y-3">
-          {offers.map((offer, index) => (
-            <div
-              key={index}
-              className={`rounded-lg border p-2.5 ${
-                offer.active
-                  ? "border-blue-500/40"
-                  : "border-slate-200 dark:border-slate-700 opacity-60"
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <input
-                  type="text"
-                  value={offer.name}
-                  onChange={(e) => handleOfferNameChange(index, e.target.value)}
-                  placeholder="e.g. Diwali Offer"
-                  className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => toggleOfferActive(index)}
-                  className={`shrink-0 px-2.5 py-2 rounded-lg text-xs font-semibold border ${
-                    offer.active
-                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
-                      : "border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-500"
-                  }`}
-                >
-                  {offer.active ? "Active" : "Inactive"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeOfferRow(index)}
-                  className="shrink-0 p-2 rounded-lg border border-rose-900/40 bg-rose-950/20 text-rose-400"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-              <DurationPriceGrid
-                prices={offer.plans}
-                onChange={(key, val) => handleOfferPriceChange(index, key, val)}
-              />
-            </div>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-slate-500">
-          When Add Member/Renew has "Offer" selected, the owner picks one
-          of these active offers — its prices are used instead of the
-          Normal price list above. Turn an offer "Inactive" once it ends,
-          without losing its name/prices for past records.
-        </p>
+        <DurationPriceGrid
+          prices={offer.plans}
+          onChange={(key, val) => handleOfferPriceChange(index, key, val)}
+        />
       </div>
+    ))}
+  </div>
+  <p className="mt-3 text-xs text-slate-500">
+    When Add Member/Renew has "Offer" selected, the owner picks one
+    of these active offers — its prices are used instead of the
+    Normal price list above. Turn an offer "Inactive" once it ends,
+    without losing its name/prices for past records.
+  </p>
+</div>
 
       <button
         onClick={handleSave}

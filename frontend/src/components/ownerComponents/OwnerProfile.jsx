@@ -728,13 +728,15 @@ export default function OwnerProfile() {
 
         {/* ===================== LOGOUT ===================== */}
 
-        <button
-          onClick={handleLogout}
-          className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-rose-900/60 bg-red-500 py-3 font-semibold text-black transition hover:bg-red-400"
-        >
-          <LogOut size={18} />
-          Logout
-        </button>
+      {/* ===================== LOGOUT ===================== */}
+
+<button
+  onClick={handleLogout}
+  className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-500 hover:bg-rose-600 dark:bg-red-500 dark:hover:bg-red-400 py-3 font-semibold text-white transition shadow-sm"
+>
+  <LogOut size={18} />
+  Logout
+</button>
       </div>
     </div>
   );
