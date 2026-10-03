@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { MessageCircle, X, Send, Phone } from "lucide-react";
+import { openWhatsAppChat } from "../../utils/openWhatsAppChat";
 
 export default function WhatsAppMessagePopup({
   isOpen,
@@ -54,49 +55,9 @@ We’re happy to have you with us.`;
 
   const cleanPhone = String(phone || "").replace(/\D/g, "");
 
- const handleOpenWhatsApp = () => {
-  if (!cleanPhone || cleanPhone.length !== 10) {
-    alert("Invalid WhatsApp mobile number.");
-    return;
-  }
-
-  const finalPhone = `91${cleanPhone}`;
-  const encodedText = encodeURIComponent(message);
-
-  // Detect if running inside Capacitor shell or typical mobile browser wrapper
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.Capacitor;
-
-  if (isMobile) {
-    // 📱 MOBILE LOGIC
-    const nativeAppUrl = `whatsapp://send?phone=${finalPhone}&text=${encodedText}`;
-    const browserFallbackUrl = `https://wa.me{finalPhone}?text=${encodedText}`;
-
-    // Direct intent protocol to load installed native WhatsApp
-    window.location.href = nativeAppUrl;
-
-    // 🚨 IMPORTANT: Is timer reference ko clear karna hoga jab app window se focus hatey
-    const fallbackTimer = setTimeout(() => {
-      window.location.href = browserFallbackUrl;
-    }, 2000); // 2 second delay takki native app successfully trigger ho sake
-
-    // Agar WhatsApp app successfully khul gayi, to user window se focus hat jayega. 
-    // Tab hum is fallback loop ko block kar denge taaki browser me dubara link na khule!
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        clearTimeout(fallbackTimer);
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-  } else {
-    // 💻 PC / DESKTOP LOGIC
-    // PC par sabse best aur safe method universal link (wa.me) use karna hai.
-    // Yeh desktop app installed hone par direct trigger popup deta hai aur browser me loop nahi karta.
-    const desktopUrl = `https://wa.me{finalPhone}?text=${encodedText}`;
-    window.open(desktopUrl, "_blank", "noopener,noreferrer");
-  }
-};
+  const handleOpenWhatsApp = () => {
+    openWhatsAppChat(cleanPhone, message);
+  };
 
 
   return createPortal((

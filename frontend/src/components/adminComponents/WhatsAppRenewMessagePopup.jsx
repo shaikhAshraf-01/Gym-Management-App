@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { MessageCircle, X, Send, Phone } from "lucide-react";
+import { openWhatsAppChat } from "../../utils/openWhatsAppChat";
 
 export default function WhatsAppRenewalMessagePopup({
   isOpen,
@@ -60,26 +61,7 @@ Thank you for continuing with GymOpsFlow 💪`;
   const cleanPhone = String(phone || "").replace(/\D/g, "");
 
   const handleOpenWhatsApp = () => {
-    if (cleanPhone.length !== 10) {
-      alert("Invalid WhatsApp mobile number.");
-      return;
-    }
-
-    const waLink = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    if (isMobile) {
-      // Navigating the CURRENT tab to wa.me lets the OS hand off to
-      // the native WhatsApp app directly — no new tab, and if
-      // WhatsApp isn't installed wa.me falls back gracefully instead
-      // of a dead "can't open page" error (which a hand-rolled
-      // whatsapp:// scheme link would show with no fallback).
-      window.location.href = waLink;
-    } else {
-      // Named target = the SAME tab gets reused on every click
-      // instead of a new one opening each time.
-      window.open(waLink, "FitZoneWhatsAppTab");
-    }
+    openWhatsAppChat(cleanPhone, message);
   };
 
   return createPortal((
