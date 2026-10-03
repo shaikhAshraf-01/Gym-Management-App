@@ -504,8 +504,7 @@ ${gym} Team 💪`;
               </svg>
             </div>
 
-            {/* Download CSV — exports whatever the dropdown above is
-                currently showing */}
+            {/* Download CSV */}
             <button
               type="button"
               onClick={handleDownloadCsv}
@@ -598,9 +597,7 @@ ${gym} Team 💪`;
                     className="flex flex-col md:grid md:grid-cols-7 gap-2 md:gap-4 p-4 px-4 items-start md:items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
 
-                    {/* ---------------------------------------
-                        Member Name
-                    --------------------------------------- */}
+                    {/* Member Name */}
                     <div className="flex items-center gap-2 font-medium text-slate-800 dark:text-white">
                       <User className="h-4 w-4 text-slate-600 dark:text-slate-500 md:hidden" />
 
@@ -609,9 +606,7 @@ ${gym} Team 💪`;
                       </span>
                     </div>
 
-                    {/* ---------------------------------------
-                        Mobile
-                    --------------------------------------- */}
+                    {/* Mobile */}
                     <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                       <Smartphone className="h-4 w-4 text-slate-600 dark:text-slate-500 md:hidden" />
 
@@ -620,9 +615,7 @@ ${gym} Team 💪`;
                       </span>
                     </div>
 
-                    {/* ---------------------------------------
-                        Expiry Status
-                    --------------------------------------- */}
+                    {/* Expiry Status */}
                     <div>
 
                       {/* Cold */}
@@ -669,14 +662,14 @@ ${gym} Team 💪`;
                     </div>
 
                     {/* ---------------------------------------
-                        Action Buttons
+                        Action Buttons (Updated Light/Dark Variants)
                     --------------------------------------- */}
                     <div className="w-full grid grid-cols-4 gap-2 md:contents mt-2 md:mt-0">
 
                       {/* Call */}
                       <a
                         href={`tel:${member.mobile}`}
-                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-blue-500 text-slate-950 text-xs font-bold hover:bg-cyan-700 transition-colors shadow-sm select-none cursor-pointer"
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/20 text-xs font-semibold transition-colors cursor-pointer select-none"
                       >
                         <Phone className="h-3.5 w-3.5" />
 
@@ -693,7 +686,7 @@ ${gym} Team 💪`;
                               member
                             )
                           }
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-green-500 text-black border border-emerald-500/20 text-xs font-medium hover:bg-green-300 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/20 text-xs font-semibold transition-colors cursor-pointer"
                         >
                           <MessageCircle className="h-3.5 w-3.5" />
 
@@ -705,7 +698,7 @@ ${gym} Team 💪`;
                         <button
                           type="button"
                           disabled
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-green-500 dark:bg-slate-800/50 text-black border border-slate-200 dark:border-slate-800 text-xs font-medium cursor-not-allowed"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800 text-xs font-medium cursor-not-allowed"
                         >
                           <MessageCircle className="h-3.5 w-3.5" />
 
@@ -724,7 +717,7 @@ ${gym} Team 💪`;
                           onClick={() =>
                             handleExtend(member)
                           }
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-blue-500 text-black border border-purple-500/20 text-xs font-medium hover:bg-purple-500/20 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 dark:text-indigo-400 dark:border-indigo-500/20 text-xs font-semibold transition-colors cursor-pointer"
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
 
@@ -737,7 +730,7 @@ ${gym} Team 💪`;
                           onClick={() =>
                             handleExtend(member)
                           }
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-green-400 text-black border border-emerald-500/20 text-xs font-medium hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/20 dark:text-cyan-400 dark:border-cyan-500/20 text-xs font-semibold transition-colors cursor-pointer"
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
 
@@ -759,7 +752,7 @@ ${gym} Team 💪`;
                                 member.id
                               )
                             }
-                            className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-red-500 text-black text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-red-500"
+                            className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-rose-600 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-rose-700"
                           >
                             <Check className="h-3 w-3" />
 
@@ -775,7 +768,7 @@ ${gym} Team 💪`;
                                 null
                               )
                             }
-                            className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-slate-200 dark:hover:bg-slate-600"
+                            className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-slate-300 dark:hover:bg-slate-600"
                           >
                             <X className="h-3 w-3" />
 
@@ -792,7 +785,7 @@ ${gym} Team 💪`;
                               member.id
                             )
                           }
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-red-500 text-black border border-red-500/20 text-xs font-medium hover:bg-red-500/20 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/20 text-xs font-semibold transition-colors cursor-pointer"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
 
