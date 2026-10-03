@@ -167,7 +167,7 @@ export default function TrainerProfile() {
       <div className="mt-8">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600 transition hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/70 cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 rounded-xl border border-red-400 bg-red-500 px-4 py-3 text-sm font-bold text-black transition hover:bg-red-400 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/70 cursor-pointer"
         >
           <LogOut className="h-4 w-4" />
           Logout

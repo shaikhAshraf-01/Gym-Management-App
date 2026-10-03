@@ -676,7 +676,7 @@ ${gym} Team 💪`;
                       {/* Call */}
                       <a
                         href={`tel:${member.mobile}`}
-                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-cyan-500 text-slate-950 text-xs font-semibold hover:bg-cyan-400 transition-colors shadow-sm select-none cursor-pointer"
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-blue-500 text-slate-950 text-xs font-bold hover:bg-cyan-700 transition-colors shadow-sm select-none cursor-pointer"
                       >
                         <Phone className="h-3.5 w-3.5" />
 
@@ -693,7 +693,7 @@ ${gym} Team 💪`;
                               member
                             )
                           }
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-green-500 text-black border border-emerald-500/20 text-xs font-medium hover:bg-green-300 transition-colors cursor-pointer"
                         >
                           <MessageCircle className="h-3.5 w-3.5" />
 
@@ -705,7 +705,7 @@ ${gym} Team 💪`;
                         <button
                           type="button"
                           disabled
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-600 border border-slate-200 dark:border-slate-800 text-xs font-medium cursor-not-allowed"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-green-500 dark:bg-slate-800/50 text-black border border-slate-200 dark:border-slate-800 text-xs font-medium cursor-not-allowed"
                         >
                           <MessageCircle className="h-3.5 w-3.5" />
 
@@ -724,7 +724,7 @@ ${gym} Team 💪`;
                           onClick={() =>
                             handleExtend(member)
                           }
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-medium hover:bg-purple-500/20 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-blue-500 text-black border border-purple-500/20 text-xs font-medium hover:bg-purple-500/20 transition-colors cursor-pointer"
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
 
@@ -737,7 +737,7 @@ ${gym} Team 💪`;
                           onClick={() =>
                             handleExtend(member)
                           }
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-green-400 text-black border border-emerald-500/20 text-xs font-medium hover:bg-emerald-500/20 transition-colors cursor-pointer"
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
 
@@ -759,7 +759,7 @@ ${gym} Team 💪`;
                                 member.id
                               )
                             }
-                            className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-red-500"
+                            className="w-full md:w-auto px-2 py-2 md:py-1.5 bg-red-500 text-black text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1 hover:bg-red-500"
                           >
                             <Check className="h-3 w-3" />
 
@@ -792,7 +792,7 @@ ${gym} Team 💪`;
                               member.id
                             )
                           }
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-medium hover:bg-red-500/20 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg bg-red-500 text-black border border-red-500/20 text-xs font-medium hover:bg-red-500/20 transition-colors cursor-pointer"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
 

@@ -730,7 +730,7 @@ export default function OwnerProfile() {
 
         <button
           onClick={handleLogout}
-          className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-rose-900/60 bg-red-700 py-3 font-semibold text-black-900 transition hover:bg-rose-950/70"
+          className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-rose-900/60 bg-red-500 py-3 font-semibold text-black transition hover:bg-red-400"
         >
           <LogOut size={18} />
           Logout
